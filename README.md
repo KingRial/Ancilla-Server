@@ -22,7 +22,7 @@ Project documentation
 Here a simple and minimal description of the experimental project intent.
 
 Using Ancilla as a middleware will allow to easily create independent sandboxes for each technology desired to be integrated inside the home automation.
-![Ancilla Concept](https://raw.github.com/KingRial/Ancilla/blob/master/Docs/DemoConcept.png)
+![Ancilla Concept](https://raw.githubusercontent.com/KingRial/Ancilla-Server/master/Docs/DemoConcept.png)
 The Ancilla server is composed by:
 - a "Core" service able to centralize all the aspects for a correct supervision
 - multiple independent "Technology" services for each handled technology
@@ -31,7 +31,7 @@ On the previous concept there "Core" service will handle all the communications 
 - The Bridge service is a simple technology which will just route every information received on a specific endpoints to all the other endpoints.
 
 Each service can be described with the following concept diagram:
-![Technology Concept](https://raw.github.com/KingRial/Ancilla/blob/master/Docs/TechnologyConcept.png)
+![Technology Concept](https://raw.githubusercontent.com/KingRial/Ancilla-Server/master/Docs/TechnologyConcept.png)
 The technology, like a simple plugin or addon, is independent from all the rest of the Ancilla software using it's own database if needed and it's own programming logics.
 However it will communicate with all the other services by a standard message called "Ancilla Event".
 
@@ -39,7 +39,7 @@ Each "Ancilla Event" is just a simple JSON message following specific signatures
 
 API
 ----------------------------
-Here the ![API documentation](https://raw.github.com/KingRial/Ancilla/blob/master/Docs/Ancilla.node.html) for Ancilla
+Here the ![API documentation](https://raw.githubusercontent.com/KingRial/Ancilla-Server/Docs/Ancilla.node.html) for Ancilla
 
 How to install your own Ancilla server
 ----------------------------
