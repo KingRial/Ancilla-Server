@@ -1,15 +1,12 @@
-[Ancilla](http://ancilla.com/) — Free Home Automation [![Build Status](https://travis-ci.org/ancilla/ancilla.svg)](https://travis-ci.org/ancilla/ancilla)
+Ancilla Server — Free Home Automation
 ==================================================
 
-[![ZenHub](https://raw.githubusercontent.com/ZenHubIO/support/master/zenhub-badge.png)](https://zenhub.io)
-[![Join the chat at https://gitter.im/ancilla/discuss](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ancilla/discuss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-Ancilla it's the server-side part of the [Ancilla](http://ancilla.com/) project.
+This is the server-side part of the Ancilla project.
 Built with [nodeJS](https://nodejs.org/) the purpose is to create a scalable, secure, customizable and free solution to handle home automation.
 
 See documentation for details.
 
-*Please be aware this is just an experimental version used to test technologies and solutions; it's still far from being complete*
+*Please be aware this is just an experimental version used to test technologies and solutions; it's still far from being the final result*
 
 *Any idea or contribution is welcome!*
 
