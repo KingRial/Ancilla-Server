@@ -1,6 +1,8 @@
 Ancilla Server — Free Home Automation
 ==================================================
 
+[![Join the chat at https://gitter.im/KingRial/Ancilla-Server](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/KingRial/Ancilla-Server?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This is the server-side part of the Ancilla project.
 Built with [nodeJS](https://nodejs.org/) the purpose is to create a scalable, secure, customizable and free solution to handle home automation.
 
