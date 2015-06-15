@@ -1,0 +1,20 @@
+{
+	"name": "Ancilla",
+	"version": "0.0.1",
+	"description": "Domotique Engine",
+	"keywords": [
+		"Domotique"
+	],
+	"homepage": "http://",
+	"bugs": {
+		"url": "http://"
+	},
+	"license": "MIT",
+	"author": "Riccardo Re <r.re@domoticalabs.com> (http://)",
+	"main": "",
+	"repository": {
+	},
+	"dependencies": {
+		"ancilla": "^0.0.1"
+	}
+}
