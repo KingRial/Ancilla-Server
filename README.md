@@ -14,6 +14,11 @@ See documentation for details.
 
 Changelog
 ----------------------------
+#v0.0.4
+- Refactored code to be used as a simple NPM's library
+- Reworked code: first step to obtain an easier environment to create and debug scripts created to integrate different technologies in the same supervisor.
+- Various fixing
+
 #v0.0.3
 - Added to GiTHub
 
@@ -22,7 +27,7 @@ Project documentation
 Here a simple and minimal description of the experimental project intent.
 
 Using Ancilla as a middleware will allow to easily create independent sandboxes for each technology desired to be integrated inside the home automation.
-![Ancilla Concept](https://raw.githubusercontent.com/KingRial/Ancilla-Server/master/Docs/DemoConcept.png)
+![Ancilla Concept](https://raw.githubusercontent.com/KingRial/Ancilla-Server/master/doc/DemoConcept.png)
 The Ancilla server is composed by:
 - a "Core" service able to centralize all the aspects for a correct supervision
 - multiple independent "Technology" services for each handled technology
@@ -31,7 +36,7 @@ On the previous concept there "Core" service will handle all the communications 
 - The Bridge service is a simple technology which will just route every information received on a specific endpoints to all the other endpoints.
 
 Each service can be described with the following concept diagram:
-![Technology Concept](https://raw.githubusercontent.com/KingRial/Ancilla-Server/master/Docs/TechnologyConcept.png)
+![Technology Concept](https://raw.githubusercontent.com/KingRial/Ancilla-Server/master/doc/TechnologyConcept.png)
 The technology, like a simple plugin or addon, is independent from all the rest of the Ancilla software using it's own database if needed and it's own programming logics.
 However it will communicate with all the other services by a standard message called "Ancilla Event".
 
@@ -39,33 +44,35 @@ Each "Ancilla Event" is just a simple JSON message following specific signatures
 
 API
 ----------------------------
-Here the ![API documentation](https://raw.githubusercontent.com/KingRial/Ancilla-Server/Docs/Ancilla.node.html) for Ancilla
+Here the ![API documentation](https://raw.githubusercontent.com/KingRial/Ancilla-Server/master/doc/Ancilla.node.html) for Ancilla
 
 How to install your own Ancilla server
 ----------------------------
 
-Clone a copy of the main Ancilla git repo by running:
+Clone a copy of the main Ancilla server git repo by running:
 
 ```bash
-git clone git://github.com/ancilla/ancilla.git
+git clone https://github.com/KingRial/Ancilla-Server.git
 ```
 
 Enter the ancilla directory and run the build script:
 ```bash
-cd node_modules/ancilla
 npm install
 ```
 
-Now you are ready to start the server execution
+Now you are ready to start the server execution and all the technologies configured into the server's database
 ```bash
 node Ancilla.node.js
 ```
 
-Debug
---------------------------------------
-If you wish to see all the debug messages use the following options while starting Ancilla
+If you wish to see all the debug messages use the following options while starting the server
 ```bash
 node Ancilla.node.js --debug
+```
+
+If you wish to run a specific technology or integration
+```bash
+node integrations/Technology.Demo.node.js
 ```
 
 Running the Unit Tests

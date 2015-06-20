@@ -15,9 +15,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with "Ancilla Libary".  If not, see <http://www.gnu.org/licenses/>.
 */
-var Technology = require('./Technology.node.js');
-var Tools = require('./Tools.node.js');
-Tools.setDebug( true ); //Set TRUE to show debug messages
+var Ancilla = require('../lib/ancilla.node.js');
+var Tools = Ancilla.Tools;
+var Technology = Ancilla.Technology;
 
 /**
  * A Technology which will link multiple endpoints; every data received from a configured endpoint will be written on all the other ones
@@ -25,25 +25,23 @@ Tools.setDebug( true ); //Set TRUE to show debug messages
  * @class	TechnologyBridge
  * @public
  *
- * @param	{String}		sID						A unique string ID which will point to the current technology
- * @param	{Object[]}		aGatewayOptions		An array of javascript objects describing the endpoints used by the gateway
- * @param	{Object[]}		oTechnologyOptions		A javascript object of options used to configure the technology behaviour
+ * @param	{Object[]}		oBridgeOptions		A javascript object of options used to configure the technology behaviour
  *
  * @example
- *		new TechnologyBridge( 'bridge-1', [{ type: 'listen', connectionType: 'net', host: 'localhost', port: 10001 }, { type: 'connect', connectionType: 'net', host: '192.168.0.100', port: 10002 }] );
- *		new TechnologyBridge( 'bridge-3', [{ connectionType: 'serial', port: '/dev/ttyS0', baudrate: 9600, databits: 8, stopbits: 1, parity: 'none', buffersize: 255 },{ type: 'listen', connectionType: 'ws', port: 10003 }] );
+ *		new TechnologyBridge( { sID: 'bridge-1', aEndpoints: [{ type: 'listen', connectionType: 'net', host: 'localhost', port: 10001 }, { type: 'connect', connectionType: 'net', host: '192.168.0.100', port: 10002 }] } );
+ *		new TechnologyBridge( { sID: 'bridge-2', aEndpoints: [{ connectionType: 'serial', port: '/dev/ttyS0', baudrate: 9600, databits: 8, stopbits: 1, parity: 'none', buffersize: 255 },{ type: 'listen', connectionType: 'ws', port: 10003 }] } );
  *
  * @return	{Void}
  *
  */
-var TechnologyBridge=function( sID, aGatewayOptions, oBridgeOptions ){
+var TechnologyBridge=function( oBridgeOptions ){
 	//Default Technology Options
 	oBridgeOptions = Tools.extend({
 		sType: 'Bridge',
 		bUseDB: false
 	}, oBridgeOptions );
 	// Calling inherited constructor
-	TechnologyBridge.super_.call( this, sID, aGatewayOptions, oBridgeOptions );
+	TechnologyBridge.super_.call( this, oBridgeOptions );
 }
 Tools.inherits( TechnologyBridge, Technology );
 
@@ -68,4 +66,4 @@ TechnologyBridge.prototype.onData = function( oData, oGWEndpoint ){
 	}
 }
 
-module.exports = TechnologyBridge;
+module.exports = Tools.exports( TechnologyBridge, module );

@@ -41,6 +41,6 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
-*.db
+*.sqlite
 node_modules
 generate DOC.bat

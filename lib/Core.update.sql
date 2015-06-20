@@ -28,9 +28,9 @@ INSERT INTO WIDGET ( ID, NAME, MODEL, OPTIONS, IS_PROTECTED ) VALUES ( NULL, '_L
 -- ( DEMO STEP ) DELETE THIS STEP
 --{{ UPDATE: 0.0.1 to 0.0.2 }}
 -- Demo Technology
---INSERT INTO TECHNOLOGY_TYPE ( ID, NAME, TYPE, PATH ) VALUES ( NULL, 'Fake.Technology', 'nodejs', './integrations/Fake.Technology.node.js' );
+--INSERT INTO TECHNOLOGY_TYPE ( ID, NAME, TYPE, PATH ) VALUES ( NULL, 'Technology.Demo', 'nodejs', './integrations/Technology.Demo.node.js' );
 --INSERT INTO OBJECT ( ID, NAME, TYPE, TECHNOLOGY, IS_PROTECTED, OPTIONS ) VALUES ( NULL, 'Bridge', 'TECHNOLOGY', 'Bridge', 1, '{"aArguments":[[{"id":"BridgeEndpoint1","type":"listen","connectionType":"net","port":10001},{"id":"BridgeEndpoint2","type":"listen","connectionType":"net","port":10002},{"id":"BridgeEndpoint3","type":"listen","connectionType":"net","port":10003}]]}' );
---INSERT INTO OBJECT ( ID, NAME, TYPE, TECHNOLOGY, IS_PROTECTED, OPTIONS ) VALUES ( NULL, 'FakeTechnology-1', 'TECHNOLOGY', 'Fake.Technology', 1, '{"aArguments":[[{"id":"FakeEndpoint1","type":"connect","connectionType":"net","port":10003}]]}' );
+--INSERT INTO OBJECT ( ID, NAME, TYPE, TECHNOLOGY, IS_PROTECTED, OPTIONS ) VALUES ( NULL, 'FakeTechnology-1', 'TECHNOLOGY', 'Technology.Demo', 1, '{"aArguments":[[{"id":"FakeEndpoint1","type":"connect","connectionType":"net","port":10003}]]}' );
 -- Demo Grid
 INSERT INTO OBJECT ( ID, NAME, TYPE, VALUE ) VALUES ( 20, 'Ambiente 1', 'GROUP', '/runtime/grid' );
 INSERT INTO OBJECT ( ID, NAME, TYPE, VALUE ) VALUES ( 21, 'Ambiente 1a', 'GROUP', '/runtime/grid' );
