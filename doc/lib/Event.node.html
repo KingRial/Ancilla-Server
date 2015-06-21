@@ -1,0 +1,136 @@
+<!DOCTYPE html><html lang="en"><head><title>lib\Event.node</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="lib\Event.node"><meta name="groc-project-path" content="lib\Event.node.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">lib\Event.node.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
+This file is part of &quot;Ancilla Libary&quot;.</p>
+<p> &quot;Ancilla Libary&quot; is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.</p>
+<p> &quot;Ancilla Libary&quot; is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.</p>
+<p> You should have received a copy of the GNU General Public License
+ along with &quot;Ancilla Libary&quot;.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Tools = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Tools.node.js'</span>);
+<span class="hljs-keyword">var</span> Constant = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Constants.node.js'</span>);</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public class Event</span></p>
+<p>A class to describe an Ancilla Event</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oOptions must be an Object.</strong><br/>(Default datas to fill the newly created Ancilla Event)</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>new Event( { sType: &#39;test-event&#39; } );</code></pre></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Event=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oOptions )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Default Options</p></div></div><div class="code"><div class="wrapper">	oOptions = Tools.extend({
+		iID: <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().getTime(),
+		sType: <span class="hljs-literal">null</span>,
+		sFromID: <span class="hljs-literal">null</span>,
+		sToID: <span class="hljs-string">'Core'</span>,
+		<span class="hljs-comment">//iResult : 0</span>
+		<span class="hljs-comment">//bIsAnswer: false,</span>
+		bNeedsAnswer : <span class="hljs-literal">true</span>,
+		iTimeout: <span class="hljs-number">15000</span>, <span class="hljs-comment">// Milliseconds</span>
+	}, oOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Initializing Event</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">this</span>.__fillByOptions( oOptions );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __fillByOptions</span></p>
+<p>Method used to fille the event with datas</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oArray must be an Object.</strong><br/>(The datas used to fill the event)</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Event.__fillByOptions( oArray );</code></pre></div></div><div class="code"><div class="wrapper">Event.prototype.__fillByOptions = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oArray )</span></span>{
+	<span class="hljs-keyword">if</span>( oArray ){
+		<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _sField <span class="hljs-keyword">in</span> oArray ){
+			<span class="hljs-keyword">this</span>[ _sField ] = oArray[ _sField ];
+		}
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method toString</span></p>
+<p>Method used to convert Event to String</p>
+<p><strong>Returns a String</strong><br/>(the converted string which describes current Event)<br/><strong>and</strong> <strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Event.toString();</code></pre></div></div><div class="code"><div class="wrapper">Event.prototype.toString = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-built_in">JSON</span>.stringify( <span class="hljs-keyword">this</span> );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getID</span></p>
+<p>Method used to return Event ID</p>
+<p><strong>Returns a Number</strong><br/>(it returns the Event ID)</p>
+<p>Example:</p>
+<pre><code>Event.getID();</code></pre></div></div><div class="code"><div class="wrapper">Event.prototype.getID = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.iID;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getType</span></p>
+<p>Method used to return Event type</p>
+<p><strong>Returns a String</strong><br/>(it returns the Event type)</p>
+<p>Example:</p>
+<pre><code>Event.getType();</code></pre></div></div><div class="code"><div class="wrapper">Event.prototype.getType = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.sType;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getTo</span></p>
+<p>Method used to return Event recipient</p>
+<p><strong>Returns a String</strong><br/>(it returns the Event recipient)</p>
+<p>Example:</p>
+<pre><code>Event.getTo();</code></pre></div></div><div class="code"><div class="wrapper">Event.prototype.getTo = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.sToID;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getFrom</span></p>
+<p>Method used to return Event sender</p>
+<p><strong>Returns a String</strong><br/>(it returns the Event sender)</p>
+<p>Example:</p>
+<pre><code>Event.getFrom();</code></pre></div></div><div class="code"><div class="wrapper">Event.prototype.getFrom = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.sFromID;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getTimeout</span></p>
+<p>Method used to return Event timeout ( milliseconds )</p>
+<p><strong>Returns a Number</strong><br/>(it returns the Event timeout ( milliseconds ))</p>
+<p>Example:</p>
+<pre><code>Event.getTimeout();</code></pre></div></div><div class="code"><div class="wrapper">Event.prototype.getTimeout = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.iTimeout;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method isRequest</span></p>
+<p>Method used to understand if the Event is a Request</p>
+<p><strong>Returns a Boolean</strong><br/>(it returns true if it&#39;s a request)</p>
+<p>Example:</p>
+<pre><code>Event.isRequest();</code></pre></div></div><div class="code"><div class="wrapper">Event.prototype.isRequest = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> ( <span class="hljs-keyword">this</span>.bIsAnswer ? <span class="hljs-literal">false</span> : <span class="hljs-literal">true</span> );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method isAnswer</span></p>
+<p>Method used to understand if the Event is an Answer</p>
+<p><strong>Returns a Boolean</strong><br/>(it returns true if it&#39;s an Answer)</p>
+<p>Example:</p>
+<pre><code>Event.isAnswer();</code></pre></div></div><div class="code"><div class="wrapper">Event.prototype.isAnswer = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> ( ! <span class="hljs-keyword">this</span>.isRequest() );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method needsAnswer</span></p>
+<p>Method used to understand if the Event request needs an answer</p>
+<p><strong>Returns a Boolean</strong><br/>(it returns true if it needs an answer)</p>
+<p>Example:</p>
+<pre><code>Event.needsAnswer();</code></pre></div></div><div class="code"><div class="wrapper">Event.prototype.needsAnswer = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.bNeedsAnswer;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method needsAnswer</span></p>
+<p>Method used to transform an Event request into an Event answer</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>iResult is optional and must be a Number.</strong><br/>(The result of the requested operation which needed the answer)</p>
+</li>
+<li><p><strong>oAdditionalData is optional and must be an Object.</strong><br/>(Additional data to add to the Event answer)</p>
+</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Event.setToAnswer( Constant._NO_ERROR );
+Event.setToAnswer( oAdditionalData );
+Event.setToAnswer( Constant._NO_ERROR, oAdditionalData );</code></pre></div></div><div class="code"><div class="wrapper">Event.prototype.setToAnswer = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">var</span> oAdditionalData = <span class="hljs-literal">null</span>;
+  <span class="hljs-keyword">var</span> iResult = <span class="hljs-literal">null</span>;
+  <span class="hljs-keyword">switch</span>( <span class="hljs-built_in">arguments</span>.length ){
+    <span class="hljs-keyword">case</span> <span class="hljs-number">1</span>:
+			<span class="hljs-keyword">var</span> _bIsNumeric = Tools.isNumeric( <span class="hljs-built_in">arguments</span>[ <span class="hljs-number">0</span> ]  );
+			iResult = ( _bIsNumeric ? <span class="hljs-built_in">arguments</span>[ <span class="hljs-number">0</span> ] : <span class="hljs-literal">null</span> );
+      oAdditionalData = ( !_bIsNumeric ? <span class="hljs-built_in">arguments</span>[ <span class="hljs-number">0</span> ] : <span class="hljs-literal">null</span> );
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">default</span>:
+			iResult = <span class="hljs-built_in">arguments</span>[ <span class="hljs-number">0</span> ];
+			oAdditionalData = <span class="hljs-built_in">arguments</span>[ <span class="hljs-number">1</span> ];
+      <span class="hljs-keyword">break</span>;
+  }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>It should be an answer so it doesn&#39;t require a response anymore... but this can be overwritten using additional datas
+Removing useless fields to reduce string length</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">delete</span> <span class="hljs-keyword">this</span>.bRequireResponse;
+	<span class="hljs-keyword">delete</span> <span class="hljs-keyword">this</span>.iTimeout;
+	oAdditionalData = Tools.extend({
+		sFromID: <span class="hljs-keyword">this</span>.sToID, <span class="hljs-comment">// Exchanging source with destination</span>
+		sToID: <span class="hljs-keyword">this</span>.sFromID, <span class="hljs-comment">// Exchanging source with destination</span>
+		bIsAnswer: <span class="hljs-literal">true</span>, <span class="hljs-comment">// Setting answer type</span>
+		iResult: ( iResult || Constant._NO_ERROR ), <span class="hljs-comment">// Setting default response</span>
+	}, ( oAdditionalData || {} ) );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Filling with additional data</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">this</span>.__fillByOptions( oAdditionalData );
+}
+
+<span class="hljs-built_in">module</span>.exports = Event;</div></div></div></div></body></html>

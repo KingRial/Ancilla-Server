@@ -1,0 +1,349 @@
+<!DOCTYPE html><html lang="en"><head><title>lib\Gateway.endpoint.node</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="lib\Gateway.endpoint.node"><meta name="groc-project-path" content="lib\Gateway.endpoint.node.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">lib\Gateway.endpoint.node.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
+This file is part of &quot;Ancilla Libary&quot;.</p>
+<p> &quot;Ancilla Libary&quot; is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.</p>
+<p> &quot;Ancilla Libary&quot; is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.</p>
+<p> You should have received a copy of the GNU General Public License
+ along with &quot;Ancilla Libary&quot;.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Tools = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Tools.node.js'</span>);
+
+<span class="hljs-keyword">var</span> EventEmitter = <span class="hljs-built_in">require</span>( <span class="hljs-string">'events'</span> ).EventEmitter;
+<span class="hljs-comment">//Tools.setDebug( true );</span></div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public class GatewayEndpoint</span></p>
+<p>Generic Gateway Endpoint</p>
+<p>The Gateway Endpoint will emit the following events</p>
+<ul>
+<li>data: Emitted when data is received.</li>
+<li>drain: Emitted when the write buffer becomes empty.</li>
+<li>timeout: Emitted if the connection times out from inactivity.</li>
+<li>close: Emitted once the connection is fully closed.</li>
+<li>error: Emitted when an error occurs.</li>
+<li>ready: Emitted when the gateway has created all its endpoints.</li>
+</ul>
+<p>Parameters:</p>
+<ul>
+<li><strong>oOptions must be an Object.</strong><br/>(A javascript objects describing the endpoint used by the gateway)</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>new GatewayEndpoint( { type: &#39;net&#39;, connectionType: &#39;listen&#39;, host: &#39;localhost&#39;, port: 10001 } );
+new GatewayEndpoint( { type: &#39;net&#39;, connectionType: &#39;connect&#39;, host: &#39;192.168.0.100&#39;, port: 10002 } );
+new GatewayEndpoint( { type: &#39;serial&#39;, port: &#39;/dev/ttyS0&#39;, baudrate: 9600, databits: 8, stopbits: 1, parity: &#39;none&#39;, buffersize: 255 } );
+new GatewayEndpoint( { type: &#39;ws&#39;, connectionType: &#39;listen&#39;, port: 10003 } );
+new GatewayEndpoint( { type: &#39;wss&#39;, connectionType: &#39;listen&#39;, port: 10004 } );
+new GatewayEndpoint( { type: &#39;ws&#39;, connectionType: &#39;connect&#39;, host: &#39;192.168.0.100&#39;, port: 10005 } );
+new GatewayEndpoint( { type: &#39;wss&#39;, connectionType: &#39;connect&#39;, host: &#39;192.168.0.100&#39;, port: 10006 } );</code></pre></div></div><div class="code"><div class="wrapper"><span class="hljs-comment">//Gateway Event Emitter</span>
+<span class="hljs-keyword">var</span> GatewayEndpoint = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">( oOptions )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Default Options</p></div></div><div class="code"><div class="wrapper">	oOptions = Tools.extend({
+		id: <span class="hljs-string">'DefaultEndpoint'</span>,
+		type: <span class="hljs-string">'net'</span>,
+		connectionType: <span class="hljs-string">'listen'</span>,
+		reconnect: <span class="hljs-literal">true</span>,
+		reconnectionDelay: <span class="hljs-number">10</span>,	<span class="hljs-comment">//Seconds</span>
+		reconnectionAttempts: -<span class="hljs-number">1</span>,	<span class="hljs-comment">//Infinite attempts</span>
+		isAncillaEventsHandler: <span class="hljs-literal">false</span>
+	}, oOptions );
+	<span class="hljs-comment">//Default Options by connectionType</span>
+	oOptions = Tools.extend( {
+		host: ( oOptions.connectionType == <span class="hljs-string">'connect'</span> ?  <span class="hljs-string">'localhost'</span> : Tools.getLocalIPs( <span class="hljs-number">0</span> ) )
+	}, oOptions );
+	<span class="hljs-keyword">var</span> Emitter = <span class="hljs-literal">null</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init properties</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-comment">//this.id = oOptions.id;</span>
+	<span class="hljs-keyword">this</span>.__oOptions = oOptions;
+	<span class="hljs-keyword">this</span>.__oConnectedSockets = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>();
+	<span class="hljs-keyword">this</span>.__oConnectedSocketsID = {};
+	<span class="hljs-keyword">this</span>.__bReady = <span class="hljs-literal">false</span>;
+	<span class="hljs-keyword">this</span>.__iConnectionTimerHandler = <span class="hljs-literal">null</span>;
+	<span class="hljs-keyword">this</span>.__iConnectionAttempsts = <span class="hljs-number">0</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Creating Emitter</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">this</span>.__createEmitter();
+}
+Tools.inherits( GatewayEndpoint, EventEmitter );</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __createEmitter</span></p>
+<p>Method used to create the Endpoint&#39;s emitter</p>
+<p><strong>Returns an Object</strong><br/>(The endpoint&#39;s emitter)</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.__createEmitter();</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.__createEmitter = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">var</span> _oGatewayEndpoint = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">if</span>( !<span class="hljs-keyword">this</span>.getEmitter() ){
+		<span class="hljs-keyword">switch</span>( <span class="hljs-keyword">this</span>.getConnectionType() ){
+			<span class="hljs-keyword">case</span> <span class="hljs-string">'serial'</span>:
+				Emitter = <span class="hljs-built_in">require</span>( <span class="hljs-string">'./Gateway.endpoint.emitter.serial.node.js'</span> );
+			<span class="hljs-keyword">break</span>;
+			<span class="hljs-keyword">case</span> <span class="hljs-string">'wss'</span>:
+			<span class="hljs-keyword">case</span> <span class="hljs-string">'ws'</span>:
+				Emitter = <span class="hljs-built_in">require</span>( <span class="hljs-string">'./Gateway.endpoint.emitter.websocket.node.js'</span> );
+			<span class="hljs-keyword">break</span>;
+			<span class="hljs-keyword">case</span> <span class="hljs-string">'net'</span>:
+				Emitter = <span class="hljs-built_in">require</span>( <span class="hljs-string">'./Gateway.endpoint.emitter.net.node.js'</span> );
+			<span class="hljs-keyword">break</span>;
+			<span class="hljs-keyword">default</span>:
+				Tools.error( <span class="hljs-string">'[ Endpoint ( ID: %s ) ] Error: unable to determine endpoint type from "%s"'</span>, _oGatewayEndpoint.getID(), <span class="hljs-keyword">this</span>.getConnectionType() );
+			<span class="hljs-keyword">break</span>;
+		}
+		<span class="hljs-keyword">if</span>( Emitter ){ <span class="hljs-comment">//if Class exists</span>
+			<span class="hljs-keyword">this</span>.__iConnectionAttempsts++;
+			Tools.debug( <span class="hljs-string">'[ Endpoint ( ID: %s ) ] Creating Emitter from options: "%j" ( Attempt number: "%s" )'</span>, _oGatewayEndpoint.getID(), <span class="hljs-keyword">this</span>.__oOptions, <span class="hljs-keyword">this</span>.__iConnectionAttempsts );
+			<span class="hljs-keyword">var</span> _oEmitter = <span class="hljs-keyword">new</span> Emitter( <span class="hljs-keyword">this</span>.__oOptions );
+			<span class="hljs-comment">//Generic events</span>
+			_oEmitter.on( <span class="hljs-string">'listening'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+				Tools.debug(<span class="hljs-string">'[ Endpoint ( ID: %s ) ] is ready...'</span>, _oGatewayEndpoint.getID() );
+				_oGatewayEndpoint.__bReady = <span class="hljs-literal">true</span>;
+				_oGatewayEndpoint.emit( <span class="hljs-string">'ready'</span> );
+			});
+			_oEmitter.on( <span class="hljs-string">'connect'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+				Tools.debug(<span class="hljs-string">'[ Endpoint ( ID: %s ) ] connection estabilished with "%s:%s"...'</span>, _oGatewayEndpoint.getID(), _oGatewayEndpoint.getHost(), _oGatewayEndpoint.getPort() );
+				_oGatewayEndpoint.__bReady = <span class="hljs-literal">true</span>;
+				_oGatewayEndpoint.emit( <span class="hljs-string">'connect'</span> );
+				_oGatewayEndpoint.emit( <span class="hljs-string">'ready'</span> );
+			});
+			_oEmitter.on(<span class="hljs-string">'data'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oData, iSocketIndex )</span> </span>{
+				Tools.debug(<span class="hljs-string">'[ Endpoint ( ID: %s ) ] Data received from socket with index "%s": "%s"...'</span>, _oGatewayEndpoint.getID(), iSocketIndex, oData.toString(<span class="hljs-string">'hex'</span>) );
+				_oGatewayEndpoint.emit(<span class="hljs-string">'data'</span>, oData, iSocketIndex );
+			});
+			_oEmitter.on(<span class="hljs-string">'drain'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oData )</span> </span>{
+				Tools.debug(<span class="hljs-string">'[ Endpoint ( ID: %s ) ] Data drained: "%s"...'</span>, _oGatewayEndpoint.getID(), oData.toString(<span class="hljs-string">'hex'</span>) );
+				_oGatewayEndpoint.emit(<span class="hljs-string">'drain'</span>, oData );
+			});
+			_oEmitter.on(<span class="hljs-string">'timeout'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+				Tools.debug( <span class="hljs-string">'[ Endpoint ( ID: %s ) ] Timeout'</span>, _oGatewayEndpoint.getID() );
+				_oGatewayEndpoint.emit(<span class="hljs-string">'timeout'</span> );
+			});
+			_oEmitter.on(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iSocketIndex )</span> </span>{
+				Tools.debug( <span class="hljs-string">'[ Endpoint ( ID: %s ) ] Socket "%j" closed'</span>, _oGatewayEndpoint.getID(), iSocketIndex );
+				_oGatewayEndpoint.emit(<span class="hljs-string">'close'</span>, iSocketIndex, <span class="hljs-keyword">this</span> );
+			});
+			_oEmitter.on(<span class="hljs-string">'error'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span> </span>{
+				<span class="hljs-keyword">if</span>( oError.code == <span class="hljs-string">'ECONNREFUSED'</span> || oError.code == <span class="hljs-string">'ETIMEDOUT'</span> ){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Checking if endpoint can be reconnected</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-keyword">var</span> _bCanReconnect = _oGatewayEndpoint.__canReconnect();
+					<span class="hljs-keyword">if</span>( _bCanReconnect ){
+						Tools.info( <span class="hljs-string">'[ Endpoint ( ID: "%s" ) ] Re-connection attempt number:"%s" in "%s" seconds.'</span>, _oGatewayEndpoint.getID(), ( _oGatewayEndpoint.__iConnectionAttempsts + <span class="hljs-number">1</span> ) , _oGatewayEndpoint.__oOptions.reconnectionDelay );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Calling __createEmitter after a specific delay</p></div></div><div class="code"><div class="wrapper">						clearTimeout( _oGatewayEndpoint.__iConnectionTimerHandler );
+						_oGatewayEndpoint.__iConnectionTimerHandler = setTimeout(  Tools.proxy( _oGatewayEndpoint.__createEmitter, _oGatewayEndpoint ), ( _oGatewayEndpoint.__oOptions.reconnectionDelay * <span class="hljs-number">1000</span> ) );
+					} <span class="hljs-keyword">else</span> {
+						Tools.info( <span class="hljs-string">'[ Endpoint ( ID: "%s" ) ] failed all allowed attempts to reconect. %s'</span>, _oGatewayEndpoint.getID(), oError );
+					}
+
+				} <span class="hljs-keyword">else</span> {
+					Tools.error( <span class="hljs-string">'[ Endpoint ( ID: "%s" ) ] %s'</span>, _oGatewayEndpoint.getID(), oError );
+				}
+				_oGatewayEndpoint.emit(<span class="hljs-string">'error'</span>, oError );
+			});
+			<span class="hljs-comment">//Specific connection type events</span>
+			<span class="hljs-keyword">switch</span>( <span class="hljs-keyword">this</span>.getType() ){
+				<span class="hljs-keyword">case</span> <span class="hljs-string">'listen'</span>:
+					<span class="hljs-comment">//Listen Events</span>
+					_oEmitter.on(<span class="hljs-string">'connection'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oSocket )</span> </span>{
+						<span class="hljs-keyword">var</span> _oSocket = ( oSocket._socket ? oSocket._socket : oSocket ); <span class="hljs-comment">// Transforming for websockets custom environment</span>
+						Tools.debug(<span class="hljs-string">'[ Endpoint ( ID: %s ) ] connection received from "%s:%s"...'</span>, _oGatewayEndpoint.getID(), _oSocket.remoteAddress, _oSocket.remotePort );
+						<span class="hljs-keyword">var</span> _iSocketIndex = _oGatewayEndpoint.getConnectedSockets().length;
+						_oGatewayEndpoint.__addToConnectedSockets( oSocket );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Socket Event: data</p></div></div><div class="code"><div class="wrapper">						oSocket.on(<span class="hljs-string">'data'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oData )</span> </span>{  <span class="hljs-comment">// client writes message</span>
+							Tools.debug(<span class="hljs-string">'[ Endpoint ( ID: %s ) ] Data received: "%s" from connected client "%s:%s"...'</span>, _oGatewayEndpoint.getID(), oData.toString(<span class="hljs-string">'hex'</span>), _oSocket.remoteAddress, _oSocket.remotePort );
+							_oEmitter.emit( <span class="hljs-string">'data'</span>, oData, _iSocketIndex );
+						});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Socket Event: message ( same behaviour has socket event: data )</p></div></div><div class="code"><div class="wrapper">						oSocket.on( <span class="hljs-string">'message'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oData )</span> </span>{  <span class="hljs-comment">// client writes message</span>
+							Tools.debug(<span class="hljs-string">'[ Endpoint ( ID: %s ) ] Data received: "%s" from connected client "%s:%s"...'</span>, _oGatewayEndpoint.getID(), oData.toString(<span class="hljs-string">'hex'</span>), _oSocket.remoteAddress, _oSocket.remotePort );
+							_oEmitter.emit( <span class="hljs-string">'data'</span>, oData, _iSocketIndex );
+						});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Socket Event: drain</p></div></div><div class="code"><div class="wrapper">						oSocket.on(<span class="hljs-string">'drain'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oData )</span> </span>{  <span class="hljs-comment">// client writes message and leave empty place</span>
+							Tools.debug(<span class="hljs-string">'[ Endpoint ( ID: %s ) ] Data drained: "%s" from connected client "%s:%s"...'</span>, _oGatewayEndpoint.getID(), oData.toString(<span class="hljs-string">'hex'</span>), _oSocket.remoteAddress, _oSocket.remotePort );
+							_oEmitter.emit( <span class="hljs-string">'drain'</span>, oData );
+						});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Socket Event: end</p></div></div><div class="code"><div class="wrapper">						oSocket.on(<span class="hljs-string">'end'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span> </span>{ <span class="hljs-comment">// client disconnects</span>
+							Tools.debug(<span class="hljs-string">'[ Endpoint ( ID: %s ) ] Socket "%s" ( "%s:%s" ) has been disconnected...'</span>, _oGatewayEndpoint.getID(), _iSocketIndex, _oSocket.remoteAddres, _oSocket.remotePort );
+							_oEmitter.emit( <span class="hljs-string">'close'</span>, _iSocketIndex );
+							_oGatewayEndpoint.__removeFromConnectedSockets( _iSocketIndex );
+						});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Socket Event: close</p></div></div><div class="code"><div class="wrapper">						oSocket.on(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span> </span>{ <span class="hljs-comment">// client disconnects</span>
+							Tools.debug(<span class="hljs-string">'[ Endpoint ( ID: %s ) ] Socket "%s" ( "%s:%s" ) has been disconnected...'</span>, _oGatewayEndpoint.getID(), _iSocketIndex, _oSocket.remoteAddres, _oSocket.remotePort );
+							_oEmitter.emit( <span class="hljs-string">'close'</span>, _iSocketIndex );
+							_oGatewayEndpoint.__removeFromConnectedSockets( _iSocketIndex );
+						});
+						_oGatewayEndpoint.emit( <span class="hljs-string">'connection'</span>, oSocket );
+					});
+				<span class="hljs-keyword">break</span>;
+				<span class="hljs-keyword">default</span>:
+					<span class="hljs-comment">//Nothing to do</span>
+				<span class="hljs-keyword">break</span>;
+			}
+			<span class="hljs-comment">//Remembering emitter</span>
+			<span class="hljs-keyword">this</span>.setEmitter( _oEmitter );
+		} <span class="hljs-keyword">else</span> {
+			Tools.error( <span class="hljs-string">'[ Endpoint ( ID: %s ) ] missing class emitter for connection type "%s"...'</span>, _oGatewayEndpoint.getID(), <span class="hljs-keyword">this</span>.getConnectionType()  );
+		}
+	} <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Recreating Emitter</p></div></div><div class="code"><div class="wrapper">		<span class="hljs-keyword">delete</span> <span class="hljs-keyword">this</span>._oEmitter;
+		<span class="hljs-keyword">this</span>.__createEmitter();
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getEmitter</span></p>
+<p>Method used to return the Endpoint&#39;s emitter</p>
+<p><strong>Returns an Object</strong><br/>(The endpoint&#39;s emitter)</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.getEmitter();</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.getEmitter = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._oEmitter;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method isReady</span></p>
+<p>Method used to return if the Endpoint is ready</p>
+<p><strong>Returns a Boolean</strong><br/>(The endpoint&#39;s ready state)</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.isReady();</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.isReady = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__bReady;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getID</span></p>
+<p>Method used to get the current endpoint ID</p>
+<p><strong>Returns a String</strong><br/>(sID It returns the unique endpoint&#39;s string ID)</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.getID();</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.getID=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.id;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getConnectionType</span></p>
+<p>Method used to return if the endpoint&#39;s connection type ( &quot;listen&quot; or &quot;connect&quot; )</p>
+<p><strong>Returns a String</strong><br/>(The endpoint&#39;s connection type ( &quot;listen&quot; or &quot;connect&quot; ))</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.getConnectionType();</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.getConnectionType = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.connectionType;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getType</span></p>
+<p>Method used to return if the endpoint&#39;s type ( &quot;net&quot;, &quot;serial&quot;, &quot;ws&quot; or &quot;wss&quot; )</p>
+<p><strong>Returns a String</strong><br/>(The endpoint&#39;s type ( &quot;net&quot;, &quot;serial&quot;, &quot;ws&quot; or &quot;wss&quot; ))</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.getType();</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.getType = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.type;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getHost</span></p>
+<p>Method used to return if the endpoint&#39;s host</p>
+<p><strong>Returns a String</strong><br/>(The endpoint&#39;s host)</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.getHost();</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.getHost = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.host;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getPort</span></p>
+<p>Method used to return if the endpoint&#39;s port</p>
+<p><strong>Returns a String</strong><br/>(The endpoint&#39;s port)</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.getPort();</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.getPort = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.port;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getConnectedSockets</span></p>
+<p>Method used to return the  connected sockets to the Endpoint</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>iIndex is optional and must be an Integer.</strong><br/>(If used, it will return only the scoket with such index)</li>
+</ul>
+<p><strong>Returns an Object[]</strong><br/>(An array of sockets connect to the Endpoint)</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.getConnectedSockets();</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.getConnectedSockets = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iIndex )</span></span>{
+	<span class="hljs-keyword">if</span>( <span class="hljs-keyword">typeof</span> iIndex == <span class="hljs-string">'undefined'</span> ){
+		<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oConnectedSockets;
+	} <span class="hljs-keyword">else</span> {
+		<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oConnectedSockets[ iIndex ];
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method setConnectedSocketID</span></p>
+<p>Method used to set a specific ID to a connected socket</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sID must be a sID.</strong><br/>(The socket ID to set)</p>
+</li>
+<li><p><strong>iIndex must be a Number.</strong><br/>(The socket index to which set the ID)</p>
+</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.setConnectedSocketID( &#39;socketOne&#39; );</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.setConnectedSocketID = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iIndex, sID )</span></span>{
+	<span class="hljs-keyword">var</span> _sCurrentID = <span class="hljs-keyword">this</span>.__oConnectedSocketsID[ sID ];
+	<span class="hljs-keyword">if</span>( !_sCurrentID ){
+		Tools.debug( <span class="hljs-string">'[ Endpoint ( ID: "%s" ) ] connected socket with index: "%s" is now known as "%s"... '</span>, <span class="hljs-keyword">this</span>.getID(), iIndex, sID );
+		<span class="hljs-keyword">this</span>.__oConnectedSocketsID[ sID ] = iIndex;
+	} <span class="hljs-keyword">else</span> {
+		Tools.error( <span class="hljs-string">'[ Endpoint ( ID: "%s" ) ] already known a connected socket with index: "%s" as "%s"; ignoring operation set ID "%s"... '</span>, <span class="hljs-keyword">this</span>.getID(), iIndex, _sCurrentID, sID );
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getConnectedSocket</span></p>
+<p>Method used to return the connected socket from it&#39;s ID or it&#39;s Index</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>indexOrID must be a Number/String.</strong><br/>(connected socket ID or index)</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(The selected connected socket to the Endpoint)</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.getConnectedSocket( &#39;socketOne&#39; );
+GatewayEndpoint.getConnectedSocket( 1 );</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.getConnectedSocket = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( indexOrID )</span></span>{
+	<span class="hljs-keyword">var</span> _oSocket = <span class="hljs-literal">null</span>;
+	<span class="hljs-keyword">switch</span>( <span class="hljs-keyword">typeof</span> indexOrID ){
+		<span class="hljs-keyword">case</span> <span class="hljs-string">'string'</span>: <span class="hljs-comment">// It's an ID</span>
+				<span class="hljs-keyword">var</span> _iIndex = <span class="hljs-keyword">this</span>.__oConnectedSocketsID[ indexOrID ];
+				<span class="hljs-keyword">if</span>( <span class="hljs-keyword">typeof</span> _iIndex != <span class="hljs-string">'undefined'</span> ){
+					_oSocket = <span class="hljs-keyword">this</span>.getConnectedSockets( _iIndex );
+				}
+			<span class="hljs-keyword">break</span>;
+		<span class="hljs-keyword">case</span> <span class="hljs-string">'number'</span>: <span class="hljs-comment">// It's an index!</span>
+			_oSocket = <span class="hljs-keyword">this</span>.getConnectedSockets( indexOrID );
+			<span class="hljs-keyword">break</span>;
+		<span class="hljs-keyword">default</span>: <span class="hljs-comment">// It's nothing I care! ;)</span>
+			<span class="hljs-keyword">break</span>;
+	}
+	<span class="hljs-keyword">return</span> _oSocket;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __addToConnectedSockets</span></p>
+<p>Method used to add a socket to the connected socket list</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oSocket must be an Object.</strong><br/>(The connected socket to add to the list)</li>
+</ul>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.__addToConnectedSockets( oSocket );</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.__addToConnectedSockets = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oSocket )</span></span>{
+	<span class="hljs-keyword">this</span>.getConnectedSockets().push( oSocket );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __removeFromConnectedSockets</span></p>
+<p>Method used to remove a socket from the connected socket list</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oSocket must be an Object.</strong><br/>(The socket to remove from the list)</li>
+</ul>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.__removeFromConnectedSockets( oSocket );</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.__removeFromConnectedSockets = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iSocketIndex )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Clearing matrix of sockets by ID</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _sID <span class="hljs-keyword">in</span> <span class="hljs-keyword">this</span>.__oConnectedSocketsID ){
+		<span class="hljs-keyword">if</span>( <span class="hljs-keyword">this</span>.__oConnectedSocketsID[ _sID ] == iSocketIndex ){
+			<span class="hljs-keyword">delete</span> <span class="hljs-keyword">this</span>.__oConnectedSocketsID[ _sID ];
+		}
+	}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Clearing matrix of sockets by index</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">delete</span> <span class="hljs-keyword">this</span>.__oConnectedSockets[ iSocketIndex ];
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method setEmitter</span></p>
+<p>Method used to set the emitter to use in the current endpoint</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oEmitter must be an Object.</strong><br/>(The emitter to use in the current endpoint)</li>
+</ul>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.setEmitter( oEmitter );</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.setEmitter = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oEmitter )</span></span>{
+	<span class="hljs-keyword">this</span>._oEmitter = oEmitter;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method write</span></p>
+<p>Method used to write a buffer on the current endpoint</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oData must be an Object.</strong><br/>(The buffer to write)</p>
+</li>
+<li><p><strong>sEncoding must be a String.</strong><br/>(The encoding type)</p>
+</li>
+<li><p><strong>fCallback must be a Function.</strong><br/>(The callback function to call when write operation has been completed)</p>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.write( oData, sEncoding, fCallback );</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.write = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oData, sEncoding, fCallback )</span></span>{
+	<span class="hljs-keyword">switch</span>( <span class="hljs-keyword">this</span>.getType() ){
+		<span class="hljs-keyword">case</span> <span class="hljs-string">'connect'</span>:
+			Tools.debug( <span class="hljs-string">'[ Endpoint ( ID: "%s" ) ] writing: "%s"... '</span>, <span class="hljs-keyword">this</span>.getID(), oData.toString(<span class="hljs-string">'hex'</span>) );
+			<span class="hljs-keyword">this</span>.getEmitter().write( oData, sEncoding, fCallback );
+		<span class="hljs-keyword">break</span>;
+		<span class="hljs-keyword">case</span> <span class="hljs-string">'listen'</span>:
+			<span class="hljs-keyword">var</span> _aConnectedSockets = <span class="hljs-keyword">this</span>.getConnectedSockets();
+			<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> _aConnectedSockets ){
+				<span class="hljs-keyword">var</span> _oConnectedSocket = _aConnectedSockets[ _iIndex ];
+				Tools.debug( <span class="hljs-string">'[ Endpoint ( ID: "%s" ) ] Writing on connected socket: "%s:%s"'</span>, <span class="hljs-keyword">this</span>.getID(), _oConnectedSocket.remoteAddress, _oConnectedSocket.remotePort );
+				_oConnectedSocket.write( oData, sEncoding, fCallback );
+			}
+		<span class="hljs-keyword">break</span>;
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __canReconnect</span></p>
+<p>Method used to decide if and endpoint can reconnect on &#39;ECONNREFUSED&#39; or &#39;ETIMEDOUT&#39; error</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.__canReconnect();</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.__canReconnect = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">var</span> _bResult = <span class="hljs-keyword">this</span>.__oOptions.reconnect;
+	<span class="hljs-keyword">if</span>( _bResult ){
+		Tools.debug( <span class="hljs-string">'[ Endpoint ( ID: "%s" ) ] Re-connection enabled.'</span>, <span class="hljs-keyword">this</span>.getID() );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Checking # of Re-connection attempts</p></div></div><div class="code"><div class="wrapper">		<span class="hljs-keyword">if</span>( <span class="hljs-keyword">this</span>.__oOptions.reconnectionAttempts &gt; <span class="hljs-number">0</span> ){
+			_bResult = ( <span class="hljs-keyword">this</span>.__oOptions.reconnectionAttempts &lt; <span class="hljs-keyword">this</span>.__iConnectionAttempsts ? <span class="hljs-literal">true</span> : <span class="hljs-literal">false</span> );
+		} <span class="hljs-keyword">else</span> {
+			_bResult = <span class="hljs-literal">true</span>;
+			Tools.debug( <span class="hljs-string">'[ Endpoint ( ID: "%s" ) ] can be re-connected without limits in the attempts.'</span>, <span class="hljs-keyword">this</span>.getID() );
+		}
+	} <span class="hljs-keyword">else</span> {
+		Tools.debug( <span class="hljs-string">'[ Endpoint ( ID: "%s" ) ] Re-connection disabled.'</span>, <span class="hljs-keyword">this</span>.getID() );
+	}
+	<span class="hljs-keyword">return</span> _bResult;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __isAncillaEventsHandler</span></p>
+<p>Method used to decide if and endpoint is meant to handle Ancilla events or Data events</p>
+<p>Example:</p>
+<pre><code>GatewayEndpoint.__isAncillaEventsHandler();</code></pre></div></div><div class="code"><div class="wrapper">GatewayEndpoint.prototype.__isAncillaEventsHandler = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.isAncillaEventsHandler;
+}
+
+<span class="hljs-built_in">module</span>.exports = GatewayEndpoint;</div></div></div></div></body></html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html><html lang="en"><head><title>lib\Gateway.node</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="lib\Gateway.node"><meta name="groc-project-path" content="lib\Gateway.node.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">lib\Gateway.node.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
+This file is part of &quot;Ancilla Libary&quot;.</p>
+<p> &quot;Ancilla Libary&quot; is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.</p>
+<p> &quot;Ancilla Libary&quot; is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.</p>
+<p> You should have received a copy of the GNU General Public License
+ along with &quot;Ancilla Libary&quot;.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> GatewayEndpoint = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Gateway.endpoint.node.js'</span>);
+<span class="hljs-keyword">var</span> Tools = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Tools.node.js'</span>);
+
+<span class="hljs-keyword">var</span> EventEmitter = <span class="hljs-built_in">require</span>( <span class="hljs-string">'events'</span> ).EventEmitter;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public class Gateway</span></p>
+<p>Generic Gateway used by to open a channel between different endpoints</p>
+<p>The Gateway will emit the following events</p>
+<ul>
+<li>data: Emitted when data is received.</li>
+<li>drain: Emitted when the write buffer becomes empty.</li>
+<li>timeout: Emitted if the connection times out from inactivity.</li>
+<li>close: Emitted once the connection is fully closed.</li>
+<li>error: Emitted when an error occurs.</li>
+<li>ready: Emitted when the gateway has created all its endpoints.</li>
+</ul>
+<p>Parameters:</p>
+<ul>
+<li><strong>aEndpointsOptions must be an Array of Objects.</strong><br/>(An array of javascript objects describing the endpoints used by the gateway)</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>new Gateway([{ type: &#39;net&#39;, connectionType: &#39;listen&#39;, host: &#39;localhost&#39;, port: 10001 }]);
+new Gateway([{ type: &#39;net&#39;, connectionType: &#39;connect&#39;, host: &#39;192.168.0.100&#39;, port: 10002 }]);
+new Gateway([{ type: &#39;serial&#39;, port: &#39;/dev/ttyS0&#39;, baudrate: 9600, databits: 8, stopbits: 1, parity: &#39;none&#39;, buffersize: 255 }]);
+new Gateway([{ type: &#39;ws&#39;, connectionType: &#39;listen&#39;, port: 10003 }]);
+new Gateway([{ type: &#39;wss&#39;, connectionType: &#39;listen&#39;, port: 10004 }]);
+new Gateway([{ type: &#39;ws&#39;, connectionType: &#39;connect&#39;, host: &#39;192.168.0.100&#39;, port: 10005 }]);
+new Gateway([{ type: &#39;wss&#39;, connectionType: &#39;connect&#39;, host: &#39;192.168.0.100&#39;, port: 10006 }]);</code></pre></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Gateway=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( aEndpointsOptions, oGatewayOptions )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Call the super constructor.</p></div></div><div class="code"><div class="wrapper">  EventEmitter.call( <span class="hljs-keyword">this</span> );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init Options</p></div></div><div class="code"><div class="wrapper">	aEndpointsOptions = aEndpointsOptions || [];</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init properties</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">this</span>._aGWEndpoints = {};
+  <span class="hljs-keyword">this</span>.__oOptions = oGatewayOptions;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Creating Endpoints</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _oGateway = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> aEndpointsOptions ){
+		<span class="hljs-keyword">var</span> _oCurrentGWEndpointOptions = Tools.extend( {
+			id: <span class="hljs-string">'DefaultEndpoint_'</span> + _iIndex
+		}, aEndpointsOptions[ _iIndex ] );
+		<span class="hljs-keyword">this</span>.addEndpoint( _oCurrentGWEndpointOptions );
+	}
+}
+Tools.inherits( Gateway, EventEmitter );</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method write</span></p>
+<p>Method used to write a buffer to an endpoint specified by its ID</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sGWEndpointID must be an Integer.</strong><br/>(The endpoint&#39;s ID used to write)</p>
+</li>
+<li><p><strong>oData must be an Object.</strong><br/>(The data buffer ( <a href="http://nodejs.org/api/buffer.html">http://nodejs.org/api/buffer.html</a> ) to write)</p>
+</li>
+<li><p><strong>sEncoding is optional and must be a String.</strong><br/>(The data encoding type used to write)</p>
+</li>
+<li><p><strong>fCallback is optional and must be a Function.</strong><br/>(The callback function to call after the write operation is completed)</p>
+</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Gateway.write( 0, oData );</code></pre></div></div><div class="code"><div class="wrapper">Gateway.prototype.write = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sGWEndpointID, oData, sEncoding, fCallback )</span></span>{
+	<span class="hljs-keyword">if</span>( <span class="hljs-keyword">this</span>._aGWEndpoints[ sGWEndpointID ] ){
+		<span class="hljs-keyword">this</span>._aGWEndpoints[ sGWEndpointID ].write( oData, sEncoding, fCallback );
+	} <span class="hljs-keyword">else</span> {
+		Tools.error( <span class="hljs-string">'[ Gateway ] Unable to write on endpoint: "%s": missing endpoint...'</span>, sGWEndpointID );
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method addEndpoint</span></p>
+<p>Method used to add a new endpoint to the current Gateway</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oEndpointOptions must be an Object.</strong><br/>(The options used to configure the new endpoint)</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(oEndpoint It returns the added new endpoint)</p>
+<p>Example:</p>
+<pre><code>Gateway.write( 0, oData );</code></pre></div></div><div class="code"><div class="wrapper">Gateway.prototype.addEndpoint = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oEndpointOptions )</span></span>{
+	<span class="hljs-keyword">var</span> _oGateway = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">var</span> _oGWEndpoint = <span class="hljs-keyword">new</span> GatewayEndpoint( oEndpointOptions );
+	<span class="hljs-keyword">if</span>( !_oGWEndpoint ){
+		Tools.error( <span class="hljs-string">'[ Gateway ] Unable to create Gateway endpoint with the following options: %s'</span>, aEndpointsOptions );
+	} <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Handling ready event</p></div></div><div class="code"><div class="wrapper">		_oGWEndpoint.on( <span class="hljs-string">'ready'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+			<span class="hljs-keyword">var</span> _aEndpoints = _oGateway.getEndpoints();
+			<span class="hljs-keyword">var</span> _bReady = <span class="hljs-literal">true</span>;
+			<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> _aEndpoints ){
+				<span class="hljs-keyword">var</span> _oEndpoint = _aEndpoints[ _iIndex ];
+				<span class="hljs-keyword">var</span> _bEndpointReady = _oEndpoint.isReady();
+				<span class="hljs-keyword">if</span>( _bEndpointReady ){
+					_bReady = _bReady &amp;&amp; _bEndpointReady;
+				} <span class="hljs-keyword">else</span> {
+					_bReady = <span class="hljs-literal">false</span>;
+					<span class="hljs-keyword">break</span>;
+				}
+			}
+			<span class="hljs-keyword">if</span>( _bReady ){
+				Tools.debug(<span class="hljs-string">'[ Gateway ] is ready...'</span> );
+				_oGateway.emit( <span class="hljs-string">'ready'</span> );
+			}
+		});</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method data</span></p>
+<p>Event emitted by the gateway when data is received</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oData must be an Object.</strong><br/>(The data buffer ( <a href="http://nodejs.org/api/buffer.html">http://nodejs.org/api/buffer.html</a> ) received)</p>
+</li>
+<li><p><strong>oGWEndpoint must be an Object.</strong><br/>(The endpoint which received the data)</p>
+</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Gateway.on( &#39;data&#39;, function( oData, oGWEndpoint ) { ... } );</code></pre></div></div><div class="code"><div class="wrapper">		_oGWEndpoint.on(<span class="hljs-string">'data'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oData, iSocketIndex )</span> </span>{
+			Tools.debug(<span class="hljs-string">'[ Gateway ][ Endpoint ( ID: %s ) ] Data received: "%s"...'</span>, <span class="hljs-keyword">this</span>.getID(), oData.toString(<span class="hljs-string">'hex'</span>) );
+			_oGateway.emit( <span class="hljs-string">'data'</span>, oData, <span class="hljs-keyword">this</span>, iSocketIndex );
+		});</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method drain</span></p>
+<p>Event emitted when the write buffer becomes empty</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oData must be an Object.</strong><br/>(The data buffer ( <a href="http://nodejs.org/api/buffer.html">http://nodejs.org/api/buffer.html</a> ) received)</p>
+</li>
+<li><p><strong>oGWEndpoint must be an Object.</strong><br/>(The endpoint which received the data)</p>
+</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Gateway.on( &#39;drain&#39;, function( oData, oGWEndpoint ) { ... } );</code></pre></div></div><div class="code"><div class="wrapper">		_oGWEndpoint.on(<span class="hljs-string">'drain'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oData )</span> </span>{
+			Tools.debug(<span class="hljs-string">'[ Gateway ][ Endpoint ( ID: %s ) ] Data drained: "%s"...'</span>, <span class="hljs-keyword">this</span>.getID(), oData.toString(<span class="hljs-string">'hex'</span>) );
+			_oGateway.emit( <span class="hljs-string">'drain'</span>, oData, <span class="hljs-keyword">this</span> );
+		});</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method timeout</span></p>
+<p>Event emitted if the connection times out from inactivity</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oGWEndpoint must be an Object.</strong><br/>(The endpoint which emitted the timeout event)</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Gateway.on( &#39;timeout&#39;, function( oGWEndpoint ) { ... } );</code></pre></div></div><div class="code"><div class="wrapper">		_oGWEndpoint.on(<span class="hljs-string">'timeout'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+			<span class="hljs-comment">//Tools.debug('[ Gateway ][ Endpoint ( ID: %s ) ] Timedout...', oGWEndpoint.getID() );</span>
+			_oGateway.emit( <span class="hljs-string">'timeout'</span>, <span class="hljs-keyword">this</span> );
+		});</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method close</span></p>
+<p>Event emitted once the connection is fully closed</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oGWEndpoint must be an Object.</strong><br/>(The closed endpoint)</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Gateway.on( &#39;close&#39;, function( oData, oGWEndpoint ) { ... } );</code></pre></div></div><div class="code"><div class="wrapper">		_oGWEndpoint.on(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iSocketIndex, oEndpoint )</span> </span>{
+			Tools.debug(<span class="hljs-string">'[ Gateway ][ Endpoint ( ID: %s ) ] Socket "%s" closed...'</span>, <span class="hljs-keyword">this</span>.getID(), iSocketIndex );
+			_oGateway.emit( <span class="hljs-string">'close'</span>, iSocketIndex, oEndpoint, <span class="hljs-keyword">this</span> );
+		});</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method error</span></p>
+<p>Event emitted when an error occurs</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oError must be an Object.</strong><br/>(The error fired)</p>
+</li>
+<li><p><strong>oGWEndpoint must be an Object.</strong><br/>(The endpoint which generated the error)</p>
+</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Gateway.on( &#39;error&#39;, function( oError, oGWEndpoint ) { ... } );</code></pre></div></div><div class="code"><div class="wrapper">		_oGWEndpoint.on(<span class="hljs-string">'error'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span> </span>{
+			Tools.debug(<span class="hljs-string">'[ Gateway ][ Endpoint ( ID: %s ) ] %s...'</span>, <span class="hljs-keyword">this</span>.getID(), oError );
+			_oGateway.emit( <span class="hljs-string">'error'</span>, oError, <span class="hljs-keyword">this</span> );
+		});</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method connection</span></p>
+<p>Event emitted when connection has been estabilished</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oSocket must be an Object.</strong><br/>(The connected socket)</p>
+</li>
+<li><p><strong>oGWEndpoint must be an Object.</strong><br/>(The endpoint which generated the connection)</p>
+</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Gateway.on( &#39;connection&#39;, function( oSocket, oGWEndpoint ) { ... } );</code></pre></div></div><div class="code"><div class="wrapper">		_oGWEndpoint.on(<span class="hljs-string">'connection'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oSocket )</span> </span>{
+			Tools.debug(<span class="hljs-string">'[ Gateway ][ Endpoint ( ID: %s ) ] connection received from %s:%s...'</span>, <span class="hljs-keyword">this</span>.getID(), oSocket.remoteAddress, oSocket.remotePort );
+			_oGateway.emit( <span class="hljs-string">'connection'</span>, oSocket, <span class="hljs-keyword">this</span> );
+		});</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method connect</span></p>
+<p>Event emitted when connection has been estabilished</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oSocket must be an Object.</strong><br/>(The connected socket)</p>
+</li>
+<li><p><strong>oGWEndpoint must be an Object.</strong><br/>(The endpoint which generated the connect event)</p>
+</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Gateway.on( &#39;connect&#39;, function( oSocket, oGWEndpoint ) { ... } );</code></pre></div></div><div class="code"><div class="wrapper">		_oGWEndpoint.on(<span class="hljs-string">'connect'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+			Tools.debug(<span class="hljs-string">'[ Gateway ][ Endpoint ( ID: %s ) ] connected estabilished with %s:%s...'</span>, <span class="hljs-keyword">this</span>.getID(), <span class="hljs-keyword">this</span>.getHost(), <span class="hljs-keyword">this</span>.getPort() );
+			_oGateway.emit( <span class="hljs-string">'connect'</span>, <span class="hljs-keyword">this</span> );
+		});
+	}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Adding Gateway Endpoint to internal array</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">if</span>( !<span class="hljs-keyword">this</span>._aGWEndpoints[ _oGWEndpoint.getID() ] ){
+		<span class="hljs-keyword">this</span>._aGWEndpoints[ _oGWEndpoint.getID() ] = _oGWEndpoint;
+	} <span class="hljs-keyword">else</span> {
+		Tools.error( <span class="hljs-string">'[ Gateway ] Unable to add Gateway endpoint; ID: "%s" already used'</span>, _oGWEndpoint.getID() );
+	}
+	<span class="hljs-keyword">return</span> _oGWEndpoint;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getEndpoints</span></p>
+<p>Method used to get all the endpoints added to the current gateway; if ID is used as an argument only the specific endpoint pointed by the ID will be returned</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>sID must be a String.</strong><br/>(If used, it will return only the endpoint with such ID)</li>
+</ul>
+<p><strong>Returns an Array[]/Object</strong><br/>(aEndpoints/oEndpoint It returns array of endpoints or the endpoint with the passed ID)</p>
+<p>Example:</p>
+<pre><code>Gateway.getEndpoints();
+Gateway.getEndpoints( &#39;core&#39; );</code></pre></div></div><div class="code"><div class="wrapper">Gateway.prototype.getEndpoints = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sID )</span></span>{
+	<span class="hljs-keyword">if</span>( <span class="hljs-keyword">typeof</span> sID == <span class="hljs-string">'undefined'</span> ){
+		<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._aGWEndpoints;
+	} <span class="hljs-keyword">else</span> {
+		<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._aGWEndpoints[ sID ];
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getID</span></p>
+<p>Method used to get the current technology ID</p>
+<p><strong>Returns a String</strong><br/>(sID It returns the unique technology&#39;s string ID)</p>
+<p>Example:</p>
+<pre><code>Technology.getID();</code></pre></div></div><div class="code"><div class="wrapper"> Gateway.prototype.getID=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.sID;
+}
+
+<span class="hljs-built_in">module</span>.exports = Gateway;</div></div></div></div></body></html>

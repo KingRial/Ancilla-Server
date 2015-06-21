@@ -1,0 +1,242 @@
+<!DOCTYPE html><html lang="en"><head><title>lib\Tools.node</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="lib\Tools.node"><meta name="groc-project-path" content="lib\Tools.node.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">lib\Tools.node.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
+This file is part of &quot;Ancilla Libary&quot;.</p>
+<p> &quot;Ancilla Libary&quot; is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.</p>
+<p> &quot;Ancilla Libary&quot; is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.</p>
+<p> You should have received a copy of the GNU General Public License
+ along with &quot;Ancilla Libary&quot;.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Chalk = <span class="hljs-built_in">require</span>(<span class="hljs-string">'chalk'</span>);
+
+<span class="hljs-keyword">var</span> util = <span class="hljs-built_in">require</span>( <span class="hljs-string">'util'</span> );
+<span class="hljs-keyword">var</span> path = <span class="hljs-built_in">require</span>(<span class="hljs-string">'path'</span>);
+
+<span class="hljs-comment">//Ancilla tools</span>
+<span class="hljs-keyword">var</span> Tools = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+		<span class="hljs-keyword">this</span>._bDebug = <span class="hljs-literal">false</span>;
+}
+
+Tools.prototype = {
+	inherits: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oConstructor, oSuperConstructor )</span></span>{
+		<span class="hljs-comment">//superConstructor will be accessible through the constructor.super_ property.</span>
+		<span class="hljs-keyword">return</span> util.inherits( oConstructor, oSuperConstructor );
+	},
+	extend: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{ <span class="hljs-comment">//jQuery extend</span>
+		<span class="hljs-keyword">var</span> _oExtend = <span class="hljs-built_in">require</span>(<span class="hljs-string">'node.extend'</span>);
+		<span class="hljs-keyword">return</span> _oExtend.apply( <span class="hljs-keyword">this</span>, <span class="hljs-built_in">arguments</span> );
+	},
+	proxy: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fFunc, oContext )</span></span>{
+		<span class="hljs-keyword">var</span> _aArgs = <span class="hljs-built_in">Array</span>.prototype.slice.call( <span class="hljs-built_in">arguments</span>, <span class="hljs-number">2</span> );
+		_fProxyFunc = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Deciding the order of the arguments: first the arguments from the proxy then the arguments received from the external call</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">return</span> fFunc.apply( oContext || <span class="hljs-keyword">this</span>, _aArgs.concat( <span class="hljs-built_in">Array</span>.prototype.slice.call( <span class="hljs-built_in">arguments</span> ) ) );
+			<span class="hljs-comment">//return fFunc.apply( oContext || this, Array.prototype.slice.call( arguments ).concat( _aArgs ) );</span>
+		};
+		<span class="hljs-keyword">return</span> _fProxyFunc;
+	},
+	getLocalIPs: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iIndexIP )</span></span>{
+		<span class="hljs-keyword">var</span> _oOS = <span class="hljs-built_in">require</span>(<span class="hljs-string">'os'</span>);
+		<span class="hljs-keyword">var</span> _aInterfaces = _oOS.networkInterfaces();
+		<span class="hljs-keyword">var</span> _aIPs = [];
+		<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iInterfaceIndex <span class="hljs-keyword">in</span> _aInterfaces ){
+			<span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> _iIPIndex <span class="hljs-keyword">in</span> _aInterfaces[ _iInterfaceIndex ]) {
+				<span class="hljs-keyword">var</span> _oAddress = _aInterfaces[ _iInterfaceIndex ][ _iIPIndex ];
+				<span class="hljs-keyword">if</span>( _oAddress.family === <span class="hljs-string">'IPv4'</span> &amp;&amp; !_oAddress.internal ){
+					_aIPs.push( _oAddress.address );
+				}
+			}
+		}
+		<span class="hljs-keyword">return</span> ( <span class="hljs-keyword">typeof</span> iIndexIP == <span class="hljs-string">'undefined'</span> ? _aIPs : _aIPs[ iIndexIP ] );
+	},
+	processArgs: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( aArgs )</span></span>{
+		<span class="hljs-keyword">var</span> _oArgs = {};
+		<span class="hljs-keyword">var</span> _sCurrentField = <span class="hljs-literal">null</span>;
+		<span class="hljs-keyword">var</span> _sPreviousField = <span class="hljs-literal">null</span>;
+		<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> aArgs ){
+			<span class="hljs-keyword">var</span> _sValue = aArgs[ _iIndex ];
+			<span class="hljs-keyword">var</span> _sPreviousValue = aArgs[ _iIndex - <span class="hljs-number">1</span> ] || <span class="hljs-string">''</span>;
+			<span class="hljs-keyword">if</span>( _sValue.indexOf( <span class="hljs-string">'--'</span> ) === <span class="hljs-number">0</span> ){
+				<span class="hljs-keyword">if</span>( _sPreviousField &amp;&amp; <span class="hljs-keyword">typeof</span> _oArgs[ _sPreviousField ] == <span class="hljs-string">'undefined'</span> ){
+					_oArgs[ _sPreviousField ] = <span class="hljs-literal">true</span>;
+				}
+				_sCurrentField = _sValue.substring( <span class="hljs-number">2</span> );
+			} <span class="hljs-keyword">else</span> {
+				_oArgs[ _sCurrentField ] = ( <span class="hljs-keyword">this</span>.isNumeric( _sValue ) ? <span class="hljs-built_in">parseFloat</span>( _sValue ) : ( <span class="hljs-keyword">this</span>.isJSON( _sValue ) ? <span class="hljs-built_in">JSON</span>.parse( _sValue ) : _sValue ) ) ;
+			}
+			_sPreviousField = _sCurrentField;
+		}
+		<span class="hljs-keyword">if</span>( _sPreviousField &amp;&amp; <span class="hljs-keyword">typeof</span> _oArgs[ _sPreviousField ] == <span class="hljs-string">'undefined'</span> ){
+			_oArgs[ _sPreviousField ] = <span class="hljs-literal">true</span>;
+		}
+		<span class="hljs-keyword">return</span> _oArgs;
+	},
+	isAbsolutePath : <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sPath )</span></span>{
+		<span class="hljs-keyword">return</span> ( path.resolve( sPath ) === sPath );
+	},
+	isArray: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( aElement )</span></span>{
+		<span class="hljs-keyword">return</span> util.isArray( aElement );
+	},
+	isEmptyObject: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oObj )</span> </span>{
+		<span class="hljs-keyword">return</span> !<span class="hljs-built_in">Object</span>.keys( oObj ).length;
+	},
+	isString: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( value )</span></span>{
+		<span class="hljs-keyword">var</span> isString = ( <span class="hljs-keyword">typeof</span> value!=<span class="hljs-string">'object'</span> ) &amp;&amp; ( !<span class="hljs-keyword">this</span>.isNumeric(value) );
+		<span class="hljs-keyword">return</span> isString;
+	},
+	isJSON: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sString )</span></span>{
+	  <span class="hljs-keyword">try</span> {
+	      <span class="hljs-built_in">JSON</span>.parse( sString );
+	  } <span class="hljs-keyword">catch</span> (e) {
+	      <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+	  }
+	  <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+	},
+	isNumeric: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( value )</span></span>{
+		value = <span class="hljs-keyword">typeof</span>( value ) === <span class="hljs-string">'string'</span> ? value.replace(<span class="hljs-string">','</span>, <span class="hljs-string">'.'</span>) : value;
+		<span class="hljs-keyword">return</span> !<span class="hljs-built_in">isNaN</span>(<span class="hljs-built_in">parseFloat</span>( value )) &amp;&amp; <span class="hljs-built_in">isFinite</span>( value ) &amp;&amp; <span class="hljs-built_in">Object</span>.prototype.toString.call( value ).toLowerCase() !== <span class="hljs-string">'[object array]'</span>;
+	},
+	isOSWin: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+		<span class="hljs-keyword">return</span> <span class="hljs-regexp">/^win/</span>.test( process.platform );
+	},
+	info: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+		<span class="hljs-keyword">var</span> _sMessage = util.format.apply( <span class="hljs-keyword">this</span>, <span class="hljs-built_in">arguments</span> );
+<span class="hljs-comment">//TODO: for some reasons Chalck won't close correctly strings so we have to do this way</span>
+		<span class="hljs-comment">//util.log( '[ ' + Chalk.white('Info') + ' ] ' + _sMessage );</span>
+		util.log( <span class="hljs-string">'[ '</span> + Chalk.styles.white.open + <span class="hljs-string">'Info'</span> + Chalk.styles.white.close + <span class="hljs-string">' ] '</span> + _sMessage );
+	},
+	error: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+		<span class="hljs-keyword">var</span> _sMessage = util.format.apply( <span class="hljs-keyword">this</span>, <span class="hljs-built_in">arguments</span> );
+<span class="hljs-comment">//TODO: for some reasons Chalck won't close correctly strings so we have to do this way</span>
+		<span class="hljs-comment">//util.log( '[ ' + Chalk.red('Error') + ' ] ' + _sMessage );</span>
+		<span class="hljs-comment">//util.error( '[ ' + Chalk.red('Error') + ' ] ' + _sMessage );</span>
+		util.log( <span class="hljs-string">'[ '</span> + Chalk.styles.red.open + <span class="hljs-string">'Error'</span> + Chalk.styles.red.close + <span class="hljs-string">' ] '</span> + _sMessage );
+		<span class="hljs-comment">//util.error( '[ ' + Chalk.styles.red.open + 'Error' + Chalk.styles.red.close + ' ] ' + _sMessage );</span>
+	},
+	setDebug: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( bDebug )</span></span>{
+		<span class="hljs-keyword">this</span>._bDebug = bDebug;
+	},
+	getDebug: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+		<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._bDebug;
+	},
+	debug: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+		<span class="hljs-keyword">if</span>( <span class="hljs-keyword">this</span>._bDebug ){
+			<span class="hljs-keyword">var</span> _sMessage = util.format.apply( <span class="hljs-keyword">this</span>, <span class="hljs-built_in">arguments</span> );
+<span class="hljs-comment">//TODO: for some reasons Chalck won't close correctly strings so we have to do this way</span>
+			<span class="hljs-comment">//util.log( '[ ' + Chalk.blue('Debug') + ' ] ' + _sMessage );</span>
+			util.log( <span class="hljs-string">'[ '</span> + Chalk.styles.blue.open + <span class="hljs-string">'Debug'</span> + Chalk.styles.blue.close + <span class="hljs-string">' ] '</span> + _sMessage );
+		}
+	},
+	getRandomItemFromArray: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( aArray, aFilterArray )</span></span>{
+		<span class="hljs-keyword">if</span>( !aFilterArray ){
+			aFilterArray = [];
+		}
+		<span class="hljs-keyword">var</span> _aFilteredArray = aArray.filter(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sElement )</span></span>{
+			<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> aFilterArray ){
+				<span class="hljs-keyword">var</span> _sElement = aFilterArray[ _iIndex ];
+				<span class="hljs-keyword">if</span>( _sElement == sElement ){
+					<span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+				}
+			}
+			<span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+		});
+		<span class="hljs-keyword">return</span> _aFilteredArray[ <span class="hljs-built_in">Math</span>.floor( <span class="hljs-built_in">Math</span>.random() * _aFilteredArray.length ) ];
+	},
+	__styleTerminalMessage: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sMessage, aStyles )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>var _fChalk = Chalk;
+for( var _iIndex in aStyles ){
+    _fChalk = _fChalk[ aStyles[ _iIndex ] ];
+}
+return _fChalk( sMessage );</p></div></div><div class="code"><div class="wrapper"><span class="hljs-comment">//TODO: for some reasons Chalck won't close correctly strings so we have to do this way</span>
+		<span class="hljs-keyword">var</span> _aOpen = [];
+		<span class="hljs-keyword">var</span> _aClose = [];
+		<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> aStyles ){
+			<span class="hljs-keyword">var</span> _oStyle = Chalk.styles[ aStyles[ _iIndex ] ];
+			_aOpen.push( _oStyle.open );
+			_aClose.push( _oStyle.close );
+		}
+		<span class="hljs-keyword">return</span> _aOpen.join(<span class="hljs-string">''</span>) + sMessage + _aClose.join(<span class="hljs-string">''</span>);
+	},
+	__styleTerminalGetRandom: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+		<span class="hljs-keyword">var</span> _aMofiers = [
+			<span class="hljs-string">'reset'</span>,
+			<span class="hljs-string">'bold'</span>,
+			<span class="hljs-string">'dim'</span>,
+			<span class="hljs-string">'italic'</span>,
+			<span class="hljs-string">'underline'</span>,
+			<span class="hljs-string">'inverse'</span>,
+			<span class="hljs-string">'hidden'</span>,
+			<span class="hljs-string">'strikethrough'</span>
+		];
+		<span class="hljs-keyword">var</span> _aColours = [
+			<span class="hljs-string">'black'</span>,
+			<span class="hljs-string">'red'</span>,
+			<span class="hljs-string">'green'</span>,
+			<span class="hljs-string">'yellow'</span>,
+			<span class="hljs-string">'blue'</span>,
+			<span class="hljs-string">'magenta'</span>,
+			<span class="hljs-string">'cyan'</span>,
+			<span class="hljs-string">'white'</span>,
+			<span class="hljs-string">'gray'</span>
+		];
+		<span class="hljs-keyword">var</span> _aBackground = [
+			<span class="hljs-string">'bgBlack'</span>,
+			<span class="hljs-string">'bgRed'</span>,
+			<span class="hljs-string">'bgGreen'</span>,
+			<span class="hljs-string">'bgYellow'</span>,
+			<span class="hljs-string">'bgBlue'</span>,
+			<span class="hljs-string">'bgMagenta'</span>,
+			<span class="hljs-string">'bgCyan'</span>,
+			<span class="hljs-string">'bgWhite'</span>
+		];
+		<span class="hljs-keyword">var</span> _sModifier = <span class="hljs-keyword">this</span>.getRandomItemFromArray( _aMofiers );
+		<span class="hljs-keyword">var</span> _sColour = <span class="hljs-keyword">this</span>.getRandomItemFromArray( _aColours );
+		<span class="hljs-comment">//var _sBackground = this.getRandomItemFromArray( _aBackground, [ 'bg' + _sColour.replace( /\w\S*/g, function(sTxt){return sTxt.charAt(0).toUpperCase() + sTxt.substr(1).toLowerCase();} ) ] );</span>
+		<span class="hljs-comment">//if( _sBackground != 'bgBlack' ){</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>_sColour=&#39;black&#39;;</p></div></div><div class="code"><div class="wrapper">		<span class="hljs-comment">//}</span>
+		<span class="hljs-comment">//return [ _sModifier, _sColour, _sBackground ];</span>
+		<span class="hljs-keyword">return</span> [ _sModifier, _sColour ];
+	},
+	exports: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fClass, oCurrentModule )</span> </span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Checking if we are &quot;requiring&quot; the class or calling it using command shell</p></div></div><div class="code"><div class="wrapper">	  	<span class="hljs-keyword">if</span>( <span class="hljs-built_in">require</span>.main === oCurrentModule ){
+				<span class="hljs-keyword">var</span> _Tools = <span class="hljs-keyword">this</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Arguments</p></div></div><div class="code"><div class="wrapper">	      <span class="hljs-keyword">var</span> _oArgs = <span class="hljs-keyword">this</span>.processArgs( process.argv.slice( <span class="hljs-number">2</span> ) );
+				<span class="hljs-keyword">var</span> _sProcessName = path.basename( oCurrentModule.filename );
+	      <span class="hljs-keyword">var</span> _oClassOptions = <span class="hljs-keyword">this</span>.extend({
+	        sCwd: path.dirname( oCurrentModule.filename ),
+	      	bDebug: ( <span class="hljs-literal">false</span> || _oArgs.debug )
+	      }, _oArgs );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init debug</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">this</span>.setDebug( _oClassOptions.bDebug );
+				<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'[ Process: "%s" ] Using Debug...'</span>, _sProcessName );
+				<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'[ Process: "%s" ] starting from command with arguments "%j"...'</span>, _sProcessName, _oClassOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Process working directory</p></div></div><div class="code"><div class="wrapper">	      <span class="hljs-keyword">if</span>( _oClassOptions.sCwd != process.cwd() ){
+	        process.chdir( _oClassOptions.sCwd );
+					<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'[ Process: "%s" ] set working directory to: "%s"...'</span>, _sProcessName, _oClassOptions.sCwd );
+	      } <span class="hljs-keyword">else</span> {
+					<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'[ Process: "%s" ] using working directory: "%s"...'</span>, _sProcessName, _oClassOptions.sCwd );
+	      }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Executing</p></div></div><div class="code"><div class="wrapper">	      <span class="hljs-keyword">try</span> {
+					<span class="hljs-keyword">var</span> _oObject = <span class="hljs-keyword">new</span> fClass( _oClassOptions );
+	      } <span class="hljs-keyword">catch</span>( oError ){
+					<span class="hljs-keyword">this</span>.error( <span class="hljs-string">'[ Process: "%s" ] Error: "%s". Unable to start process...'</span>, _sProcessName, oError );
+	      }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Setting process events</p></div></div><div class="code"><div class="wrapper">	      process.on(<span class="hljs-string">'SIGINT'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+					_Tools.info(<span class="hljs-string">'[ Process: "%s" ] Event SIGINT...'</span>, _sProcessName );
+	      	process.exit();
+	      });
+	      process.on(<span class="hljs-string">'SIGTERM'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+					_Tools.info(<span class="hljs-string">'[ Process: "%s" ] Event SIGTERM...'</span>, _sProcessName );
+	      	process.exit();
+	      });
+	      process.on(<span class="hljs-string">'SIGHUP'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+					_Tools.info(<span class="hljs-string">'[ Process: "%s" ] Event SIGHUP...'</span>, _sProcessName );
+	      	process.exit();
+	      });
+	      process.on(<span class="hljs-string">'exit'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iCode )</span></span>{
+	      	<span class="hljs-comment">//TODO: killing process children before exiting current process</span>
+					_Tools.info(<span class="hljs-string">'[ Process: "%s" ] Closing ( exit code: %s )...'</span>, _sProcessName, iCode );
+	      });
+	      process.on(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iCode )</span> </span>{
+					_Tools.info( <span class="hljs-string">'[ Process: "%s" ] Process "%s" exited with code "%s" '</span>, _sProcessName, process.argv[<span class="hljs-number">2</span>], iCode  );
+	      });
+	      process.on(<span class="hljs-string">'uncaughtException'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+					_Tools.error(<span class="hljs-string">'[ Process: "%s" ] Uncaught Exception: %s...'</span>, _sProcessName, oError );
+	      });
+	    } <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Since it&#39;s required instead of called by command line, we are returning the class</p></div></div><div class="code"><div class="wrapper">	      <span class="hljs-keyword">return</span> fClass;
+	    }
+	}
+}
+
+<span class="hljs-built_in">module</span>.exports = <span class="hljs-keyword">new</span> Tools();</div></div></div></div></body></html>

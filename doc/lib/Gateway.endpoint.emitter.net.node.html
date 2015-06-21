@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="en"><head><title>lib\Gateway.endpoint.emitter.net.node</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="lib\Gateway.endpoint.emitter.net.node"><meta name="groc-project-path" content="lib\Gateway.endpoint.emitter.net.node.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">lib\Gateway.endpoint.emitter.net.node.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
+This file is part of &quot;Ancilla Libary&quot;.</p>
+<p> &quot;Ancilla Libary&quot; is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.</p>
+<p> &quot;Ancilla Libary&quot; is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.</p>
+<p> You should have received a copy of the GNU General Public License
+ along with &quot;Ancilla Libary&quot;.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-comment">//Network Emitter</span>
+<span class="hljs-keyword">var</span> Tools = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Tools.node.js'</span>);
+
+<span class="hljs-keyword">var</span> EmitterNet = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">( oOptions )</span></span>{
+	<span class="hljs-keyword">var</span> _oNet = <span class="hljs-built_in">require</span>(<span class="hljs-string">'net'</span>);
+	<span class="hljs-comment">//Default Options</span>
+	oOptions = Tools.extend( {
+		host: <span class="hljs-string">'localhost'</span>,
+		port: <span class="hljs-number">10001</span>,
+		type: <span class="hljs-string">'listen'</span>
+	}, oOptions );
+	<span class="hljs-keyword">var</span> _oEmitter = <span class="hljs-literal">null</span>;
+	<span class="hljs-keyword">switch</span>( oOptions.type ){
+		<span class="hljs-keyword">case</span> <span class="hljs-string">'connect'</span>:
+			_oEmitter = _oNet.connect({
+				host: oOptions.host,
+				port: oOptions.port
+				}, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+					Tools.debug(<span class="hljs-string">'[ Endpoint Network ( ID: %s ) ] Connected to: "%s:%s"'</span>, oOptions.id, oOptions.host, oOptions.port );
+				});
+		<span class="hljs-keyword">break</span>;
+		<span class="hljs-keyword">case</span> <span class="hljs-string">'listen'</span>:
+			<span class="hljs-comment">//Network</span>
+			_oEmitter = _oNet.createServer();
+			_oEmitter.listen( oOptions.port, oOptions.host, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+				Tools.debug(<span class="hljs-string">'[ Endpoint Network ( ID: %s ) ] listening on network: "%s:%s"...'</span>, oOptions.id, oOptions.host, oOptions.port );
+			});
+		<span class="hljs-keyword">break</span>;
+		<span class="hljs-keyword">default</span>:
+			Tools.error( <span class="hljs-string">'[ Endpoint Network ( ID: %s ) ] Error: unable to determine endpoint connection type from "%s"; please use "listen" or "connect"'</span>, oOptions.id, oOptions.type );
+		<span class="hljs-keyword">break</span>;
+	}
+	<span class="hljs-keyword">return</span> _oEmitter;
+}
+<span class="hljs-built_in">module</span>.exports = EmitterNet;</div></div></div></div></body></html>

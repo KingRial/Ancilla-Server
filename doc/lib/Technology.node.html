@@ -1,0 +1,537 @@
+<!DOCTYPE html><html lang="en"><head><title>lib\Technology.node</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="lib\Technology.node"><meta name="groc-project-path" content="lib\Technology.node.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">lib\Technology.node.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
+This file is part of &quot;Ancilla Libary&quot;.</p>
+<p> &quot;Ancilla Libary&quot; is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.</p>
+<p> &quot;Ancilla Libary&quot; is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.</p>
+<p> You should have received a copy of the GNU General Public License
+ along with &quot;Ancilla Libary&quot;.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Gateway = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Gateway.node.js'</span>);
+<span class="hljs-keyword">var</span> DB = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./DB.node.js'</span>);
+<span class="hljs-keyword">var</span> Event = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Event.node.js'</span>);
+<span class="hljs-keyword">var</span> Tools = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Tools.node.js'</span>);
+<span class="hljs-keyword">var</span> Constant = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Constants.node.js'</span>);
+
+<span class="hljs-keyword">var</span> EventEmitter = <span class="hljs-built_in">require</span>( <span class="hljs-string">'events'</span> ).EventEmitter;
+<span class="hljs-keyword">var</span> Fs = <span class="hljs-built_in">require</span>(<span class="hljs-string">'fs-extra'</span>);
+<span class="hljs-keyword">var</span> Path =  <span class="hljs-built_in">require</span>(<span class="hljs-string">'path'</span>);
+<span class="hljs-keyword">var</span> <span class="hljs-built_in">Promise</span> = <span class="hljs-built_in">require</span>(<span class="hljs-string">'bluebird'</span>);</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public class Technology</span></p>
+<p>A generic class to describe a generic Technology behaviour</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oTechnologyOptions must be an Array of Objects.</strong><br/>(A javascript object of options used to configure the technology behaviour)</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>new Technology( { sID: &#39;tech-1&#39;, sType: &#39;tech&#39;, aEndpoints: [{ type: &#39;listen&#39;, connectionType: &#39;net&#39;, host: &#39;localhost&#39;, port: 10001 }] } );
+new Technology( { sID: &#39;tech-2&#39;, sType: &#39;tech&#39;, bUseDB: false, aEndpoints: [{ type: &#39;connect&#39;, connectionType: &#39;net&#39;, host: &#39;192.168.0.100&#39;, port: 10002 }] } );
+new Technology( { sID: &#39;tech-3&#39;, sType: &#39;tech&#39;, bUseDB: true, aEndpoints: [{ type: &#39;listen&#39;, connectionType: &#39;serial&#39;, port: &#39;/dev/ttyS0&#39;, baudrate: 9600, databits: 8, stopbits: 1, parity: &#39;none&#39;, buffersize: 255 }] } );
+new Technology( { sID: &#39;tech-4&#39;, sType: &#39;tech&#39;, bUseDB: true }, aEndpoints: [{ type: &#39;listen&#39;, connectionType: &#39;ws&#39;, port: 10003 }] );
+new Technology( { sID: &#39;tech-5&#39;, sType: &#39;tech&#39;, bUseDB: true }, aEndpoints: [{ type: &#39;listen&#39;, connectionType: &#39;wss&#39;, port: 10004 }] );
+new Technology( { sID: &#39;tech-6&#39;, sType: &#39;tech&#39; }, aEndpoints: [{ type: &#39;connect&#39;, connectionType: &#39;ws&#39;, host: &#39;192.168.0.100&#39;, port: 10005 }] );
+new Technology( { sID: &#39;tech-7&#39;, sType: &#39;tech&#39; }, aEndpoints: [{ type: &#39;connect&#39;, connectionType: &#39;wss&#39;, host: &#39;192.168.0.100&#39;, port: 10006 }] );</code></pre></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Technology=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oTechnologyOptions )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Default Technology Options</p></div></div><div class="code"><div class="wrapper">	oTechnologyOptions = Tools.extend({
+		sID: <span class="hljs-string">'tech-'</span> + <span class="hljs-built_in">Math</span>.random(),
+		sType: <span class="hljs-string">'unknown'</span>,
+		sDBPath: <span class="hljs-string">'.'</span>, <span class="hljs-comment">// TODO: process.cwd(), // DB persistent path should be where the script technology is located</span>
+		sDBPathTmp: ( Tools.isOSWin() ? <span class="hljs-string">'.'</span> : <span class="hljs-string">'/tmp'</span> ), <span class="hljs-comment">// TODO: DB volatile path should be located on TMP under UNIX or ? under Windows</span>
+		bUseDB: <span class="hljs-literal">true</span>,
+		iVersion : <span class="hljs-number">0</span>,
+		bDebug: <span class="hljs-literal">false</span>,
+		aLogStyle: Tools.__styleTerminalGetRandom() <span class="hljs-comment">// Chalk Log style array [ Modifier, Colour, Background ]</span>
+	}, oTechnologyOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Other options dependant from sType initialization</p></div></div><div class="code"><div class="wrapper">	oTechnologyOptions = Tools.extend({
+		sDBName: oTechnologyOptions.sType + <span class="hljs-string">'.'</span> + oTechnologyOptions.sID + <span class="hljs-string">'.sqlite'</span>,
+		<span class="hljs-comment">//sUpdatePath: process.cwd(), // Update file should be where the script technology is located</span>
+		sUpdatePath: <span class="hljs-string">'.'</span>,
+		sUpdateName: oTechnologyOptions.sType + <span class="hljs-string">'.update.sql'</span>
+	}, oTechnologyOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init variables</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">this</span>.__oOptions = oTechnologyOptions;
+	<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'Starting technology with following options:\n\t%j\n'</span>, oTechnologyOptions );
+	<span class="hljs-keyword">this</span>.__oDefferedAncillaEvents = {};
+	<span class="hljs-keyword">this</span>.__oStatus = {
+		bGatewayReady: <span class="hljs-literal">false</span>,
+		bIsIntroduced: <span class="hljs-literal">false</span>
+	};
+	<span class="hljs-keyword">this</span>.__sDBVersion = <span class="hljs-literal">null</span>;
+	<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'Starting technology [ version: "%s" ] ...'</span>, <span class="hljs-keyword">this</span>.__oOptions.iVersion );
+	<span class="hljs-keyword">if</span>( oTechnologyOptions.bUseDB ){
+		<span class="hljs-keyword">this</span>.__registerEvents(
+			Tools.proxy( <span class="hljs-keyword">this</span>.__swapDB, <span class="hljs-keyword">this</span>, <span class="hljs-keyword">this</span>.__DBgetRelativePersistantPath(), <span class="hljs-keyword">this</span>.__DBgetRelativePath(), Tools.proxy(
+				<span class="hljs-keyword">this</span>.__DBinit, <span class="hljs-keyword">this</span>, Tools.proxy(
+					<span class="hljs-keyword">this</span>.__initGWs, <span class="hljs-keyword">this</span>, <span class="hljs-keyword">this</span>.__oOptions.aEndpoints
+					)
+				)
+			)
+		);
+	} <span class="hljs-keyword">else</span> {
+		<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'DB not needed'</span> );
+		<span class="hljs-keyword">this</span>.__registerEvents( Tools.proxy( <span class="hljs-keyword">this</span>.__initGWs, <span class="hljs-keyword">this</span>, <span class="hljs-keyword">this</span>.__oOptions.aEndpoints ) );
+	}
+}
+Tools.inherits( Technology, EventEmitter );</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __registerEvents</span></p>
+<p>Method called to register events to the current technology</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>fCallback must be a Function.</strong><br/>(The callback function to call when evetns has been registered)</li>
+</ul>
+<p>Example:</p>
+<pre><code>Technology.__registerEvents( fCallback );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__registerEvents = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fCallback )</span></span>{
+	<span class="hljs-keyword">var</span> _aEvents = [ <span class="hljs-string">'gatewayReady'</span>, <span class="hljs-string">'ready'</span>, <span class="hljs-string">'data'</span>, <span class="hljs-string">'ancilla'</span> ];
+	<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> _aEvents ){
+		<span class="hljs-keyword">var</span> _sEvent = _aEvents[ _iIndex ];
+		<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'listening on event "%s"...'</span>, _sEvent );
+		<span class="hljs-keyword">this</span>.on( _sEvent, Tools.proxy( <span class="hljs-keyword">this</span>.__onEvent, <span class="hljs-keyword">this</span>, _sEvent ) );
+	}
+	<span class="hljs-keyword">if</span>( fCallback ){
+		fCallback();
+	}
+}
+Technology.prototype.__onEvent = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sEvent )</span></span>{
+	<span class="hljs-keyword">var</span> _sHandlerEventFunction = <span class="hljs-string">'on'</span> + sEvent.charAt(<span class="hljs-number">0</span>).toUpperCase() + sEvent.slice(<span class="hljs-number">1</span>);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Getting all arguments except for the first</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _aArgs = <span class="hljs-built_in">Array</span>.prototype.slice.call( <span class="hljs-built_in">arguments</span>, <span class="hljs-number">1</span> );
+	<span class="hljs-comment">//Transforming Args if needed</span>
+	<span class="hljs-keyword">switch</span>( sEvent ){
+		<span class="hljs-keyword">case</span> <span class="hljs-string">'ancilla'</span>:</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Checking the presence of multiple Ancilla Events on the same buffer ( which is the first argument after the argument&#39;s changes done before )</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">var</span> _oBuffer = _aArgs[ <span class="hljs-number">0</span> ];
+			<span class="hljs-keyword">var</span> _oRegEx = <span class="hljs-keyword">new</span> <span class="hljs-built_in">RegExp</span>( <span class="hljs-string">'}{'</span>, <span class="hljs-string">'g'</span> );
+			<span class="hljs-keyword">var</span> _sBuffer = _oBuffer.toString();
+			<span class="hljs-keyword">var</span> _aMatches = [];
+			<span class="hljs-keyword">var</span> _oMatches = <span class="hljs-literal">null</span>;
+			<span class="hljs-keyword">var</span> _aAncillaEvents = [];
+			<span class="hljs-keyword">while</span> ( ( _oMatches = _oRegEx.exec( _sBuffer )) ) {
+				_aMatches.push( _oMatches.index );
+			}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Assuming the last correct match is always the end of the buffer</p></div></div><div class="code"><div class="wrapper">			_aMatches.push( _sBuffer.length );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Found multiple Ancilla Events on the same buffer</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> _aMatches ){
+				<span class="hljs-keyword">var</span> _iStart = ( _iIndex == <span class="hljs-number">0</span> ? <span class="hljs-literal">null</span> : _aMatches[ _iIndex - <span class="hljs-number">1</span> ] + <span class="hljs-number">1</span> );
+				<span class="hljs-keyword">var</span> _iEnd = ( _iIndex == _sBuffer.length ? <span class="hljs-literal">null</span> : _aMatches[ _iIndex ] + <span class="hljs-number">1</span> );
+				<span class="hljs-keyword">var</span> _oSingleAncillaEvent = _oBuffer.slice( _iStart, _iEnd ); <span class="hljs-comment">// Adding +1 to index to get also the last character '}' of the JSON string</span>
+				_aAncillaEvents.push( _oSingleAncillaEvent );
+			}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Handling Ancilla events</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> _aAncillaEvents ){
+				<span class="hljs-keyword">var</span> _oCurrentBuffer = _aAncillaEvents[ _iIndex ];
+				<span class="hljs-keyword">var</span> _aCurrentArgs = _aArgs.slice( <span class="hljs-number">0</span> );
+				<span class="hljs-keyword">try</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Transforming JSON string to Javascript Object</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-keyword">var</span> _oAncillaEvent = <span class="hljs-keyword">new</span> Event( <span class="hljs-built_in">JSON</span>.parse( _oCurrentBuffer ) );
+					_aCurrentArgs[ <span class="hljs-number">0</span> ] = _oAncillaEvent;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Clearing deferred ancilla request if it&#39;s an answer for a stored request</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-keyword">this</span>.__clearDeferredAncillaRequest( _oAncillaEvent, <span class="hljs-literal">true</span> );
+					<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'calling Ancilla Event handler ( "%s" ) with "%s" parameters...'</span>, _sHandlerEventFunction, _aCurrentArgs.length );
+					<span class="hljs-keyword">if</span>( <span class="hljs-keyword">this</span>[ _sHandlerEventFunction ] ){
+						<span class="hljs-keyword">this</span>[ _sHandlerEventFunction ].apply( <span class="hljs-keyword">this</span>, _aCurrentArgs );
+					} <span class="hljs-keyword">else</span> {
+						<span class="hljs-keyword">this</span>.error( <span class="hljs-string">'received event "%s" but missing method "%s" to handle event...'</span>, sEvent, _sHandlerEventFunction );
+					}
+				} <span class="hljs-keyword">catch</span>( _oError ){
+					<span class="hljs-keyword">this</span>.error( <span class="hljs-string">'( Error: "%s" ) Unable to convert Ancilla event: "%s"'</span>, _oError, _oCurrentBuffer.toString() );
+					_aArgs[ <span class="hljs-number">0</span> ] = {};
+				}
+			}
+		<span class="hljs-keyword">break</span>;
+		<span class="hljs-keyword">default</span>:</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Calling event handler</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'[ Technology "%s" ] calling event "%s" handler ( "%s" ) with "%s" parameters...'</span>, sEvent, _sHandlerEventFunction, _aArgs.length );
+			<span class="hljs-keyword">if</span>( <span class="hljs-keyword">this</span>[ _sHandlerEventFunction ] ){
+				<span class="hljs-keyword">this</span>[ _sHandlerEventFunction ].apply( <span class="hljs-keyword">this</span>, _aArgs );
+			} <span class="hljs-keyword">else</span> {
+				<span class="hljs-keyword">this</span>.error( <span class="hljs-string">'received event "%s" but missing method "%s" to handle event...'</span>, sEvent, _sHandlerEventFunction );
+			}
+		<span class="hljs-keyword">break</span>;
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __DBinit</span></p>
+<p>Method called to initialize DB</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>fCallback must be a Function.</strong><br/>(The callback function to call when the initialize DB operation is completed)</li>
+</ul>
+<p>Example:</p>
+<pre><code>Technology.__DBinit( fCallback );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__DBinit = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fCallback )</span></span>{
+	<span class="hljs-keyword">var</span> _Technology = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'Checking DB "%s" ( Path: "%s" )'</span>, _Technology.__oOptions.sDBName, _Technology.__DBgetRelativePath() );
+	_Technology._oDB = <span class="hljs-keyword">new</span> DB( _Technology.__DBgetRelativePath() );
+	<span class="hljs-keyword">var</span> _oDB = _Technology._oDB;
+	_oDB.query( [
+		<span class="hljs-string">"CREATE TABLE IF NOT EXISTS __DBSTATUS ( ID INTEGER PRIMARY KEY AUTOINCREMENT, KEY STRING UNIQUE, VALUE STRING );"</span>,
+		<span class="hljs-string">"SELECT VALUE FROM __DBSTATUS WHERE KEY='version';"</span>
+		], <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError, oRows, sQuery )</span></span>{
+			<span class="hljs-keyword">if</span>( iError == <span class="hljs-number">0</span> ){
+				_Technology.__sDBVersion = ( oRows &amp;&amp; oRows.length != <span class="hljs-number">0</span> ? oRows[ <span class="hljs-number">0</span> ].VALUE : <span class="hljs-string">'0.0.0'</span> );
+				_Technology.debug( <span class="hljs-string">'DB Version: %s'</span>, _Technology.__sDBVersion );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Checking configured Path</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">var</span> _sUpdateFilePath = _Technology.__UpdateGetRelativePath();
+				Fs.exists( _sUpdateFilePath, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( bExists )</span></span>{
+					<span class="hljs-keyword">if</span>( bExists ){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Update DB if needed</p></div></div><div class="code"><div class="wrapper">						_Technology.__DBReadUpdateFile( _sUpdateFilePath, fCallback );
+					} <span class="hljs-keyword">else</span> {
+						_Technology.info( <span class="hljs-string">'No queries found on "%s" to update technology\'s DB...'</span>, _Technology.__UpdateGetRelativePath() );
+						<span class="hljs-keyword">if</span>( fCallback ){
+							fCallback();
+						}
+					}
+				});
+			} <span class="hljs-keyword">else</span> {
+				_Technology.error( <span class="hljs-string">'Failed to initialize DB'</span> );
+			}
+	} );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __DBReadUpdateFile</span></p>
+<p>Method called to read SQL queries from a file to update the DB</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sUpdateFilePath must be a String.</strong><br/>(The oath for SQL file to read)</p>
+</li>
+<li><p><strong>fCallback must be a Function.</strong><br/>(The callback function to call when the DB update is completed)</p>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>Technology.__DBReadUpdateFile();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__DBReadUpdateFile = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sUpdateFilePath, fCallback )</span></span>{
+	<span class="hljs-keyword">var</span> _Technology = <span class="hljs-keyword">this</span>;
+	Fs.readFile( sUpdateFilePath, <span class="hljs-string">'utf8'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">( oError, oData )</span></span>{
+		<span class="hljs-keyword">if</span>( oError ){
+			_Technology.error( <span class="hljs-string">'Unable to read update file "%s"...'</span>, sUpdateFilePath );
+		} <span class="hljs-keyword">else</span> {
+			_Technology.__DBupdate( oData, fCallback );
+		}
+	});
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __DBget</span></p>
+<p>Method called to get the SQL DB&#39;s handler</p>
+<p><strong>Returns an Object</strong><br/>(oDB It returns the SQL DB&#39;s handler)</p>
+<p>Example:</p>
+<pre><code>Technology.__DBget();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__DBget = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sQueries )</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._oDB;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __DBgetRelativePersistantPath</span></p>
+<p>Method called to get the DB&#39;s relative path to the persistent memory</p>
+<p><strong>Returns a String</strong><br/>(sPath It returns the relative path for the current DB)</p>
+<p>Example:</p>
+<pre><code>Technology.__DBgetRelativePersistantPath();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__DBgetRelativePersistantPath = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.sDBPath + <span class="hljs-string">'/'</span> + <span class="hljs-keyword">this</span>.__oOptions.sDBName;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __DBgetRelativePath</span></p>
+<p>Method called to get the DB&#39;s relative path to the volatile memory</p>
+<p><strong>Returns a String</strong><br/>(sPath It returns the relative path for the current DB)</p>
+<p>Example:</p>
+<pre><code>Technology.__DBgetRelativePath();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__DBgetRelativePath = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.sDBPathTmp + <span class="hljs-string">'/'</span> + <span class="hljs-keyword">this</span>.__oOptions.sDBName;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __DBupdate</span></p>
+<p>Method called to update the DB</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sData must be a String.</strong><br/>(The string with all the SQL entries ( custom entries, used as SQL comments, will determine the string&#39;s portions to use to update the current DB with the current version ))</p>
+</li>
+<li><p><strong>fCallback must be a Function.</strong><br/>(The callback function to call when the DB update is completed)</p>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>Technology.__DBupdate( sData, fCallback );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__DBupdate = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sData, fCallback )</span></span>{
+	<span class="hljs-keyword">var</span> _Technology = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">var</span> _aData = sData.split( <span class="hljs-keyword">new</span> <span class="hljs-built_in">RegExp</span>( <span class="hljs-string">'(--{{ UPDATE: )(\\d\\.\\d\\.\\d)( to )(\\d\\.\\d\\.\\d)( }})'</span>, <span class="hljs-string">'gm'</span> ) );
+	<span class="hljs-keyword">var</span> _iOffset = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> _bFoundCurrentVersion = <span class="hljs-literal">false</span>;
+	<span class="hljs-keyword">var</span> _aBufferUpdate = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>();
+	<span class="hljs-keyword">var</span> _sStartVersion = <span class="hljs-keyword">this</span>.__sDBVersion;
+	<span class="hljs-keyword">var</span> _sEndVersion = <span class="hljs-literal">null</span>;
+	<span class="hljs-keyword">while</span>( <span class="hljs-keyword">typeof</span> _aData[ _iOffset + <span class="hljs-number">2</span> ] != <span class="hljs-string">'undefined'</span> ){
+		<span class="hljs-keyword">var</span> _sCurrentStartVersion = _aData[ ( _iOffset + <span class="hljs-number">2</span> ) ];
+		<span class="hljs-keyword">var</span> _sCurrentEndVersion = _aData[ ( _iOffset + <span class="hljs-number">4</span> ) ];
+		_sEndVersion = _sCurrentEndVersion;
+		<span class="hljs-keyword">var</span> _sCurrentQuery = _aData[ ( _iOffset + <span class="hljs-number">6</span> ) ];
+		<span class="hljs-keyword">if</span>( <span class="hljs-keyword">this</span>.__sDBVersion == _sStartVersion ){
+			_bFoundCurrentVersion = <span class="hljs-literal">true</span>;
+		}
+		<span class="hljs-keyword">if</span>( _bFoundCurrentVersion ){
+			_aBufferUpdate = _aBufferUpdate.concat( _sCurrentQuery.split( <span class="hljs-string">'\n'</span> ) );
+		}
+		_iOffset = _iOffset + <span class="hljs-number">6</span>;
+	}
+	<span class="hljs-keyword">if</span>( _sStartVersion!=_sEndVersion ){
+		_aBufferUpdate.push( <span class="hljs-string">"INSERT OR REPLACE INTO __DBSTATUS ( 'KEY' , 'VALUE' ) VALUES ( 'version', '"</span> + _sEndVersion + <span class="hljs-string">"' );"</span> );
+		<span class="hljs-comment">//Cleaning empty lines</span>
+		_aBufferUpdate = _aBufferUpdate.filter( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sLine )</span></span>{ <span class="hljs-keyword">return</span> ( sLine &amp;&amp; sLine.trim().substring( <span class="hljs-number">0</span>, <span class="hljs-number">2</span> )!=<span class="hljs-string">'--'</span> ) } );
+		<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'Updating DB from version "%s" to version "%s"'</span>, _sStartVersion, _sEndVersion );
+		<span class="hljs-keyword">this</span>.__DBget().query( _aBufferUpdate, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError, oRows, sQuery )</span></span>{
+			<span class="hljs-keyword">if</span>( iError == <span class="hljs-number">0</span> ){
+				_Technology.info( <span class="hljs-string">'DB updated successfully to version "%s"'</span>, _sEndVersion );
+				<span class="hljs-keyword">if</span>( fCallback ){
+					fCallback();
+				}
+			} <span class="hljs-keyword">else</span> {
+				_Technology.error( <span class="hljs-string">'Error ( %s ): unable to update DB to version "%s"; technology won\'t be started.'</span>, _Technology.getID(), iError, _sEndVersion );
+			}
+		}, {
+			bUseTransaction: <span class="hljs-literal">true</span>,
+			bCloseDB: <span class="hljs-literal">true</span>,
+		});
+	} <span class="hljs-keyword">else</span> {
+		<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'DB Already updated to latest version: "%s"'</span>, _sStartVersion );
+		<span class="hljs-keyword">if</span>( fCallback ){
+			fCallback();
+		}
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __swapDB</span></p>
+<p>Method used to swap the DB file from a source path to a destination path</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sSourcePath must be a String.</strong><br/>(DB source Path)</p>
+</li>
+<li><p><strong>sDestinationPath must be a String.</strong><br/>(DB destination Path)</p>
+</li>
+<li><p><strong>fCallback must be a Function.</strong><br/>(Callback function to call when swap operation is completed)</p>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>Technology.__swapDB( sSourcePath, sDestinationPath );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__swapDB = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sSourcePath, sDestinationPath, fCallback )</span></span>{
+	<span class="hljs-keyword">var</span> _oTechnology = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">if</span>( sSourcePath != sDestinationPath ){
+		Fs.exists( sSourcePath, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( bExists )</span></span>{
+			<span class="hljs-keyword">if</span>( bExists ){
+				Fs.copy( sSourcePath, sDestinationPath, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+					<span class="hljs-keyword">if</span>( oError ){
+						_oTechnology.error( <span class="hljs-string">'Error "%s": Swapped DB failed from "%s" to "%s"...'</span>, oError, sSourcePath, sDestinationPath );
+					} <span class="hljs-keyword">else</span> {
+						_oTechnology.info( <span class="hljs-string">'Swapped DB from "%s" to "%s"...'</span>, sSourcePath, sDestinationPath );
+					}
+					<span class="hljs-keyword">if</span>( fCallback ){
+						fCallback();
+					}
+				});
+			} <span class="hljs-keyword">else</span> {
+				_oTechnology.info( <span class="hljs-string">'SwapDB operation unable to complete: missing source: "%s"...'</span>, sSourcePath );
+				<span class="hljs-keyword">if</span>( fCallback ){
+					fCallback();
+				}
+			}
+		});
+	} <span class="hljs-keyword">else</span> {
+		<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'Swap DB operation not necessary. Destination and Source are the same path: "%s"...'</span>, sSourcePath );
+		<span class="hljs-keyword">if</span>( fCallback ){
+			fCallback();
+		}
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __UpdateGetRelativePath</span></p>
+<p>Method called to get the relative path to the DB Update file</p>
+<p><strong>Returns a String</strong><br/>(sPath It returns the relative path for the current DB Update file)</p>
+<p>Example:</p>
+<pre><code>Technology.__UpdateGetRelativePath();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__UpdateGetRelativePath = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.sUpdatePath + <span class="hljs-string">'/'</span> + <span class="hljs-keyword">this</span>.__oOptions.sUpdateName;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __initGWs</span></p>
+<p>Method called to initialize linked gateway object</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>aGatewaysOptions must be an Array of Objects.</strong><br/>(An array of javascript objects describing the endpoints used by the gateway)</li>
+</ul>
+<p>Example:</p>
+<pre><code>Technology.__initGWs( aGatewaysOptions );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__initGWs = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( aGatewaysOptions )</span></span>{
+	<span class="hljs-keyword">var</span> _Technology = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'Initializing Gateways: %j'</span>, aGatewaysOptions );
+<span class="hljs-comment">//TODO: in the future a technology could have multiple gateway</span>
+	<span class="hljs-keyword">if</span>( aGatewaysOptions ){
+		_Technology._oGateway = <span class="hljs-keyword">new</span> Gateway( aGatewaysOptions, {
+			sID: _Technology.getID() + <span class="hljs-string">'-gateway'</span>
+		} );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Event &#39;error&#39;</p></div></div><div class="code"><div class="wrapper">		_Technology._oGateway.on(<span class="hljs-string">'error'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError, oGWEndpoint )</span> </span>{
+			_Technology.error(<span class="hljs-string">'[ Gateway Endpoint ( ID: "%s" ) ] %s on "[ %s:%s ] %s:%s"...'</span>, oGWEndpoint.getID(), oError, oGWEndpoint.getType(), oGWEndpoint.getConnectionType(), oGWEndpoint.getHost(), oGWEndpoint.getPort() );
+			_Technology.emit( <span class="hljs-string">'error'</span>, oError, oGWEndpoint )
+		});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Event &#39;data&#39; and Event &#39;ancilla&#39;</p></div></div><div class="code"><div class="wrapper">		_Technology._oGateway.on(<span class="hljs-string">'data'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oData, oGWEndpoint, iSocketIndex )</span> </span>{
+			_Technology.debug(<span class="hljs-string">'[ Gateway Endpoint ( ID: "%s" ) ] data received from socket "%s": %s...'</span>, oGWEndpoint.getID(), iSocketIndex, oData.toString() );
+			<span class="hljs-keyword">if</span>( oGWEndpoint.__isAncillaEventsHandler() ){
+				_Technology.emit( <span class="hljs-string">'ancilla'</span>, oData, <span class="hljs-keyword">this</span>, oGWEndpoint, iSocketIndex );
+			} <span class="hljs-keyword">else</span> {
+				_Technology.emit( <span class="hljs-string">'data'</span>, oData, <span class="hljs-keyword">this</span>, oGWEndpoint, iSocketIndex );
+			}
+		});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Other unimportant events</p></div></div><div class="code"><div class="wrapper">		_Technology._oGateway.on(<span class="hljs-string">'connection'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oSocket, oGWEndpoint )</span> </span>{
+			<span class="hljs-keyword">var</span> _sID = oGWEndpoint.getID();
+			_Technology.debug(<span class="hljs-string">'[ Gateway Endpoint ( ID: "%s" ) ] connection received from %s:%s...'</span>, _sID, oSocket.remoteAddress, oSocket.remotePort );
+		});
+		_Technology._oGateway.on(<span class="hljs-string">'connect'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oGWEndpoint )</span> </span>{
+			<span class="hljs-keyword">var</span> _sID = oGWEndpoint.getID();
+			_Technology.info(<span class="hljs-string">'[ Technology ( ID: "%s" ) ][ Gateway Endpoint ( ID: "%s" ) ] connection estabilished with %s:%s...'</span>, _sID, oGWEndpoint.getHost(), oGWEndpoint.getPort() );
+			<span class="hljs-keyword">var</span> _oCoreEnpoint = _Technology.getCoreEndpoint();
+			<span class="hljs-keyword">if</span>( _sID == _oCoreEnpoint.getID() ){
+				_Technology.trigger( {sType: Constant._EVENT_TYPE_INTRODUCE })
+					.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{ <span class="hljs-comment">// Success</span>
+						_Technology.__oStatus.bIsIntroduced = <span class="hljs-literal">true</span>;
+						<span class="hljs-keyword">if</span>( _Technology.__isReady() ){
+							_Technology.emit( <span class="hljs-string">'ready'</span> );
+						}
+					},
+					<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{ <span class="hljs-comment">//Failure</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>TODO: the failure in introducing itself shoudl restart another attempt after some time!</p></div></div><div class="code"><div class="wrapper">						_Technology.info(<span class="hljs-string">'failed to introduce...'</span> );
+					})
+				;
+			}
+		});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>_Technology._oGateway.on(&#39;close&#39;, function( iSocketIndex, oEndpoint, oGWEndpoint ) {
+    _Technology.info(&#39;[ Gateway Endpoint ( ID: &quot;%s&quot; ) ] connection closed from socket &quot;%s&quot;...&#39;, oGWEndpoint.getID(), iSocketIndex );
+    _Technology.emit( &#39;gatewayClose&#39;, iSocketIndex, oEndpoint, oGWEndpoint, this );
+});
+Event &#39;ready&#39; ( When the gateway is ready triggering event &quot;ready&quot; on technology )</p></div></div><div class="code"><div class="wrapper">		_Technology._oGateway.on( <span class="hljs-string">'ready'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+			_Technology.__oStatus.bGatewayReady = <span class="hljs-literal">true</span>;
+			<span class="hljs-keyword">if</span>( _Technology.__isReady() ){
+				_Technology.emit( <span class="hljs-string">'ready'</span> );
+			} <span class="hljs-keyword">else</span> {
+				_Technology.emit( <span class="hljs-string">'gatewayReady'</span> );
+			}
+		});
+	} <span class="hljs-keyword">else</span> {
+		_Technology.info(<span class="hljs-string">'No endpoint configured.'</span>);
+		_Technology.emit( <span class="hljs-string">'ready'</span> );
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getID</span></p>
+<p>Method used to get the current technology ID</p>
+<p><strong>Returns a String</strong><br/>(It returns the unique technology&#39;s string ID)</p>
+<p>Example:</p>
+<pre><code>Technology.getID();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.getID=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.sID;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getType</span></p>
+<p>Method used to get the current technology ID</p>
+<p><strong>Returns a String</strong><br/>(It returns the technology&#39;s type)</p>
+<p>Example:</p>
+<pre><code>Technology.getType();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.getType=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.__oOptions.sType;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method onGatewayReady</span></p>
+<p>Method called when the technology is ready to process</p>
+<p>Example:</p>
+<pre><code>Technology.onGatewayReady();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.onGatewayReady = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'Technology gateway is ready...'</span> );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __isReady</span></p>
+<p>Method called to check if the technology is in ready state</p>
+<p>Example:</p>
+<pre><code>Technology.__isReady();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__isReady = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> (  <span class="hljs-keyword">this</span>.__oStatus.bIsIntroduced &amp;&amp; <span class="hljs-keyword">this</span>.__oStatus.bGatewayReady );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method onReady</span></p>
+<p>Method called when the technology is ready to process</p>
+<p>Example:</p>
+<pre><code>Technology.onReady();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.onReady = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'Technology is ready...'</span> );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getGateway</span></p>
+<p>Method called to returned the Gateway linked to current technology</p>
+<p><strong>Returns an Object</strong><br/>(oGateway It returns the linked Gateway object)</p>
+<p>Example:</p>
+<pre><code>Technology.getGateway();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.getGateway = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._oGateway;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getEndpoints</span></p>
+<p>Method used to get all the endpoints added to the current technology; if ID is used as an argument only the specific endpoint pointed by the ID will be returned</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>sID must be a String.</strong><br/>(If used, it will return only the endpoint with such ID)</li>
+</ul>
+<p><strong>Returns an Array[]/Object</strong><br/>(aEndpoints/oEndpoint It returns array of endpoints or the endpoint with the passed ID)</p>
+<p>Example:</p>
+<pre><code>Technology.getEndpoints();
+Technology.getEndpoints( &#39;Core&#39; );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.getEndpoints = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sID )</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.getGateway().getEndpoints( sID );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getCoreEndpoint</span></p>
+<p>Method used to get the endpoint to the Ancilla Core</p>
+<p><strong>Returns an Object</strong><br/>(oEndpoint It returns the endpoint to the Ancilla Core)</p>
+<p>Example:</p>
+<pre><code>Technology.getCoreEndpoint();</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.getCoreEndpoint = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.getGateway().getEndpoints( <span class="hljs-string">'Core'</span> );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method write</span></p>
+<p>Method used to write a buffer to an endpoint specified by its ID</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sGWEndpointID must be an Integer.</strong><br/>(The endpoint&#39;s ID used to write)</p>
+</li>
+<li><p><strong>oData must be an Object.</strong><br/>(The data buffer ( <a href="http://nodejs.org/api/buffer.html">http://nodejs.org/api/buffer.html</a> ) to write)</p>
+</li>
+<li><p><strong>sEncoding is optional and must be a String.</strong><br/>(The data encoding type used to write)</p>
+</li>
+<li><p><strong>fCallback is optional and must be a Function.</strong><br/>(The callback function to call after the write operation is completed)</p>
+</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.write( &#39;Core&#39;, oData, &#39;utf8&#39; );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.write = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sGWEndpointID, oData, sEncoding, fCallback )</span></span>{
+	<span class="hljs-keyword">this</span>.getGateway().write( sGWEndpointID, oData, sEncoding, fCallback );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method trigger</span></p>
+<p>Method used send Ancilla event request</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oEvent must be an Object.</strong><br/>(The Ancilla event)</p>
+</li>
+<li><p><strong>fCallback is optional and must be a Function.</strong><br/>(The callback function to call after the trigger operation is completed)</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on timeout ( if the event requires an answer ), otherwise it will be successfull)</p>
+<p>Example:</p>
+<pre><code>Technology.trigger( oEvent );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.trigger = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oEventOptions )</span></span>{
+	oEventOptions = Tools.extend({
+		sFromID: <span class="hljs-keyword">this</span>.getID()
+	}, oEventOptions );
+	<span class="hljs-keyword">var</span> _Technology = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">var</span> _oTimeoutHandler = <span class="hljs-literal">null</span>;
+	<span class="hljs-keyword">var</span> _oPromiseReturn = <span class="hljs-literal">null</span>;
+	<span class="hljs-keyword">var</span> _oAncillaEvent = <span class="hljs-keyword">new</span> Event( oEventOptions );
+	<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'sending to "%s" Ancilla event "%j"...'</span>, _oAncillaEvent.getTo(), _oAncillaEvent );
+	<span class="hljs-keyword">if</span>( _oAncillaEvent.needsAnswer() ){
+		<span class="hljs-keyword">var</span> _oPromiseWait4Answer = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Storing Resolve function waiting for answer</p></div></div><div class="code"><div class="wrapper">				_Technology.__addDeferredAncillaRequest( _oAncillaEvent, fResolve );
+			} )
+			.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Clearing Timeout</p></div></div><div class="code"><div class="wrapper">					clearTimeout( _oTimeoutHandler );
+				}
+			);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Promise to wait Timeout ( this promise will fail as soon as )</p></div></div><div class="code"><div class="wrapper">		<span class="hljs-keyword">var</span> _oPromiseToWaitTimeout = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{
+			_oTimeoutHandler = setTimeout( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+				_Technology.error( <span class="hljs-string">'Trigger event "%s" with ID: "%s "has not received a response in "%s" seconds.'</span>, _oAncillaEvent.getType(), _oAncillaEvent.getID(), _oAncillaEvent.getTimeout()/<span class="hljs-number">1000</span> );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Clearing sotred deferred ancilla request</p></div></div><div class="code"><div class="wrapper">				_Technology.__clearDeferredAncillaRequest( _oAncillaEvent, <span class="hljs-literal">false</span> );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Rejecting promise</p></div></div><div class="code"><div class="wrapper">				fReject( <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'timeout'</span>), _oAncillaEvent );
+			}, _oAncillaEvent.getTimeout() );
+		});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Promise Race</p></div></div><div class="code"><div class="wrapper">		_oPromiseReturn = <span class="hljs-built_in">Promise</span>.race( [ _oPromiseWait4Answer, _oPromiseToWaitTimeout ] );
+	} <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>this is a fake promise because we don&#39;t need to wait for an answer</p></div></div><div class="code"><div class="wrapper">		_oPromiseReturn = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sending event</p></div></div><div class="code"><div class="wrapper">			fResolve();
+		});
+	}
+	<span class="hljs-keyword">this</span>.write( _oAncillaEvent.getTo(), _oAncillaEvent.toString(), <span class="hljs-string">'utf8'</span> );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Returning Promise</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">return</span> _oPromiseReturn;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method __addDeferredAncillaRequest</span></p>
+<p>Method used to add Ancilla deferred Promise&#39;s resolve function wating for answers</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oAncillaEvent must be an ID.</strong><br/>(The Ancilla event)</p>
+</li>
+<li><p><strong>fResolveCallback must be a Function.</strong><br/>(The promise&#39;s resolve function to call when the answer arrives)</p>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>Technology.__addDeferredAncillaRequest( _oAncillaEvent.getID(), fResolve );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__addDeferredAncillaRequest = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oAncillaEvent, fResolveCallback, fCallback )</span></span>{
+	<span class="hljs-keyword">this</span>.__oDefferedAncillaEvents[ oAncillaEvent.getID() ] = fResolveCallback;
+	<span class="hljs-keyword">if</span>( fCallback ){
+		fCallback();
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method __clearDeferredAncillaRequest</span></p>
+<p>Method used to free a deferred Ancilla request stored previously when the answer arrives or an error occurs: the resolve function is called</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oAncillaEvent must be an ID.</strong><br/>(The Ancilla event)</p>
+</li>
+<li><p><strong>bSuccess must be a Function.</strong><br/>(True if it&#39;s a success)</p>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>Technology.__clearDeferredAncillaRequest( _oAncillaEvent.getID(), false );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__clearDeferredAncillaRequest = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oAncillaEvent, bSuccess )</span></span>{
+	<span class="hljs-keyword">if</span>( oAncillaEvent.needsAnswer() ){
+		<span class="hljs-keyword">var</span> _iAncillaEventID = oAncillaEvent.getID();
+		<span class="hljs-keyword">if</span>( <span class="hljs-keyword">this</span>.__oDefferedAncillaEvents[ _iAncillaEventID ] ){
+			<span class="hljs-keyword">if</span>( bSuccess ){ <span class="hljs-comment">// If successfull calling resolve function</span>
+				<span class="hljs-keyword">this</span>.__oDefferedAncillaEvents[ _iAncillaEventID ]();
+			}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Clearing stored deferred ancilla event</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">delete</span> <span class="hljs-keyword">this</span>.__oDefferedAncillaEvents[ _iAncillaEventID ];
+		}
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method triggerAnswer</span></p>
+<p>Method used send Ancilla event asnwer to a specific Ancilla event requests</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oEvent must be an Object.</strong><br/>(The Ancilla event request to asnwer to)</p>
+</li>
+<li><p><strong>bResult is optional and must be an Object.</strong><br/>(The result operation)</p>
+</li>
+<li><p><strong>oAdditionalData is optional and must be an Object.</strong><br/>(The additional data to add to the answer)</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull)</p>
+<p>Example:</p>
+<pre><code>Technology.triggerAnswer( oEvent );
+Technology.triggerAnswer( oEvent, Constant._NO_ERROR );
+Technology.triggerAnswer( oEvent, oAdditionalData );
+Technology.triggerAnswer( oEvent, Constant._NO_ERROR, oAdditionalData );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.triggerAnswerTo = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oAncillaEventRequest )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Removing rist argument, sending the other arguments to Ancilla event method</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _aArgs = <span class="hljs-built_in">Array</span>.prototype.slice.call( <span class="hljs-built_in">arguments</span>, <span class="hljs-number">1</span> );
+	oAncillaEventRequest.setToAnswer.apply( <span class="hljs-keyword">this</span>, _aArgs );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sending event</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">this</span>.write( oAncillaEventRequest.getTo(), oAncillaEventRequest.toString(), <span class="hljs-string">'utf8'</span> );
+}
+
+Technology.prototype.__logParseArguments = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( args )</span></span>{
+	<span class="hljs-keyword">var</span> _aArgs = <span class="hljs-built_in">Array</span>.prototype.slice.call( args );
+	<span class="hljs-keyword">var</span> _aTerminalStyle = <span class="hljs-keyword">this</span>.__oOptions.aLogStyle;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Adding schema</p></div></div><div class="code"><div class="wrapper">	_aArgs[ <span class="hljs-number">0</span> ] = <span class="hljs-string">'[ '</span> + Tools.__styleTerminalMessage( <span class="hljs-string">'Technology "%s"'</span>, _aTerminalStyle ) + <span class="hljs-string">' ] '</span> + _aArgs[ <span class="hljs-number">0</span> ];</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Adding value schema</p></div></div><div class="code"><div class="wrapper">	_aArgs.splice( <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-keyword">this</span>.getID() );
+
+	<span class="hljs-keyword">return</span> _aArgs;
+}
+
+Technology.prototype.info = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">var</span> _aArguments = <span class="hljs-keyword">this</span>.__logParseArguments( <span class="hljs-built_in">arguments</span> );
+	Tools.info.apply( Tools, _aArguments );
+}
+Technology.prototype.debug = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">var</span> _aArguments = <span class="hljs-keyword">this</span>.__logParseArguments( <span class="hljs-built_in">arguments</span> );
+	Tools.debug.apply( Tools, _aArguments );
+}
+Technology.prototype.error = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">var</span> _aArguments = <span class="hljs-keyword">this</span>.__logParseArguments( <span class="hljs-built_in">arguments</span> );
+	Tools.error.apply( Tools, _aArguments );
+}
+
+<span class="hljs-built_in">module</span>.exports = Technology;</div></div></div></div></body></html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html><html lang="en"><head><title>lib\Gateway.endpoint.emitter.serial.node</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="lib\Gateway.endpoint.emitter.serial.node"><meta name="groc-project-path" content="lib\Gateway.endpoint.emitter.serial.node.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">lib\Gateway.endpoint.emitter.serial.node.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
+This file is part of &quot;Ancilla Libary&quot;.</p>
+<p> &quot;Ancilla Libary&quot; is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.</p>
+<p> &quot;Ancilla Libary&quot; is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.</p>
+<p> You should have received a copy of the GNU General Public License
+ along with &quot;Ancilla Libary&quot;.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-comment">//Serial Emitter</span>
+<span class="hljs-keyword">var</span> Tools = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Tools.node.js'</span>);
+
+<span class="hljs-keyword">var</span> EmitterSerial = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">( oOptions )</span></span>{
+	<span class="hljs-keyword">var</span> _oSerial = <span class="hljs-built_in">require</span>( <span class="hljs-string">'serialport'</span> );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Default Options</p></div></div><div class="code"><div class="wrapper">	oOptions = Tools.extend( {
+		port: <span class="hljs-string">'/dev/ttyS0'</span>,
+		baudrate: <span class="hljs-number">9600</span>, <span class="hljs-comment">// Should be one of: 115200, 57600, 38400, 19200, 9600, 4800, 2400, 1800, 1200, 600, 300, 200, 150, 134, 110, 75, or 50. Custom rates as allowed by hardware is supported.</span>
+		databits: <span class="hljs-number">8</span>, <span class="hljs-comment">// Must be one of: 8, 7, 6, or 5.</span>
+		stopbits: <span class="hljs-number">1</span>, <span class="hljs-comment">// Must be one of: 1 or 2.</span>
+		parity: <span class="hljs-string">'none'</span>, <span class="hljs-comment">// Must be one of: 'none', 'even', 'mark', 'odd', 'space'</span>
+		buffersize: <span class="hljs-number">255</span>
+		<span class="hljs-comment">//parser: The parser engine to use with read data, defaults to rawPacket strategy which just emits the raw buffer as a "data" event. Can be any function that accepts EventEmitter as first parameter and the raw buffer as the second parameter.</span>
+	}, oOptions );
+	Tools.info(<span class="hljs-string">'[ Endpoint Serial ( ID: %s ) ] Connected on port: "%s", BaudRate: %s, DataBits: %s, StopBits: %s, Parity: %s, BufferSize: %s'</span>, oOptions.id, oOptions.port, oOptions.baudrate, oOptions.databits, oOptions.stopbits, oOptions.parity, oOptions.buffersize );
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> _oSerial( oOptions.port, oOptions, <span class="hljs-literal">false</span> );
+}
+<span class="hljs-built_in">module</span>.exports = EmitterSerial;</div></div></div></div></body></html>

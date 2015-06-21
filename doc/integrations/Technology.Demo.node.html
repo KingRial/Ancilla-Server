@@ -1,0 +1,53 @@
+<!DOCTYPE html><html lang="en"><head><title>integrations\Technology.Demo.node</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="integrations\Technology.Demo.node"><meta name="groc-project-path" content="integrations\Technology.Demo.node.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">integrations\Technology.Demo.node.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
+This file is part of &quot;Ancilla Libary&quot;.</p>
+<p> &quot;Ancilla Libary&quot; is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.</p>
+<p> &quot;Ancilla Libary&quot; is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.</p>
+<p> You should have received a copy of the GNU General Public License
+ along with &quot;Ancilla Libary&quot;.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Ancilla = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../lib/ancilla.node.js'</span>);
+<span class="hljs-keyword">var</span> Tools = Ancilla.Tools;
+<span class="hljs-keyword">var</span> Technology = Ancilla.Technology;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public class DemoTechnology</span></p>
+<p>A Demo Technology used to show how to integrate new technologies using ancilla library</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oDemoOptions must be an Array of Objects.</strong><br/>(A javascript object of options used to configure the technology behaviour)</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>new DemoTechnology( { sID: &#39;demo-1&#39;, aEndpoints: [{ type: &#39;listen&#39;, connectionType: &#39;net&#39;, host: &#39;localhost&#39;, port: 10001 }, { type: &#39;connect&#39;, connectionType: &#39;net&#39;, host: &#39;192.168.0.100&#39;, port: 10002 }] } );</code></pre></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> DemoTechnology=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oDemoOptions )</span></span>{
+	<span class="hljs-comment">//Default Technology Options</span>
+	oDemoOptions = Tools.extend({
+		sType: <span class="hljs-string">'Technology.Demo'</span>
+	}, oDemoOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Calling inherited constructor</p></div></div><div class="code"><div class="wrapper">	DemoTechnology.super_.call( <span class="hljs-keyword">this</span>, oDemoOptions );
+}
+Tools.inherits( DemoTechnology, Technology );
+
+DemoTechnology.prototype.onReady = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Calling inherited constructor</p></div></div><div class="code"><div class="wrapper">	DemoTechnology.super_.prototype.onReady.apply( <span class="hljs-keyword">this</span> );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Executing custom onReady event actions</p></div></div><div class="code"><div class="wrapper">	Tools.info( <span class="hljs-string">'[ DemoTechnology "%s" ] is ready to process...'</span>, <span class="hljs-keyword">this</span>.getID() );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>// Registering Fake Objects
+this.trigger({
+    sType: &#39;register-objects&#39;,
+    aObjects: [ { id:1, name: &#39;Oggetto Fake 1&#39; }, { id:2, name: &#39;Oggetto Fake 2&#39; },{ id:3, name: &#39;Oggetto Fake 3&#39; } ]
+});</p></div></div><div class="code"><div class="wrapper">}
+
+DemoTechnology.prototype.onData = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oData, oGWEndpoint )</span></span>{
+	<span class="hljs-keyword">var</span> _DemoTechnology = <span class="hljs-keyword">this</span>;
+	Tools.debug(<span class="hljs-string">'[ DemoTechnology "%s" ] Data received: "%s" from Gateway Endpoint: "%s"; tracking...'</span>, _DemoTechnology.getID(), oData.toString(<span class="hljs-string">'hex'</span>), oGWEndpoint.getID() );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Tracking Data when something is received</p></div></div><div class="code"><div class="wrapper">	_DemoTechnology.__DBget().query( <span class="hljs-string">"INSERT INTO TRACK ( DATA_STRING, DATA_HEX ) VALUES ( '"</span> + oData.toString() + <span class="hljs-string">"', '"</span> + oData.toString(<span class="hljs-string">'hex'</span>) + <span class="hljs-string">"' );"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError, oRows, sQuery )</span></span>{
+		<span class="hljs-keyword">if</span>( iError != <span class="hljs-number">0</span> ){
+			Tools.error( <span class="hljs-string">'[ DemoTechnology "%s" ] Error on tracking data'</span>, _DemoTechnology.getID() );
+		}
+	});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sending Event to itself using the Core ( no real reason :P Just to show how to trigger events )</p></div></div><div class="code"><div class="wrapper">	_DemoTechnology.trigger({
+		sType: <span class="hljs-string">'demoEvent'</span>,
+		sToID: <span class="hljs-keyword">this</span>.getID(),
+		data: oData.toString()
+	});
+}
+
+DemoTechnology.prototype.onAncilla = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oEvent )</span></span>{
+	Tools.debug( <span class="hljs-string">'[ DemoTechnology "%s" ] Received Ancilla Event [%s]: "%s" '</span>, <span class="hljs-keyword">this</span>.getID(), oEvent.sType, oEvent.data );
+}
+
+<span class="hljs-built_in">module</span>.exports = Tools.exports( DemoTechnology, <span class="hljs-built_in">module</span> );</div></div></div></div></body></html>

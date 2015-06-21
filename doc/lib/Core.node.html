@@ -1,0 +1,875 @@
+<!DOCTYPE html><html lang="en"><head><title>lib\Core.node</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="lib\Core.node"><meta name="groc-project-path" content="lib\Core.node.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">lib\Core.node.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
+This file is part of &quot;Ancilla Libary&quot;.</p>
+<p> &quot;Ancilla Libary&quot; is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.</p>
+<p> &quot;Ancilla Libary&quot; is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.</p>
+<p> You should have received a copy of the GNU General Public License
+ along with &quot;Ancilla Libary&quot;.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Technology = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Technology.node.js'</span>);
+<span class="hljs-keyword">var</span> Event = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Event.node.js'</span>);
+<span class="hljs-keyword">var</span> Tools = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Tools.node.js'</span>);
+<span class="hljs-keyword">var</span> Constant = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Constants.node.js'</span>);
+<span class="hljs-keyword">var</span> <span class="hljs-built_in">Promise</span> = <span class="hljs-built_in">require</span>(<span class="hljs-string">'bluebird'</span>);
+
+<span class="hljs-keyword">var</span> ChildProcess = <span class="hljs-built_in">require</span>(<span class="hljs-string">'child_process'</span>);
+<span class="hljs-keyword">var</span> Path = <span class="hljs-built_in">require</span>(<span class="hljs-string">'path'</span>);</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public class Core</span></p>
+<p>A generic class to describe the central Ancilla&#39;s Core; it&#39;s build as a technology</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oCoreOptions must be an Object.</strong><br/>(An object of options for the Core)</li>
+</ul>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>new Core()</code></pre></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Core =  <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oCoreOptions )</span></span>{
+	oCoreOptions = Tools.extend({
+		sID: <span class="hljs-string">'Core'</span>,
+		sType: <span class="hljs-string">'Core'</span>,
+		iVersion: Constant._ANCILLA_CORE_VERSION,
+		aEndpoints: [{
+				id: <span class="hljs-string">'Core'</span>,
+				type: <span class="hljs-string">'listen'</span>,
+				connectionType: <span class="hljs-string">'net'</span>,
+				host: <span class="hljs-string">'localhost'</span>,
+				port: <span class="hljs-string">'10000'</span>,
+				isAncillaEventsHandler: <span class="hljs-literal">true</span>
+			}, {
+				id: <span class="hljs-string">'web'</span>,
+				type: <span class="hljs-string">'listen'</span>,
+				connectionType: <span class="hljs-string">'ws'</span>,
+				isAncillaEventsHandler: <span class="hljs-literal">true</span>
+			}]
+	}, oCoreOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Calling inherited constructor</p></div></div><div class="code"><div class="wrapper">	Core.super_.call( <span class="hljs-keyword">this</span>, oCoreOptions );
+}
+
+Tools.inherits( Core, Technology );</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method onGatewayReady</span></p>
+<p>Method called when event &quot;Gateway Ready&quot; is fired, to initialize the Core</p>
+<p>Example:</p>
+<pre><code>Core.onGatewayReady();</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.onGatewayReady = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">var</span> _Core = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'is ready to process...'</span> );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>TODO: setting timers to handle swap DB <a href="http://nodejs.org/api/timers.html">http://nodejs.org/api/timers.html</a>
+Selecting technology&#39;s type</p></div></div><div class="code"><div class="wrapper">	_Core.__selectTableRows( <span class="hljs-string">'TECHNOLOGY_TYPE'</span> )
+		.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{
+			<span class="hljs-keyword">var</span> _oDB = _Core.__DBget();
+			<span class="hljs-keyword">var</span> _oTechnologyTypes = {};
+			<span class="hljs-keyword">for</span> ( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> oRows ){
+				<span class="hljs-keyword">var</span> _oCurrentRow = oRows[ _iIndex ];
+				_oTechnologyTypes[ _oCurrentRow[ <span class="hljs-string">'TYPE'</span> ] ] = oRows[ _iIndex ];
+			}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Selecting configured technologies and create a process to execute them</p></div></div><div class="code"><div class="wrapper">			_Core.__selectTableRows( <span class="hljs-string">'OBJECT'</span>, _oDB.expr()
+					.and( <span class="hljs-string">"TYPE='TECHNOLOGY'"</span> )
+					.and( <span class="hljs-string">"TECHNOLOGY NOT IN ?"</span>, [ Constant._TECHNOLOGY_TYPE_CORE, Constant._TECHNOLOGY_TYPE_WEB ] )
+					.and( <span class="hljs-string">"IS_ENABLED=1"</span> )
+				)
+				.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{
+					<span class="hljs-keyword">if</span>( oRows.length &gt; <span class="hljs-number">0</span> ){
+						<span class="hljs-keyword">for</span> ( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> oRows ){
+							<span class="hljs-keyword">var</span> _oCurrentRow = oRows[ _iIndex ];
+							<span class="hljs-keyword">var</span> _sTechnologyName = _oCurrentRow[ <span class="hljs-string">'NAME'</span> ];
+							<span class="hljs-keyword">var</span> _sTechnologyType = _oCurrentRow[ <span class="hljs-string">'TECHNOLOGY'</span> ];
+							<span class="hljs-keyword">var</span> _sTechnologyPath = _oTechnologyTypes[ _sTechnologyType ][ <span class="hljs-string">'PATH'</span> ];
+							<span class="hljs-keyword">var</span> _sTechnologyLanguage = _oTechnologyTypes[ _sTechnologyType ][ <span class="hljs-string">'LANGUAGE'</span> ];
+							<span class="hljs-keyword">var</span> _sTechonlogyPathFile = Path.basename( _sTechnologyPath );
+							<span class="hljs-keyword">var</span> _sTechonlogyPathDir = Path.dirname( _sTechnologyPath );
+							<span class="hljs-keyword">var</span> _sTechnologyAdditionalArgs = _oCurrentRow[ <span class="hljs-string">'OPTIONS'</span> ] || <span class="hljs-string">''</span>;
+							<span class="hljs-keyword">var</span> _aAdditionalArgs = <span class="hljs-built_in">JSON</span>.parse( _sTechnologyAdditionalArgs.replace(<span class="hljs-regexp">/\\"/g</span>, <span class="hljs-string">'"'</span>) );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Building Args to start process</p></div></div><div class="code"><div class="wrapper">							<span class="hljs-keyword">var</span> _oArgs = {
+								sID: _sTechnologyName,
+								sCwd: _sTechonlogyPathDir
+							};
+							<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _sArg <span class="hljs-keyword">in</span> _aAdditionalArgs ){
+								<span class="hljs-keyword">switch</span>( _sArg ){
+									<span class="hljs-keyword">case</span> <span class="hljs-string">'aEndpoints'</span>:
+										<span class="hljs-keyword">var</span> _oCoreEndpoint = _Core.getEndpoints( <span class="hljs-string">'Core'</span> );
+										<span class="hljs-keyword">var</span> _aEndpoints = _aAdditionalArgs.aEndpoints || {};
+										_aEndpoints.unshift({
+											id: _oCoreEndpoint.getID(),
+											type: <span class="hljs-string">'connect'</span>,
+											connectionType: _oCoreEndpoint.getConnectionType(),
+											host: _oCoreEndpoint.getHost(),
+											port: _oCoreEndpoint.getPort(),
+											isAncillaEventsHandler: <span class="hljs-literal">true</span>
+										});
+										_oArgs[ _sArg ] = <span class="hljs-built_in">JSON</span>.stringify( _aEndpoints );
+									<span class="hljs-keyword">break</span>;
+									<span class="hljs-keyword">default</span>:
+										_oArgs[ _sArg ] = _aAdditionalArgs[ _sArg ];
+									<span class="hljs-keyword">break</span>;
+								}
+							}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Checking supported technology script type</p></div></div><div class="code"><div class="wrapper">							<span class="hljs-keyword">switch</span>( _sTechnologyLanguage ){
+								<span class="hljs-keyword">case</span> <span class="hljs-string">'nodejs'</span>:
+									_Core.info( <span class="hljs-string">'Starting technology "%s" type: "%s"\n\tArguments: "%j"'</span>, _sTechnologyName, _sTechnologyType, _oArgs );
+								<span class="hljs-keyword">break</span>;
+								<span class="hljs-keyword">default</span>:
+									_Core.error( <span class="hljs-string">'Unable to start technology "%s" ( type: "%s", File: "%s", cwd: "%s" ). Script type "%s" is not supported by Core.'</span>, _sTechnologyName, _sTechnologyType, _sTechonlogyPathFile, _sTechonlogyPathDir, _sTechnologyLanguage );
+								<span class="hljs-keyword">break</span>;
+							}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Creating new Process by technology ( if the current script type is supported )</p></div></div><div class="code"><div class="wrapper">							<span class="hljs-keyword">switch</span>( _sTechnologyLanguage ){
+								<span class="hljs-keyword">case</span> <span class="hljs-string">'nodejs'</span>:</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init Args for spawning child process</p></div></div><div class="code"><div class="wrapper">									<span class="hljs-keyword">var</span> _aArgs = [ _sTechnologyPath ];
+									<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _sField <span class="hljs-keyword">in</span> _oArgs ){
+										<span class="hljs-keyword">var</span> _value = _oArgs[ _sField ];
+										<span class="hljs-keyword">if</span>( _value ){
+											_aArgs.push( <span class="hljs-string">'--'</span> + _sField );
+											<span class="hljs-keyword">if</span>( _value !== <span class="hljs-literal">true</span> ){
+												_aArgs.push( _value );
+											}
+										}
+									}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Spawning process</p></div></div><div class="code"><div class="wrapper">									<span class="hljs-keyword">var</span> _oProcess = ChildProcess.spawn( <span class="hljs-string">'node'</span>, _aArgs );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Piping process stdout/stderror to Core stdout/stderror</p></div></div><div class="code"><div class="wrapper">									_oProcess.stdout.pipe( process.stdout );
+									_oProcess.stderr.pipe( process.stderr );
+								<span class="hljs-keyword">break</span>;
+								<span class="hljs-keyword">default</span>:
+									_Core.error( <span class="hljs-string">'Unknown technology script type: "%s"; unable to start technology.'</span>, _sTechnologyLanguage );
+								<span class="hljs-keyword">break</span>;
+							}
+						}
+					} <span class="hljs-keyword">else</span> {
+						_Core.info( <span class="hljs-string">'No configured technologies to start.'</span> );
+					}
+				})
+				.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+<span class="hljs-built_in">console</span>.error( <span class="hljs-string">'error: %j'</span>, <span class="hljs-built_in">arguments</span> );
+					_Core.error( <span class="hljs-string">'[ Error: %j ] Unable to get technologies.'</span>, oError );
+					process.exit();
+				})
+			;
+		})
+		.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+			_Core.error( <span class="hljs-string">'[ Error: %j ] Unable to get technology types.'</span>, oError );
+			process.exit();
+		})
+	;
+};</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method getConnectedSocket</span></p>
+<p>Method called to collect the connected socket looking for all the available endpoints</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sID must be a String.</strong><br/>(The socket ID)</p>
+</li>
+<li><p><strong>bGetSocketFromWebsocket is optional and must be a Boolean.</strong><br/>(Get the real socket from websocket socket ( lol! by default: false ))</p>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>Core.getConnectedSocket( sID );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.getConnectedSocket = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sID, bGetSocketFromWebsocket )</span></span>{
+<span class="hljs-comment">//TODO: improve this</span>
+	<span class="hljs-keyword">var</span> _oSocket = <span class="hljs-literal">null</span>;
+	<span class="hljs-keyword">var</span> _aEndpoints = <span class="hljs-keyword">this</span>.getGateway().getEndpoints();
+	<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> _aEndpoints ){
+		<span class="hljs-keyword">var</span> _oEndpoint = _aEndpoints[ _iIndex ];
+		_oSocket = _oEndpoint.getConnectedSocket( sID );
+		<span class="hljs-keyword">if</span>( _oSocket ){
+			_oSocket = ( bGetSocketFromWebsocket &amp;&amp; _oSocket._socket ? _oSocket._socket : _oSocket ); <span class="hljs-comment">// Handling websockets custom environment</span>
+			<span class="hljs-keyword">break</span>;
+		}
+	}
+	<span class="hljs-keyword">return</span> _oSocket;
+};</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method setConnectedSocketID</span></p>
+<p>Method called to set ad ID to a connected socket</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oGateway must be an Object.</strong><br/>(The current gateway)</p>
+</li>
+<li><p><strong>oGatewayEndpoint must be an Object.</strong><br/>(The current gateway Endpoint)</p>
+</li>
+<li><p><strong>iSocketIndex must be a Number.</strong><br/>(The current socket index)</p>
+</li>
+<li><p><strong>sConnectedSocketID must be a String.</strong><br/>(The socket ID to set)</p>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>Core.setConnectedSocketID( oGateway, oGatewayEndpoint, iSocketIndex, sConnectedSocketID );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.setConnectedSocketID = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oGateway, oGatewayEndpoint, iSocketIndex, sConnectedSocketID )</span></span>{
+	<span class="hljs-keyword">this</span>.getGateway( oGateway.getID() ).getEndpoints( oGatewayEndpoint.getID() ).setConnectedSocketID( iSocketIndex, sConnectedSocketID );
+};</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __getTechnology</span></p>
+<p>Method called to get a technology</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sTechnologyID must be a String.</strong><br/>(The technology ID)</p>
+</li>
+<li><p><strong>bCreateOnMissing must be a Boolean.</strong><br/>(flag to create technology when missing ( by default: false ))</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull and the first parameter will be the ROW&#39;s technology)</p>
+<p>Example:</p>
+<pre><code>Core.__getTechnology( sTechnologyID );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__getTechnology = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTechnologyID, bCreateOnMissing )</span></span>{
+	<span class="hljs-keyword">var</span> _Core = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{
+		_Core.__selectTableRows( <span class="hljs-string">'OBJECT'</span>, _Core.__DBget().expr()
+				.and( <span class="hljs-string">'NAME = ?'</span>, sTechnologyID )
+				.and( <span class="hljs-string">'TYPE = ?'</span>, Constant._OBJECT_TYPE_TECHNOLOGY )
+			)
+			.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{
+				<span class="hljs-keyword">if</span>( oRows.length &gt; <span class="hljs-number">1</span> ){
+					_Core.error(<span class="hljs-string">'multiple technologies with same ID: "%s"'</span>, sTechnologyID );
+					fReject( Constant._ERROR_TECHNOLOGY_ALREADY_PRESENT );
+				} <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>if not technology found and a technology creation is requested...</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-keyword">if</span>( oRows.length == <span class="hljs-number">0</span> &amp;&amp; bCreateOnMissing ){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>TODO: fill web technologies with all the correct datas</p></div></div><div class="code"><div class="wrapper">						_Core.__insertTableRows( <span class="hljs-string">'OBJECT'</span>, {
+								NAME: sTechnologyID,
+								TYPE: Constant._OBJECT_TYPE_TECHNOLOGY,
+								TECHNOLOGY: Constant._TECHNOLOGY_TYPE_WEB
+								<span class="hljs-comment">//OPTIONS: '{"aArguments":[[{"id":"web","type":"connect","connectionType":"ws","host":,"port":10003}]]}'</span>
+							})
+							.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+								<span class="hljs-keyword">return</span> _Core.__getTechnology( sTechnologyID );
+							})
+							.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+								fReject( oError );
+							})
+						;
+					} <span class="hljs-keyword">else</span> {
+						fResolve( oRows[ <span class="hljs-number">0</span> ] );
+					}
+				}
+			} )
+			.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+				_Core.error(<span class="hljs-string">'unable to get technology "%s"'</span>, sTechnologyID );
+				fReject( Constant._ERROR_TECHNOLOGY_UNKNOWN );
+			} )
+		;
+	});
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __technologyGetUser</span></p>
+<p>Method called to get the user used by a particular technology</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>sTechnologyID must be a String.</strong><br/>(The technology ID)</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull and the first parameter will be the ROW&#39;s user)</p>
+<p>Example:</p>
+<pre><code>Core.__technologyGetUser( sTechnologyID );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__technologyGetUser = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTechnologyID )</span></span>{
+	<span class="hljs-keyword">var</span> _Core = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{
+		_Core.__technologyGetUserID( sTechnologyID )
+			.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iUserID )</span></span>{
+				_Core.__selectTableRows( <span class="hljs-string">'OBJECT'</span>, _Core.__DBget().expr()
+						.and( <span class="hljs-string">'ID = ?'</span>, iUserID )
+						.and( <span class="hljs-string">'TYPE = ?'</span>, Constant._OBJECT_TYPE_USER )
+					)
+					.then(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{
+							fResolve( ( oRows ? oRows[ <span class="hljs-number">0</span> ] : <span class="hljs-literal">null</span> ) );
+					} )
+					.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+						_Core.error( <span class="hljs-string">'[ Error "%j" ] Unable to get user row data for technology "%s"'</span>, iError, sTechnologyID );
+						fReject( iError );
+					})
+			} )
+		;
+	});
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __technologyGetUserID</span></p>
+<p>Method called to get the user used by a particular technology</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>sTechnologyID must be a String.</strong><br/>(The technology ID)</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull and the first parameter will be the user ID)</p>
+<p>Example:</p>
+<pre><code>Core.__technologyGetUserID( sTechnologyID );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__technologyGetUserID = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTechnologyID )</span></span>{
+	<span class="hljs-keyword">var</span> _Core = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{
+		<span class="hljs-keyword">var</span> _oSocket = _Core.getConnectedSocket( sTechnologyID, <span class="hljs-literal">true</span> );
+		<span class="hljs-keyword">var</span> _oAddress = _oSocket.address(); <span class="hljs-comment">// {"address":"127.0.0.1","family":"IPv4","port":10080}</span>
+		<span class="hljs-keyword">var</span> _oDB = _Core.__DBget();
+		_oDB.query( _oDB.builder()
+			.select()
+			.from( <span class="hljs-string">'OBJECT'</span> )
+			.join( <span class="hljs-string">'RELATION'</span>, <span class="hljs-literal">null</span>, <span class="hljs-string">"OBJECT.ID = RELATION.CHILD_ID"</span> )	<span class="hljs-comment">// Technology is a child of USER object</span>
+			.where( _oDB.expr()
+				.and( <span class="hljs-string">"OBJECT.NAME = ?"</span>, sTechnologyID )
+				.and( <span class="hljs-string">'OBJECT.TYPE = ?'</span>, Constant._OBJECT_TYPE_TECHNOLOGY )
+				.and( <span class="hljs-string">'RELATION.TYPE = ?'</span>, Constant._RELATION_TYPE_LOGGEDAS )
+				.and( <span class="hljs-string">'RELATION.EVENT = ?'</span>, _oAddress.address + <span class="hljs-string">':'</span> + _oAddress.port )
+			),
+			<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError, oRows, sQuery )</span></span>{
+				<span class="hljs-keyword">if</span>( iError != Constant._NO_ERROR ){
+					fReject( iError );
+				} <span class="hljs-keyword">else</span> {
+					<span class="hljs-keyword">if</span>( oRows.length &gt; <span class="hljs-number">1</span>){
+						_Core.error(<span class="hljs-string">'found more than a single user logged as "%s"'</span>, sTechnologyID);
+						fReject( Constant._ERROR_FAILED_LOGIN );
+					} <span class="hljs-keyword">else</span> {
+						fResolve( ( oRows[ <span class="hljs-number">0</span> ] ? oRows[ <span class="hljs-number">0</span> ][ <span class="hljs-string">'PARENT_ID'</span> ] : <span class="hljs-literal">null</span> ) );
+					}
+				}
+			}
+		);
+	});
+};</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __technologyLogIn</span></p>
+<p>Method called to set a technology logged as a user</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sTechnologyID must be a String.</strong><br/>(The technology ID)</p>
+</li>
+<li><p><strong>iUserID must be a Number.</strong><br/>(The User ID)</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull)</p>
+<p>Example:</p>
+<pre><code>Core.__technologyLogIn( sTechnologyID, iUserID );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__technologyLogIn = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTechnologyID, iUserID )</span></span>{
+	<span class="hljs-keyword">var</span> _Core = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{
+			_Core.__getTechnology( sTechnologyID )
+				.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRowTechnology )</span></span>{
+					<span class="hljs-keyword">if</span>( !oRowTechnology ){
+						fReject( Constant._ERROR_TECHNOLOGY_UNKNOWN );
+					} <span class="hljs-keyword">else</span> {
+						<span class="hljs-keyword">var</span> _oSocket = _Core.getConnectedSocket( sTechnologyID, <span class="hljs-literal">true</span> );
+						<span class="hljs-keyword">var</span> _oAddress = _oSocket.address(); <span class="hljs-comment">// {"address":"127.0.0.1","family":"IPv4","port":10080}</span>
+						_Core.__insertTableRows( <span class="hljs-string">'RELATION'</span>, {
+								PARENT_ID: iUserID,
+								CHILD_ID: oRowTechnology[ <span class="hljs-string">'ID'</span> ],
+								TYPE: Constant._RELATION_TYPE_LOGGEDAS,
+								EVENT: _oAddress.address + <span class="hljs-string">':'</span> + _oAddress.port
+							})
+							.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+								fResolve();
+							})
+							.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+								fReject( oError );
+							})
+						;
+					}
+				})
+				.catch(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+					fReject( oError );
+				})
+			;
+		})
+		.catch(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+			_Core.error( <span class="hljs-string">'[ Error "%j" ] unable to login technology "%s" to user ID "%s"'</span>, iError, sTechnologyID, iUserID );
+		})
+	;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __technologyLogOut</span></p>
+<p>Method called to log out a technology</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>sTechnologyID must be a String.</strong><br/>(The technology ID)</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull)</p>
+<p>Example:</p>
+<pre><code>Core.__technologyLogOut( sTechnologyID, iUserID );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__technologyLogOut = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTechnologyID )</span></span>{
+	<span class="hljs-keyword">var</span> _Core = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">return</span> _Core.__getTechnology( sTechnologyID )
+		.then(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRowTechnology )</span></span>{
+			<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{
+				<span class="hljs-keyword">if</span>( !oRowTechnology ){
+					fReject( Constant._ERROR_TECHNOLOGY_UNKNOWN );
+				} <span class="hljs-keyword">else</span> {
+					<span class="hljs-keyword">var</span> _oDB = _Core.__DBget();
+					_oDB.query( _oDB.builder()
+						.delete()
+						.from( <span class="hljs-string">'RELATION'</span> )
+						.where( _oDB.expr()
+							.and( <span class="hljs-string">"TYPE = ?"</span>, Constant._RELATION_TYPE_LOGGEDAS )
+							.and( <span class="hljs-string">"CHILD_ID = ? "</span>, oRowTechnology[ <span class="hljs-string">'ID'</span> ] )
+						),
+						<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError, oRows, sQuery )</span></span>{
+							<span class="hljs-keyword">if</span>( iError != Constant._NO_ERROR ){
+								fReject( iError );
+							} <span class="hljs-keyword">else</span> {
+								fResolve();
+							}
+						}
+					);
+				}
+			});
+		})
+		.catch(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+			_Core.error( <span class="hljs-string">'[ Error "%j" ] unable to logout technology "%s"'</span>, iError, sTechnologyID );
+		})
+	;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __technologyIsLogged</span></p>
+<p>Method called to see if the technology is logged</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>sTechnologyID must be a String.</strong><br/>(The technology ID)</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull and the first parameter will be the logged status)</p>
+<p>Example:</p>
+<pre><code>Core.__technologyIsLogged( sTechnologyID );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__technologyIsLogged = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTechnologyID )</span></span>{
+	<span class="hljs-keyword">var</span> _Core = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{
+		<span class="hljs-keyword">var</span> _bIsLogged = <span class="hljs-literal">false</span>;
+		_Core.__technologyGetUserID( sTechnologyID )
+			.then(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iUserID )</span></span>{
+				_bIsLogged = ( iUserID ? <span class="hljs-literal">true</span> : <span class="hljs-literal">false</span> );
+				_Core.debug( <span class="hljs-string">'technology "%s" %s logged'</span>, ( _bIsLogged ? <span class="hljs-string">'is'</span> : <span class="hljs-string">'is NOT'</span>) );
+				fResolve( _bIsLogged );
+			})
+			.catch(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+				fReject( oError );
+			})
+		;
+	});
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method onAncilla</span></p>
+<p>Method called when event &quot;Ancilla&quot; is fired, to handle it</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oEvent must be an Object.</strong><br/>(The Ancilla event)</li>
+</ul>
+<p>Example:</p>
+<pre><code>Core.onAncilla( oEvent );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.onAncilla = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oEvent )</span></span>{
+	<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'Received Ancilla Event: "%j".'</span>, oEvent );
+	<span class="hljs-keyword">var</span> _oGateway = <span class="hljs-built_in">arguments</span>[<span class="hljs-number">1</span>];
+	<span class="hljs-keyword">var</span> _oGatewayEndpoint = <span class="hljs-built_in">arguments</span>[<span class="hljs-number">2</span>];
+	<span class="hljs-keyword">var</span> _iSocketIndex = <span class="hljs-built_in">arguments</span>[<span class="hljs-number">3</span>];
+	<span class="hljs-keyword">var</span> _sTechnologyID = oEvent.getFrom();
+	<span class="hljs-keyword">var</span> _sEventType = oEvent.getType();
+	<span class="hljs-keyword">var</span> _bCheckIfLogged = <span class="hljs-literal">true</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Handling Ancilla Event Requests sent to the core and preparing answer if needed</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">if</span>( oEvent.isRequest() &amp;&amp; ( oEvent.getTo() == <span class="hljs-keyword">this</span>.getID() ) ){
+		<span class="hljs-keyword">var</span> _Core = <span class="hljs-keyword">this</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Technology is Logged Promise</p></div></div><div class="code"><div class="wrapper">		<span class="hljs-keyword">var</span> _oIsLoggedPromise = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{
+			<span class="hljs-keyword">switch</span>( _sEventType ){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>login check can be ignored on the following cases</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_INTRODUCE:
+				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_LOGIN:
+				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_LOGOUT:
+					_Core.debug( <span class="hljs-string">'Ancilla event "%s" not requires a login check...'</span>, _sEventType );
+					fResolve();
+					<span class="hljs-keyword">break</span>;
+				<span class="hljs-keyword">default</span>: <span class="hljs-comment">// Login check must be done</span>
+					<span class="hljs-keyword">return</span> _Core.__technologyIsLogged( _sTechnologyID )
+						.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( bIsLogged )</span></span>{
+							<span class="hljs-keyword">if</span>( bIsLogged ){
+								_Core.debug( <span class="hljs-string">'Technology "%s" is logged...'</span>, _sTechnologyID );
+								fResolve();
+							} <span class="hljs-keyword">else</span> {
+								_Core.debug( <span class="hljs-string">'Technology "%s" is NOT logged...'</span>, _sTechnologyID );
+								fReject( Constant._ERROR_TECHNOLOGY_NOT_LOGGED );
+							}
+						})
+						.catch( <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">( oError )</span></span>{
+							_Core.error( <span class="hljs-string">'[ Error "%j" ] on checking it technology "%s" is logged'</span>, oError, _sTechnologyID );
+						})
+					;
+					<span class="hljs-keyword">break</span>;
+			}
+		});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Main promise</p></div></div><div class="code"><div class="wrapper">		<span class="hljs-keyword">var</span> _oMainPromise = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Choosing the ancilla event type handler</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">switch</span>( _sEventType ){</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method Constant._EVENT_TYPE_INTRODUCE</span></p>
+<p>Ancilla Event used to introduce a new technology to the Core</p>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.trigger( {sType: Constant._EVENT_TYPE_INTRODUCE } );</code></pre></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_INTRODUCE:</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Using technology ID to get the current connected socket</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-keyword">var</span> _oConnectedSocket = _Core.getConnectedSocket( _sTechnologyID );
+					<span class="hljs-keyword">if</span>( _oConnectedSocket ){
+						_Core.error( <span class="hljs-string">'already knows a technology "%s"... ignoring introduction! Use a different ID to "introduce" a new Technology.'</span>, _sTechnologyID );
+						fReject( Constant._ERROR_TECHNOLOGY_ALREADY_INTRODUCED );
+					} <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Setting socket ID to Technology ID</p></div></div><div class="code"><div class="wrapper">						_Core.setConnectedSocketID( _oGateway, _oGatewayEndpoint, _iSocketIndex, _sTechnologyID );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>If the introduced technology is a web client, creating the technolgy if needed</p></div></div><div class="code"><div class="wrapper">						<span class="hljs-keyword">var</span> _bIsWebTechnology = ( _oGatewayEndpoint.getID() == <span class="hljs-string">'web'</span>  ? <span class="hljs-literal">true</span> : <span class="hljs-literal">false</span> );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Collecting data on current used user for the current technology</p></div></div><div class="code"><div class="wrapper">						_Core.__technologyGetUser( _sTechnologyID )</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Creating missing web technology if needed</p></div></div><div class="code"><div class="wrapper">							.then( _bIsWebTechnology ?
+									_Core.__getTechnology( _sTechnologyID, <span class="hljs-literal">true</span> ).catch(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(oError)</span></span>{fReject( oError );}) :
+									<span class="hljs-built_in">Promise</span>.resolve()
+								)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Handling latest actions</p></div></div><div class="code"><div class="wrapper">							.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oUser )</span></span>{
+								_Core.info( <span class="hljs-string">'knows the "%s" technology "%s" can be reached logged as "%s".'</span>, ( _bIsWebTechnology ? <span class="hljs-string">'web'</span> : <span class="hljs-string">'generic'</span> ), _sTechnologyID, ( oUser ? oUser[ <span class="hljs-string">'NAME'</span> ] : <span class="hljs-string">'noone'</span> ) );
+								oEvent.setToAnswer( { oUser: oUser } );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving Main Promise</p></div></div><div class="code"><div class="wrapper">								fResolve( oEvent );
+							})
+							.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+								_Core.error( <span class="hljs-string">'[ Error "%s" ] on introducing technology "%s".'</span>, iError, _sTechnologyID );
+								fReject( iError );
+							})
+						;
+					}
+				<span class="hljs-keyword">break</span>;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method Constant._EVENT_TYPE_LOGIN</span></p>
+<p>Ancilla Event used to login</p>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.trigger( {sType: Constant._EVENT_TYPE_LOGIN } );</code></pre></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_LOGIN:
+					_Core.__selectTableRows( <span class="hljs-string">'OBJECT'</span>, _Core.__DBget().expr()
+							.and( <span class="hljs-string">'NAME = ?'</span>, oEvent.sUsername )
+							.and( <span class="hljs-string">'TYPE = ?'</span>, Constant._OBJECT_TYPE_USER )
+						)
+						.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{
+<span class="hljs-comment">//TODO: trace failed/successfull login attempts</span>
+							<span class="hljs-keyword">var</span> _oUser = oRows[ <span class="hljs-number">0</span> ];
+							<span class="hljs-keyword">if</span>( oRows.length==<span class="hljs-number">0</span> || oRows.length &gt; <span class="hljs-number">1</span> || oEvent.sPassword != _oUser[ <span class="hljs-string">'VALUE'</span> ]  ){
+								_Core.error( ( ( oRows.length==<span class="hljs-number">0</span> || oRows.length &gt; <span class="hljs-number">1</span> ) ? <span class="hljs-string">'found none or more than a single user with username as "%s"'</span> : <span class="hljs-string">'username "%s" used wrong password "%s"'</span> ), oEvent.sUsername, oEvent.sPassword );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sending answer</p></div></div><div class="code"><div class="wrapper">								oEvent.setToAnswer( Constant._ERROR_FAILED_LOGIN );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving main promise</p></div></div><div class="code"><div class="wrapper">								fResolve( oEvent );
+							} <span class="hljs-keyword">else</span> {
+								_Core.__technologyLogIn( _sTechnologyID, _oUser[ <span class="hljs-string">'ID'</span> ] )
+									.then(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+										_Core.info(<span class="hljs-string">'Technology "%s" is now logged as "%s"'</span>, _sTechnologyID, oEvent.sUsername );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sending answer</p></div></div><div class="code"><div class="wrapper">										oEvent.setToAnswer({ oUser: _oUser });</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving main promise</p></div></div><div class="code"><div class="wrapper">										fResolve( oEvent );
+									})
+									.catch(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+										fReject( iError );
+									})
+								;
+							}
+						})
+						.catch(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+							fReject( iError );
+						})
+					;
+				<span class="hljs-keyword">break</span>;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method Constant._EVENT_TYPE_LOGOUT</span></p>
+<p>Ancilla Event used to login</p>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.trigger( {sType: Constant._EVENT_TYPE_LOGOUT } );</code></pre></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_LOGOUT:
+					_Core.__technologyLogOut( _sTechnologyID )
+						.then(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+							_Core.info(<span class="hljs-string">'Technology "%s" logged out...'</span>, _sTechnologyID );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sending answer</p></div></div><div class="code"><div class="wrapper">							oEvent.setToAnswer();</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving main promise</p></div></div><div class="code"><div class="wrapper">							fResolve( oEvent );
+						})
+						.catch(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+							fReject( iError );
+						})
+					;
+				<span class="hljs-keyword">break</span>;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method Constant._EVENT_TYPE_OBJ_LOAD_BY_ID</span></p>
+<p>Ancilla Event used by the client to load specific objects by ID.</p>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.trigger( {sType: Constant._EVENT_TYPE_OBJ_LOAD_BY_ID, ids: 100 } );
+Technology.trigger( {sType: Constant._EVENT_TYPE_OBJ_LOAD_BY_ID, ids: [ 100, 101, 102 ] } );</code></pre></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_OBJ_LOAD_BY_ID:
+					<span class="hljs-keyword">var</span> ids = oEvent.ids;
+					_Core.__loadObjectByID( ids )
+						.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{
+							oEvent.setToAnswer( { oRows: oRows } );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving Main Promise</p></div></div><div class="code"><div class="wrapper">							fResolve( oEvent );
+						})
+						.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving main promise with error</p></div></div><div class="code"><div class="wrapper">							fReject( iError );
+						})
+					;
+					<span class="hljs-keyword">break</span>;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method Constant._EVENT_TYPE_OBJ_LOAD_BY_TYPE</span></p>
+<p>Ancilla Event used by the client to load specific objects by type.</p>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.trigger( {sType: Constant._EVENT_TYPE_OBJ_LOAD_BY_TYPE, types: &#39;TECHNOLOGY&#39; } );
+Technology.trigger( {sType: Constant._EVENT_TYPE_OBJ_LOAD_BY_TYPE, types: [ &#39;TECHNOLOGY&#39;, &#39;GROUP&#39; ] } );</code></pre></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_OBJ_LOAD_BY_TYPE:
+					<span class="hljs-keyword">var</span> types = oEvent.types;
+					_Core.__loadObjectByType( types )
+						.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{
+							oEvent.setToAnswer( { oRows: oRows } );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving Main Promise</p></div></div><div class="code"><div class="wrapper">							fResolve( oEvent );
+						})
+						.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving main promise with error</p></div></div><div class="code"><div class="wrapper">							fReject( iError );
+						})
+					;
+					<span class="hljs-keyword">break</span>;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method Constant._EVENT_TYPE_CREATE</span></p>
+<p>Ancilla Event used by the client to create specific objects/relations/widgets.</p>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.trigger( {sType: Constant._EVENT_TYPE_CREATE, aObjs: [ { ... Object 1 ... }, { ... Object 2 ... } ] );
+Technology.trigger( {sType: Constant._EVENT_TYPE_CREATE, aRelations: [ { ... Relation 1 ... }, { ... Relation 2 ... } ] );
+Technology.trigger( {sType: Constant._EVENT_TYPE_CREATE, aWidgets: [ { ... Widget 1 ... }, { ... Widget 2 ... } ] );
+Technology.trigger( {sType: Constant._EVENT_TYPE_CREATE, aObjs: [ { ... Object 1 ... }, { ... Object 2 ... } ], aRelations: [ { ... Relation 1 ... }, { ... Relation 2 ... } ], aWidgets: [ { ... Widget 1 ... }, { ... Widget 2 ... } ] );</code></pre></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_CREATE:
+					<span class="hljs-keyword">var</span> _aCreatePromises = [];
+					<span class="hljs-keyword">if</span>( oEvent.aObjs ){
+						_aCreatePromises.push( _Core.__insertTableRows( <span class="hljs-string">'OBJECT'</span>, oEvent.aObjs ) );
+					}
+					<span class="hljs-keyword">if</span>( oEvent.aRelations ){
+						_aCreatePromises.push( _Core.__insertTableRows( <span class="hljs-string">'RELATION'</span>, oEvent.aRelations ) );
+					}
+					<span class="hljs-keyword">if</span>( oEvent.aWidgets ){
+						_aCreatePromises.push( _Core.__insertTableRows( <span class="hljs-string">'WIDGET'</span>, oEvent.aWidgets ) );
+					}
+					<span class="hljs-built_in">Promise</span>.all( _aCreatePromises )
+						.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{
+							oEvent.setToAnswer( { oRows: oRows } );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving Main Promise</p></div></div><div class="code"><div class="wrapper">							fResolve( oEvent );
+						})
+						.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving main promise with error</p></div></div><div class="code"><div class="wrapper">							fReject( iError );
+						})
+					;
+				<span class="hljs-keyword">break</span>;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method Constant._EVENT_TYPE_UPDATE</span></p>
+<p>Ancilla Event used by the client to update specific objects/relations/widgets.</p>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.trigger( {sType: Constant._EVENT_TYPE_UPDATE, aObjs: [ { ... Object 1 ... }, { ... Object 2 ... } ] );
+Technology.trigger( {sType: Constant._EVENT_TYPE_UPDATE, aRelations: [ { ... Relation 1 ... }, { ... Relation 2 ... } ] );
+Technology.trigger( {sType: Constant._EVENT_TYPE_UPDATE, aWidgets: [ { ... Widget 1 ... }, { ... Widget 2 ... } ] );
+Technology.trigger( {sType: Constant._EVENT_TYPE_UPDATE, aObjs: [ { ... Object 1 ... }, { ... Object 2 ... } ], aRelations: [ { ... Relation 1 ... }, { ... Relation 2 ... } ], aWidgets: [ { ... Widget 1 ... }, { ... Widget 2 ... } ] );</code></pre></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_UPDATE:
+<span class="hljs-comment">//TODO: handle events linked to obj or relation!</span>
+					<span class="hljs-keyword">var</span> _aUpdatePromises = [];
+					<span class="hljs-keyword">if</span>( oEvent.aObjs ){
+						<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> oEvent.aObjs ){
+							<span class="hljs-keyword">var</span> _oCurrent = oEvent.aObjs[ _iIndex ];
+							_aUpdatePromises.push( _Core.__updateTableRows( <span class="hljs-string">'OBJECT'</span>, _oCurrent, _Core.__DBget().expr().and( <span class="hljs-string">'ID = ?'</span>, _oCurrent.id ), <span class="hljs-literal">true</span> ) );
+						}
+					}
+					<span class="hljs-keyword">if</span>( oEvent.aRelations ){
+						<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> oEvent.aRelations ){
+							<span class="hljs-keyword">var</span> _oCurrent = oEvent.aRelations[ _iIndex ];
+							_aUpdatePromises.push( _Core.__updateTableRows( <span class="hljs-string">'RELATION'</span>, _oCurrent, _Core.__DBget().expr().and( <span class="hljs-string">'ID = ?'</span>, _oCurrent.id ), <span class="hljs-literal">true</span> ) );
+						}
+					}
+					<span class="hljs-keyword">if</span>( oEvent.aWidgets ){
+						<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> oEvent.aWidgets ){
+							<span class="hljs-keyword">var</span> _oCurrent = oEvent.aWidgets[ _iIndex ];
+							_aUpdatePromises.push( _Core.__updateTableRows( <span class="hljs-string">'WIDGET'</span>, _oCurrent, _Core.__DBget().expr().and( <span class="hljs-string">'ID = ?'</span>, _oCurrent.id ), <span class="hljs-literal">true</span> ) );
+						}
+					}
+					<span class="hljs-built_in">Promise</span>.all( _aUpdatePromises )
+						.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{
+							oEvent.setToAnswer( { oRows: oRows } );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving Main Promise</p></div></div><div class="code"><div class="wrapper">							fResolve( oEvent );
+						})
+						.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving main promise with error</p></div></div><div class="code"><div class="wrapper">							fReject( iError );
+						})
+					;
+				<span class="hljs-keyword">break</span>;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method Constant._EVENT_TYPE_DELETE</span></p>
+<p>Ancilla Event used by the client to update specific objects/relations/widgets.</p>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.trigger( {sType: Constant._EVENT_TYPE_DELETE, aObjIDs: [ iID1, iID2, ... ] );
+Technology.trigger( {sType: Constant._EVENT_TYPE_DELETE, aRelationIDs: [ iID1, iID2, ... ] );
+Technology.trigger( {sType: Constant._EVENT_TYPE_DELETE, aWidgetIDs: [ iID1, iID2, ... ] );
+Technology.trigger( {sType: Constant._EVENT_TYPE_DELETE, aObjIDs: [ iID1, iID2, ... ], aRelationIDs: [ iID1, iID2, ... ], aWidgetIDs: [ iID1, iID2, ... ] );</code></pre></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_DELETE:
+					<span class="hljs-keyword">var</span> _aDeletePromises = [];
+					<span class="hljs-keyword">if</span>( oEvent.aObjIDs ){
+						_aDeletePromises.push( _Core.__deleteTableRows( <span class="hljs-string">'OBJECT'</span>, _oCurrent, _Core.__DBget().expr().and( <span class="hljs-string">'ID IN ?'</span>, oEvent.aObjIDs ), <span class="hljs-literal">true</span> ) );
+					}
+					<span class="hljs-keyword">if</span>( oEvent.aRelationIDs ){
+						_aDeletePromises.push( _Core.__deleteTableRows( <span class="hljs-string">'RELATION'</span>, _oCurrent, _Core.__DBget().expr().and( <span class="hljs-string">'ID IN ?'</span>, oEvent.aRelationIDs ), <span class="hljs-literal">true</span> ) );
+					}
+					<span class="hljs-keyword">if</span>( oEvent.aWidgetIDs ){
+						_aDeletePromises.push( _Core.__deleteTableRows( <span class="hljs-string">'WIDGET'</span>, _oCurrent, _Core.__DBget().expr().and( <span class="hljs-string">'ID IN ?'</span>, oEvent.aWidgetIDs ), <span class="hljs-literal">true</span> ) );
+					}
+					<span class="hljs-built_in">Promise</span>.all( _aDeletePromises )
+						.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{
+							oEvent.setToAnswer( { oRows: oRows } );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving Main Promise</p></div></div><div class="code"><div class="wrapper">							fResolve( oEvent );
+						})
+						.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving main promise with error</p></div></div><div class="code"><div class="wrapper">							fReject( iError );
+						})
+					;
+				<span class="hljs-keyword">break</span>;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method Constant._EVENT_TYPE_OBSERVE_OBJECTS</span></p>
+<p>Ancilla Event used to observe changes over objects inside the Core.</p>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.trigger( {sType: Constant._EVENT_TYPE_OBSERVE_OBJECTS, ids: 100 } );
+Technology.trigger( {sType: Constant._EVENT_TYPE_OBSERVE_OBJECTS, ids: [ 100, 101, 102 ] } );</code></pre></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_OBSERVE_OBJECTS:</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>TODO:</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-built_in">console</span>.error( <span class="hljs-string">'TODO: _EVENT_TYPE_OBSERVE_OBJECTS: %j '</span>, oEvent );
+				<span class="hljs-keyword">break</span>;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method Constant._EVENT_TYPE_UNOBSERVER_OBJECTS</span></p>
+<p>Ancilla Event used to unobserve changes over objects inside the Core, previously observed.</p>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.trigger( {sType: Constant._EVENT_TYPE_UNOBSERVER_OBJECTS, ids: 100 } );
+Technology.trigger( {sType: Constant._EVENT_TYPE_UNOBSERVER_OBJECTS, ids: [ 100, 101, 102 ] } );</code></pre></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_UNOBSERVER_OBJECTS:</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>TODO:</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-built_in">console</span>.error( <span class="hljs-string">'TODO: _EVENT_TYPE_UNOBSERVER_OBJECTS: %j '</span>, oEvent );
+				<span class="hljs-keyword">break</span>;</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method Constant._EVENT_TYPE_REGISTER_OBJECTS</span></p>
+<p>Ancilla Event used to register technology&#39;s objects inside the Core</p>
+<p><strong>Returns a Void</strong></p>
+<p>Example:</p>
+<pre><code>Technology.trigger( {sType: Constant._EVENT_TYPE_REGISTER_OBJECTS, aObjects: [ { ... oObject1 ... }, { ... oObject2 ... }, { ... oObject3 ... } ] } );</code></pre></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">case</span> Constant._EVENT_TYPE_REGISTER_OBJECTS:</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>TODO:</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-built_in">console</span>.error( <span class="hljs-string">'TODO: _EVENT_TYPE_REGISTER_OBJECTS: %j '</span>, oEvent );
+				<span class="hljs-keyword">break</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Deafult Beahviour</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">default</span>:
+					_Core.error( <span class="hljs-string">'Unknown Ancilla Event: "%s" [ %j ]...'</span>, oEvent.getType(), oEvent );
+					fReject( Constant._ERROR_EVENT_UNKNOWN );
+				<span class="hljs-keyword">break</span>;
+			}
+		});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Main Promises handler</p></div></div><div class="code"><div class="wrapper">		<span class="hljs-built_in">Promise</span>.all( [ _oMainPromise, _oIsLoggedPromise ] )
+			.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( aArguments )</span></span>{ <span class="hljs-comment">// the "All" will return an array of arguments; since the Main promise is the first promise, the first argument of the array will be the returned Event</span>
+				<span class="hljs-keyword">var</span> _oEvent = aArguments[ <span class="hljs-number">0</span> ];
+				_Core.__onAncillaDispatch( oEvent );
+			})
+			.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+				_Core.error( <span class="hljs-string">'[ Error "%s" ] on Ancilla Event: "%s" [ %j ]; closing socket without answering...'</span>, iError, oEvent.getType(), oEvent );
+				_Core.getGateway( _oGateway.getID() )
+					.getEndpoints( _oGatewayEndpoint.getID() )
+						.getConnectedSockets( _iSocketIndex )
+							.close()
+				;
+			})
+		;
+	} <span class="hljs-keyword">else</span> {
+		<span class="hljs-keyword">this</span>.__onAncillaDispatch( oEvent );
+	}
+};</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __onAncillaDispatch</span></p>
+<p>Method called to dispatch an Ancilla event</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>oEvent must be an Object.</strong><br/>(The Ancilla event)</li>
+</ul>
+<p>Example:</p>
+<pre><code>Core.__onAncillaDispatch( oEvent );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__onAncillaDispatch = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oEvent )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Dispatching event ( if needed )</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _sTo = oEvent.getTo();
+	<span class="hljs-keyword">var</span> _oConnectedSocket = <span class="hljs-keyword">this</span>.getConnectedSocket( _sTo );
+	<span class="hljs-keyword">if</span>( _sTo != <span class="hljs-keyword">this</span>.getID() ){
+		<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'Dispatching Ancilla Event: "%s" [ %j ] to "%s"...'</span>, oEvent.getType(), oEvent, _sTo );
+		<span class="hljs-keyword">if</span>( _oConnectedSocket ){
+			<span class="hljs-keyword">if</span>( _oConnectedSocket.write ){
+				_oConnectedSocket.write( oEvent.toString() );
+			} <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>( _oConnectedSocket.send ){
+				_oConnectedSocket.send( oEvent.toString() );
+			}
+		} <span class="hljs-keyword">else</span> {
+			<span class="hljs-keyword">this</span>.error( <span class="hljs-string">'Unable to dispath Ancilla Event: "%s" [ %j ]; unknown destination...'</span>, oEvent.getType(), oEvent );
+		}
+	} <span class="hljs-keyword">else</span> {
+		<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'Ancilla Event: "%s" [ %j ] reached its destination.'</span>, oEvent.getType(), oEvent );
+	}
+};</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __loadObjectByID</span></p>
+<p>Method called to load object&#39;s surrounding from DB by ID</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>ids must be a Number/Array.</strong><br/>(An object&#39;s ID or an array of object&#39;s IDs)</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull and the first parameter will be a matrix data with the objects/widgets/relations loaded)</p>
+<p>Example:</p>
+<pre><code>Core.__loadObjectByID( ids );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__loadObjectByID = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( ids )</span></span>{
+	<span class="hljs-comment">//TODO: checking if current user has rights to access the object/relations and filter them</span>
+	<span class="hljs-comment">//TODO: caching results somehow ?</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Transforming ids into array if needed</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _aIDs = <span class="hljs-literal">null</span>;
+	<span class="hljs-keyword">if</span>( Tools.isArray( ids ) ){
+		_aIDs = ids;
+	} <span class="hljs-keyword">else</span> {
+		_aIDs = [ ids ];
+	}
+	<span class="hljs-keyword">var</span> _Core = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">var</span> _oResult = {
+		aLoadedSurroundings: _aIDs
+	};
+	<span class="hljs-keyword">var</span> _oDB = _Core.__DBget();
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Collecting RELATION datas
+Checking if we have at least one ID to obtain</p></div></div><div class="code"><div class="wrapper">		<span class="hljs-keyword">if</span>( _aIDs.length == <span class="hljs-number">0</span> ){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Returning resolved Promise with empty Rows</p></div></div><div class="code"><div class="wrapper">			fResolve( [] );
+			<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>;
+		}
+		<span class="hljs-keyword">return</span> _Core.__selectTableRows( <span class="hljs-string">'RELATION'</span>, _oDB.expr()
+				.or( <span class="hljs-string">'PARENT_ID IN ?'</span>, _aIDs )
+				.or( <span class="hljs-string">'CHILD_ID IN ?'</span>, _aIDs )
+			)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Collecting OBJECT datas from Parent ID/Child ID relations</p></div></div><div class="code"><div class="wrapper">			.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Saving collected relations data to result</p></div></div><div class="code"><div class="wrapper">				_oResult.aRelations = oRows;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Getting all ID&#39;s objects which must be loaded and add them to the current IDs if needed ( current IDs could be objects without relations )</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">var</span> _aIDsToSeach = _aIDs.slice();
+				<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> oRows ){
+					<span class="hljs-keyword">var</span> _oCurrentRow = oRows[ _iIndex ];
+					<span class="hljs-keyword">var</span> _iParentID = _oCurrentRow[ <span class="hljs-string">'PARENT_ID'</span> ];
+					<span class="hljs-keyword">var</span> _iChildID = _oCurrentRow[ <span class="hljs-string">'CHILD_ID'</span> ];
+					<span class="hljs-keyword">if</span>( _aIDsToSeach.indexOf( _iParentID )==-<span class="hljs-number">1</span> ){
+						_aIDsToSeach.push( _iParentID );
+					}
+					<span class="hljs-keyword">if</span>( _aIDsToSeach.indexOf( _iChildID )==-<span class="hljs-number">1</span> ){
+						_aIDsToSeach.push( _iChildID );
+					}
+				}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Checking if we have at least one ID to obtain</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">if</span>( _aIDsToSeach.length == <span class="hljs-number">0</span> ){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Returning resolved Promise with empty Rows</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-keyword">return</span> <span class="hljs-built_in">Promise</span>.resolve( [] );
+				} <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Collecting OBJECT datas</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-keyword">return</span> _Core.__selectTableRows( <span class="hljs-string">'OBJECT'</span>, _oDB.expr()
+						.and( <span class="hljs-string">'ID IN ?'</span>, _aIDsToSeach )
+					);
+				}
+			})
+			.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Saving collected objects data to result</p></div></div><div class="code"><div class="wrapper">				_oResult.aObjs = oRows;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Getting all ID&#39;s widgets which must be loaded</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">var</span> _aIDs = [];
+				<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> oRows ){
+					<span class="hljs-keyword">var</span> _oCurrentRow = oRows[ _iIndex ];
+					<span class="hljs-keyword">if</span>( _aIDs.indexOf( _oCurrentRow[ <span class="hljs-string">'WIDGET_ID'</span> ] )==-<span class="hljs-number">1</span> ){
+						_aIDs.push( _oCurrentRow[ <span class="hljs-string">'WIDGET_ID'</span> ] );
+					}
+				}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Checking if we have at least one ID to obtain</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">if</span>( _aIDs.length == <span class="hljs-number">0</span> ){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Returning resolved Promise with empty Rows</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-keyword">return</span> <span class="hljs-built_in">Promise</span>.resolve( [] );
+				} <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Collecting WIDGET datas</p></div></div><div class="code"><div class="wrapper">					<span class="hljs-keyword">return</span> _Core.__selectTableRows( <span class="hljs-string">'WIDGET'</span>, _oDB.expr()
+						.and( <span class="hljs-string">'ID IN ?'</span>, _aIDs )
+					);
+				}
+			})
+			.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Saving collected widgets data to result</p></div></div><div class="code"><div class="wrapper">				_oResult.oWidgets = oRows;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving Main Promise</p></div></div><div class="code"><div class="wrapper">				fResolve( _oResult );
+			})
+			.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+				_Core.error( <span class="hljs-string">'[ Error "%s" ] while loading object from IDs: %j'</span>, iError, ids );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving main promise with error</p></div></div><div class="code"><div class="wrapper">				fReject( iError );
+			})
+		;
+	});
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __loadObjectByType</span></p>
+<p>Method called to load object&#39;s surrounding from DB by object type</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>types must be a String/Array.</strong><br/>(An object&#39;s type or an array of object&#39;s types)</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull and the first parameter will be a matrix data with the objects/widgets/relations loaded)</p>
+<p>Example:</p>
+<pre><code>Core.__loadObjectByType( types );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__loadObjectByType = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( types )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Transforming into array if needed</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _aTypes = <span class="hljs-literal">null</span>;
+	<span class="hljs-keyword">if</span>( Tools.isArray( types ) ){
+		_aTypes = types;
+	} <span class="hljs-keyword">else</span> {
+		_aTypes = [ types ];
+	}
+	<span class="hljs-keyword">var</span> _Core = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">var</span> _oDB = _Core.__DBget();
+	<span class="hljs-keyword">return</span> _Core.__selectTableRows( <span class="hljs-string">'OBJECT'</span>, _oDB.expr()
+			.or( <span class="hljs-string">'TYPE IN ?'</span>, _aTypes )
+		)
+		.then( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oRows )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Getting all ID&#39;s objects which must be loaded</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">var</span> _aIDs = [];
+			<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> oRows ){
+				<span class="hljs-keyword">var</span> _oCurrentRow = oRows[ _iIndex ];
+				_aIDs.push( _oCurrentRow[ <span class="hljs-string">'ID'</span> ] );
+			}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Checking if we have at least one ID to obtain</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">if</span>( _aIDs.length == <span class="hljs-number">0</span> ){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Returning resolved Promise with empty Rows</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">return</span> <span class="hljs-built_in">Promise</span>.resolve( [] );
+			} <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Collecting OBJECT datas</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">return</span> _Core.__loadObjectByID( _aIDs );
+			}
+		})
+		.catch( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+			_Core.error( <span class="hljs-string">'[ Error "%s" ] while loading object from Types: %j'</span>, iError, types );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolving main promise with error</p></div></div><div class="code"><div class="wrapper">			fReject( iError );
+		})
+	;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __getDefaultDBFilters</span></p>
+<p>Method called to get default filter for collecting datas from the DB</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>SQLExpr must be a String/Object.</strong><br/>(string SQL expression or object SQL expression ( see DB &quot;buildQuery&quot; method description ))</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(the expression object for the default filter)</p>
+<p>Example:</p>
+<pre><code>Core.__getDefaultDBFilters( SQLExpr );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__getDefaultDBFilters = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( SQLExpr )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init variable if missing</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">if</span>( !SQLExpr ){
+		SQLExpr = _oDB.expr();
+	} <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>( <span class="hljs-keyword">typeof</span> SQLExpr==<span class="hljs-string">'string'</span> ){ <span class="hljs-comment">// Transforming string to SQL expression object</span>
+		SQLExpr = _oDB.expr()
+		.and( <span class="hljs-string">'( '</span> + SQLExpr + <span class="hljs-string">' )'</span> );
+	}
+	<span class="hljs-keyword">return</span> SQLExpr
+		.and_begin()</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Listing all unprotected objects</p></div></div><div class="code"><div class="wrapper">			.and( <span class="hljs-string">'IS_PROTECTED != 1'</span> )</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Listing only visible protected objects</p></div></div><div class="code"><div class="wrapper">			.or_begin()
+				.and( <span class="hljs-string">'IS_PROTECTED = 1'</span> )
+				.and( <span class="hljs-string">'IS_VISIBLE = 1 '</span>)
+			.end()
+		.end()
+	;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __selectTableRows</span></p>
+<p>Method called to get table&#39;s rows from DB</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sTable must be a String.</strong><br/>(DB&#39;s table name)</p>
+</li>
+<li><p><strong>SQLExpr must be a String/Object.</strong><br/>(string SQL expression or object SQL expression ( see DB &quot;buildQuery&quot; method description ))</p>
+</li>
+<li><p><strong>bUseDefaultFilter must be a Boolean.</strong><br/>(tells to add default DB filter ( by default: false ))</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull and the first parameter will be the collected ROWs)</p>
+<p>Example:</p>
+<pre><code>Core.__selectTableRows( sTable, SQLExpr );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__selectTableRows = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTable, SQLExpr, bUseDefaultFilter )</span></span>{
+	<span class="hljs-keyword">var</span> _oDB = <span class="hljs-keyword">this</span>.__DBget();</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Adding default DB filter if needed</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">if</span>( bUseDefaultFilter ){
+		<span class="hljs-keyword">if</span>( !SQLExpr ){
+			SQLExpr = _oDB.expr();
+		}
+		SQLExpr = <span class="hljs-keyword">this</span>.__getDefaultDBFilters( SQLExpr );
+	}
+	<span class="hljs-keyword">return</span> _oDB.selectTableRows( sTable, SQLExpr );
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __updateTableRows</span></p>
+<p>Method called to update table&#39;s fields by IDs from DB</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sTable must be a String.</strong><br/>(DB&#39;s table name)</p>
+</li>
+<li><p><strong>ids must be a Number/Array.</strong><br/>(An object&#39;s ID or an array of object&#39;s IDs)</p>
+</li>
+<li><p><strong>oFieldsAndValues must be an Object.</strong><br/>(An object instance linking a value to its field)</p>
+</li>
+<li><p><strong>SQLExpr must be a String/Object.</strong><br/>(string SQL expression or object SQL expression ( see DB &quot;buildQuery&quot; method description ))</p>
+</li>
+<li><p><strong>bUseDefaultFilter must be a Boolean.</strong><br/>(tells to add default DB filter ( by default: false ))</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull)</p>
+<p>Example:</p>
+<pre><code>Core.__updateTableRows( &#39;OBJECT&#39;, 100, {name: &#39;Hello World&#39;}, SQLExpr );
+Core.__updateTableRows( &#39;OBJECT&#39;, [ 100, 101, 102 ], {name: &#39;Hello World&#39;, value: 0}, SQLExpr );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__updateTableRows = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTable, oFieldsAndValues, SQLExpr, bUseDefaultFilter )</span></span>{
+	<span class="hljs-keyword">var</span> _oDB = <span class="hljs-keyword">this</span>.__DBget();</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Adding default DB filter if needed</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">if</span>( bUseDefaultFilter ){
+		<span class="hljs-keyword">if</span>( !SQLExpr ){
+			SQLExpr = _oDB.expr();
+		}
+		SQLExpr = <span class="hljs-keyword">this</span>.__getDefaultDBFilters( SQLExpr );
+	}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Updating table rows</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">return</span> _oDB.updateTableRows( sTable, oFieldsAndValues, SQLExpr );
+};</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __insertTableRows</span></p>
+<p>Method called to insert table&#39;s rows into DB</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sTable must be a String.</strong><br/>(DB&#39;s table name)</p>
+</li>
+<li><p><strong>Rows must be an Array of Object/Objects.</strong><br/>(An object instance describing a single row or an array of object instances describing the single rows)</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull)</p>
+<p>Example:</p>
+<pre><code>Core.__insertTableRows( &#39;OBJECT&#39;, { id: 100, name: &#39;Hello World&#39;, value: 0 } );
+Core.__insertTableRows( &#39;OBJECT&#39;, [ { id: 100, name: &#39;Hello World&#39;, value: 0 }, { id: 101, name: &#39;Hello World 1&#39;, value: 1 } ] );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__insertTableRows = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTable, Rows )</span></span>{
+	<span class="hljs-keyword">var</span> _oDB = <span class="hljs-keyword">this</span>.__DBget();
+	<span class="hljs-keyword">return</span> _oDB.insertTableRows( sTable, Rows );
+};</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __deleteTableRows</span></p>
+<p>Method called to delete table&#39;s rows from DB</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sTable must be a String.</strong><br/>(DB&#39;s table name)</p>
+</li>
+<li><p><strong>SQLExpr must be a String/Object.</strong><br/>(string SQL expression or object SQL expression ( see DB &quot;buildQuery&quot; method description ))</p>
+</li>
+<li><p><strong>bUseDefaultFilter must be a Boolean.</strong><br/>(tells to add default DB filter ( by default: false ))</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull)</p>
+<p>Example:</p>
+<pre><code>Core.__selectTableRows( sTable, SQLExpr );</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.__deleteTableRows = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTable, SQLExpr, bUseDefaultFilter )</span></span>{
+	<span class="hljs-keyword">var</span> _oDB = <span class="hljs-keyword">this</span>.__DBget();</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Adding default DB filter if needed</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">if</span>( bUseDefaultFilter ){
+		<span class="hljs-keyword">if</span>( !SQLExpr ){
+			SQLExpr = _oDB.expr();
+		}
+		SQLExpr = <span class="hljs-keyword">this</span>.__getDefaultDBFilters( SQLExpr );
+	}
+	<span class="hljs-keyword">return</span> _oDB.deleteTableRows( sTable, SQLExpr );
+}
+
+<span class="hljs-built_in">module</span>.exports = Tools.exports( Core, <span class="hljs-built_in">module</span> );</div></div></div></div></body></html>

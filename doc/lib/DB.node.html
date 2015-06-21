@@ -1,0 +1,348 @@
+<!DOCTYPE html><html lang="en"><head><title>lib\DB.node</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="lib\DB.node"><meta name="groc-project-path" content="lib\DB.node.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">lib\DB.node.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
+This file is part of &quot;Ancilla Libary&quot;.</p>
+<p> &quot;Ancilla Libary&quot; is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.</p>
+<p> &quot;Ancilla Libary&quot; is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.</p>
+<p> You should have received a copy of the GNU General Public License
+ along with &quot;Ancilla Libary&quot;.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Tools = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Tools.node.js'</span>);
+<span class="hljs-keyword">var</span> Constant = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Constants.node.js'</span>);
+
+<span class="hljs-keyword">var</span> SQLite3 = <span class="hljs-built_in">require</span>(<span class="hljs-string">'sqlite3'</span>);
+<span class="hljs-keyword">var</span> Squel = <span class="hljs-built_in">require</span>(<span class="hljs-string">'squel'</span>);
+<span class="hljs-comment">//Tools.setDebug( true ); //Set TRUE to show debug messages</span>
+
+<span class="hljs-comment">//Check this API: https://github.com/mapbox/node-sqlite3/wiki/API</span>
+
+<span class="hljs-comment">//Class to use SQLite DBs</span>
+<span class="hljs-keyword">var</span> DB = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sDB, oDBOptions )</span></span>{
+	<span class="hljs-comment">//Default DB Options</span>
+	oDBOptions = Tools.extend({
+		sDB: sDB,
+		bReadOnly: <span class="hljs-literal">false</span>,
+		sDBengine: <span class="hljs-string">'mysql'</span>
+	}, oDBOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Setting Squel options</p></div></div><div class="code"><div class="wrapper">	Squel.useFlavour( oDBOptions.sDBengine );
+	<span class="hljs-keyword">this</span>.__oOptions = oDBOptions;
+	<span class="hljs-keyword">this</span>._bOpened = <span class="hljs-literal">false</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>var _oDB = this;
+this._oDB = new SQLite3.Database( sDB, SQLite3.OPEN_CREATE | SQLite3.OPEN_READWRITE, function( oError ){
+    if( oError ){
+        Tools.error(&#39;[ DB: &quot;%s&quot; ] Failed to open DB: &quot;%s&quot;...&#39;, sDB );
+    }
+});
+this._oDB.on(&#39;profile&#39;, function( sQuery, iTime ){
+    Tools.debug(&#39;[ DB: &quot;%s&quot; ] Query: &quot;%s&quot; took %s milliseconds to be completed...&#39;, _oDB.getDBPath(), sQuery, iTime );
+});</p></div></div><div class="code"><div class="wrapper">}
+
+DB.prototype.open = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sDB )</span></span>{
+	<span class="hljs-keyword">if</span>( !<span class="hljs-keyword">this</span>._bOpened ){
+		<span class="hljs-comment">//SQLite3.verbose();</span>
+		<span class="hljs-keyword">var</span> _oDB = <span class="hljs-keyword">this</span>;
+		<span class="hljs-keyword">var</span> _sDB = sDB || <span class="hljs-keyword">this</span>.__oOptions.sDB;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>if( this._oDB ){
+    this.close();
+}</p></div></div><div class="code"><div class="wrapper">		Tools.debug(<span class="hljs-string">'[ DB: "%s" ] Opening DB...'</span>, _sDB );
+		<span class="hljs-keyword">this</span>._oDB = <span class="hljs-keyword">new</span> SQLite3.Database( _sDB,
+			( <span class="hljs-keyword">this</span>.__oOptions.bReadOnly ? SQLite3.OPEN_CREATE | SQLite3.OPEN_READ : SQLite3.OPEN_CREATE | SQLite3.OPEN_READWRITE ),
+			<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+				<span class="hljs-keyword">if</span>( oError ){
+					Tools.error(<span class="hljs-string">'[ DB: "%s" ] Failed to open DB: "%s"...'</span>, _sDB );
+				}
+		});
+		<span class="hljs-comment">/*this._oDB.on('profile', function( sQuery, iTime ){
+			Tools.debug('[ DB: "%s" ] Query: "%s" took %s milliseconds to be completed...', _oDB.getDBPath(), sQuery, iTime );
+		});*/</span>
+		<span class="hljs-keyword">this</span>._bOpened = <span class="hljs-literal">true</span>;
+	}
+}
+
+
+DB.prototype.close = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">if</span>( <span class="hljs-keyword">this</span>._bOpened ){
+		<span class="hljs-comment">//this._oDB.removeAllListeners('profile');</span>
+		Tools.debug(<span class="hljs-string">'[ DB: "%s" ] Closing DB...'</span>, <span class="hljs-keyword">this</span>.getDBPath() );
+		<span class="hljs-keyword">this</span>.getDBManager().close(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+			<span class="hljs-keyword">if</span>( oError ){
+				Tools.error(<span class="hljs-string">'[ DB: "%s" ] Failed to close DB: "%s"...'</span>, <span class="hljs-keyword">this</span>.getDBPath() );
+			}
+		});
+		<span class="hljs-keyword">this</span>._bOpened = <span class="hljs-literal">false</span>;
+	}
+}
+
+
+DB.prototype.__queries = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( aQueries, fCallback, oOptions )</span></span>{
+	<span class="hljs-comment">//Default DB Options</span>
+	oOptions = Tools.extend({
+		bUseTransaction: <span class="hljs-literal">false</span>
+	}, oOptions );
+	<span class="hljs-keyword">var</span> _oDB = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">var</span> _iResult = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> _iCounterQueriesDone = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> _aQueries = [];</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Converting all queries to string queries</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> aQueries ){
+		<span class="hljs-keyword">var</span> _Query = aQueries[ _iIndex ];
+		<span class="hljs-comment">//_aQueries.push( ( typeof _Query == 'string' ? _Query : _Query.toParam() ) );</span>
+		_aQueries.push( ( <span class="hljs-keyword">typeof</span> _Query == <span class="hljs-string">'string'</span> ? _Query : _Query.toString() ) );
+	}
+	<span class="hljs-keyword">this</span>.open();
+	<span class="hljs-keyword">var</span> _aClonedQueries = _aQueries.slice( <span class="hljs-number">0</span> );
+	<span class="hljs-keyword">this</span>.getDBManager().serialize( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+		<span class="hljs-keyword">if</span>( oOptions.bUseTransaction ){
+			<span class="hljs-comment">//_aQueries.unshift( 'BEGIN TRANSACTION;' );</span>
+			Tools.debug(<span class="hljs-string">'[ DB: "%s" ] Using transaction for the following queries...'</span>, _oDB.getDBPath() );
+			_oDB.getDBManager().run( <span class="hljs-string">'BEGIN TRANSACTION;'</span> );
+		}
+		<span class="hljs-keyword">for</span>( <span class="hljs-keyword">var</span> _iIndex <span class="hljs-keyword">in</span> _aQueries ){
+			<span class="hljs-keyword">var</span> _sQuery = _aQueries[ _iIndex ];
+			Tools.debug(<span class="hljs-string">'[ DB: "%s" ] Executing query: "%s"...'</span>, _oDB.getDBPath(), _sQuery );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Getting Query type</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">var</span> _sOperation = _sQuery.split(<span class="hljs-string">' '</span>)[ <span class="hljs-number">0</span> ].toUpperCase();
+			<span class="hljs-keyword">switch</span>( _sOperation ){
+				<span class="hljs-keyword">case</span> <span class="hljs-string">'CREATE'</span>:
+				<span class="hljs-keyword">case</span> <span class="hljs-string">'INSERT'</span>:
+			  <span class="hljs-keyword">case</span> <span class="hljs-string">'DELETE'</span>:
+				<span class="hljs-keyword">case</span> <span class="hljs-string">'UPDATE'</span>:
+				<span class="hljs-keyword">case</span> <span class="hljs-string">'BEGIN'</span>:
+				<span class="hljs-keyword">case</span> <span class="hljs-string">'END'</span>:
+				<span class="hljs-keyword">case</span> <span class="hljs-string">'COMMIT'</span>:
+				<span class="hljs-keyword">case</span> <span class="hljs-string">'ROLLBACK'</span>:
+					_oDB.getDBManager().run( _sQuery, Tools.proxy( _oDB.__queriesCallback, _oDB, fCallback, oOptions, _aClonedQueries, _iCounterQueriesDone ) );
+				<span class="hljs-keyword">break</span>;
+				<span class="hljs-keyword">case</span> <span class="hljs-string">'SELECT'</span>:
+					_oDB.getDBManager().all( _sQuery, Tools.proxy( _oDB.__queriesCallback, _oDB, fCallback, oOptions, _aClonedQueries, _iCounterQueriesDone ) );
+				<span class="hljs-keyword">break</span>;
+				<span class="hljs-keyword">default</span>:
+					Tools.error(<span class="hljs-string">'[ DB: "%s" ] Unsupported operation: "%s"...'</span>, _oDB.getDBPath(), _sOperation );
+				<span class="hljs-keyword">break</span>;
+			}
+		}
+	} );
+}
+
+DB.prototype.__queriesCallback=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fCallback, oOptions, aQueries, iCounterQueriesDone, oError, oRows )</span></span>{
+	<span class="hljs-keyword">var</span> _iResult = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> _oError = oError;
+	<span class="hljs-keyword">var</span> _oDB = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">var</span> _sCurrentQuery = aQueries.shift(); <span class="hljs-comment">//Since all the queries are serialized we are assuming they are executed in order</span>
+	<span class="hljs-keyword">if</span>( oOptions.bUseTransaction ){
+		<span class="hljs-keyword">if</span>( oError ){
+			_oDB.getDBManager().run( <span class="hljs-string">'ROLLBACK;'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+				<span class="hljs-keyword">if</span>( oError ){
+					Tools.error(<span class="hljs-string">'[ DB: "%s" ] Fatal error: unable to rollback transaction...'</span>, _oDB.getDBManager().filename );
+				} <span class="hljs-keyword">else</span> {
+					Tools.error(<span class="hljs-string">'[ DB: "%s" ] Failed query: "%s" with error ( %s ): "%s". Rollbacking transaction...'</span>, _oDB.getDBManager().filename, _sCurrentQuery, _oError.errno, _oError );
+					<span class="hljs-keyword">if</span>( oOptions.bCloseDB ){
+						_oDB.close();
+					}
+					fCallback( _iResult, oRows, ( aQueries.length == <span class="hljs-number">0</span> ? aQueries[ <span class="hljs-number">0</span> ] : aQueries ) );
+				}
+			});
+		} <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>( aQueries.length == <span class="hljs-number">0</span> ){ <span class="hljs-comment">// If it's the last query of the serialization</span>
+			_oDB.getDBManager().run( <span class="hljs-string">'COMMIT;'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+				<span class="hljs-keyword">if</span>( oError ){
+					Tools.error(<span class="hljs-string">'[ DB: "%s" ] Fatal error: unable to commit transaction...'</span>, _oDB.getDBManager().filename );
+				} <span class="hljs-keyword">else</span> {
+					Tools.debug(<span class="hljs-string">'[ DB: "%s" ] Committed transaction...'</span>, _oDB.getDBManager().filename );
+					<span class="hljs-keyword">if</span>( oOptions.bCloseDB ){
+						_oDB.close();
+					}
+					fCallback( _iResult, oRows, ( aQueries.length == <span class="hljs-number">0</span> ? aQueries[ <span class="hljs-number">0</span> ] : aQueries ) );
+				}
+			});
+		}
+	} <span class="hljs-keyword">else</span> {
+		<span class="hljs-keyword">if</span>( oError ){
+			Tools.error(<span class="hljs-string">'[ DB: "%s" ] Failed query: "%s" with error ( %s ): "%s"...'</span>, _oDB.getDBManager().filename, _sCurrentQuery, oError.errno, oError );
+			_iResult = oError.errno;
+		}
+		<span class="hljs-keyword">if</span>( aQueries.length == <span class="hljs-number">0</span> ){ <span class="hljs-comment">// If it's the last query of the serialization</span>
+			Tools.debug(<span class="hljs-string">'[ DB: "%s" ] Completed queries serialization...'</span>, _oDB.getDBManager().filename );
+			<span class="hljs-keyword">if</span>( oOptions.bCloseDB ){
+				_oDB.close();
+			}
+			fCallback( _iResult, oRows, ( aQueries.length == <span class="hljs-number">0</span> ? aQueries[ <span class="hljs-number">0</span> ] : aQueries ) );
+		}
+	}
+}
+
+DB.prototype.query = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( SQLquery, fCallback, oOptions )</span></span>{
+	<span class="hljs-comment">//Default DB Options</span>
+	oOptions = Tools.extend({
+		bCloseDB: <span class="hljs-literal">false</span>,
+		bUseTransaction: <span class="hljs-literal">false</span>
+	}, oOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Converting to array</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">if</span>( !Tools.isArray( SQLquery ) ){
+		SQLquery = [ SQLquery ];
+	}
+	<span class="hljs-keyword">this</span>.__queries( SQLquery, fCallback, oOptions );
+}
+
+DB.prototype.getDBManager=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._oDB;
+}
+
+DB.prototype.getDBPath = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.getDBManager().filename;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __parseValue</span></p>
+<p>Function used to parse a value which should be used inside an SQL query and sanitize it</p>
+<p><strong>Returns an Other/String</strong><br/>(it returns the parsed string or the same value; for example &quot;Hello W&#39;orld&quot; becames &quot;Hello W&#39;&#39;orld&quot;)</p>
+<p>Example:</p>
+<pre><code>DB.__parseValue( &quot;Hello W&#39;orld&quot; );</code></pre></div></div><div class="code"><div class="wrapper">DB.prototype.__parseValue = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( value )</span></span>{
+	<span class="hljs-keyword">if</span>( Tools.isString( value ) ){
+		value = <span class="hljs-string">"'"</span> + value.replace(<span class="hljs-regexp">/'/g</span>, <span class="hljs-string">'\'\''</span>) + <span class="hljs-string">"'"</span>;
+	} <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>( Tools.isArray( value ) ){
+		<span class="hljs-keyword">var</span> _bIsString = Tools.isString( value[ <span class="hljs-number">0</span> ] );
+		value = <span class="hljs-string">'( '</span> + ( _bIsString ? <span class="hljs-string">"'"</span> : <span class="hljs-string">''</span> ) +  value.join( ( _bIsString ? <span class="hljs-string">"'"</span> : <span class="hljs-string">''</span> ) + <span class="hljs-string">','</span> + ( _bIsString ? <span class="hljs-string">"'"</span> : <span class="hljs-string">''</span> ) ) + ( _bIsString ? <span class="hljs-string">"'"</span> : <span class="hljs-string">''</span> ) + <span class="hljs-string">' )'</span>;
+	}
+	<span class="hljs-comment">//return JSON.stringify( value );</span>
+	<span class="hljs-keyword">return</span> value;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method builder</span></p>
+<p>Function used to build a query string from specific datas</p>
+<p><strong>Returns an Object</strong><br/>(Builder query ( see: <a href="http://hiddentao.github.io/squel/">http://hiddentao.github.io/squel/</a> ))</p>
+<p>Example:</p>
+<p>DB.builder().select().from(&#39;OBJECT&#39;);</p></div></div><div class="code"><div class="wrapper">DB.prototype.builder = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> Squel;
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method expr</span></p>
+<p>Function used to build a query string from specific datas</p>
+<p><strong>Returns an Object</strong><br/>(expression query ( see: <a href="http://hiddentao.github.io/squel/">http://hiddentao.github.io/squel/</a> ))</p>
+<p>Example:</p>
+<p>DB.expr().and(&#39;ID=1&#39;);</p></div></div><div class="code"><div class="wrapper">DB.prototype.expr = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+	<span class="hljs-keyword">return</span> Squel.expr();
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method selectTableRows</span></p>
+<p>Method called to get table&#39;s rows from DB</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sTable must be a String.</strong><br/>(DB&#39;s table name)</p>
+</li>
+<li><p><strong>SQLExpr must be a String/Object.</strong><br/>(string SQL expression or object SQL expression ( see DB &quot;buildQuery&quot; method description ))</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull and the first parameter will be the collected ROWs)</p>
+<p>Example:</p>
+<pre><code>DB.selectTableRows( sTable, SQLExpr );</code></pre></div></div><div class="code"><div class="wrapper">DB.prototype.selectTableRows = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTable, SQLExpr )</span></span>{
+	<span class="hljs-keyword">var</span> _oDB = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">if</span>( !SQLExpr ){
+		SQLExpr = _oDB.expr();
+	}
+	<span class="hljs-keyword">var</span> _oQuery = _oDB.builder()
+		.select()
+		.from( sTable )
+		.where( SQLExpr )
+	;
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{
+		_oDB.query( _oQuery,
+			<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError, oRows, sQuery )</span></span>{
+				<span class="hljs-keyword">if</span>( iError != Constant._NO_ERROR ){
+					fReject( iError );
+				} <span class="hljs-keyword">else</span> {
+					fResolve( oRows );
+				}
+			}
+		);
+	});
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method updateTableRows</span></p>
+<p>Method called to update table&#39;s fields by IDs from DB</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sTable must be a String.</strong><br/>(DB&#39;s table name)</p>
+</li>
+<li><p><strong>ids must be a Number/Array.</strong><br/>(An object&#39;s ID or an array of object&#39;s IDs)</p>
+</li>
+<li><p><strong>oFieldsAndValues must be an Object.</strong><br/>(An object instance linking a value to its field)</p>
+</li>
+<li><p><strong>SQLExpr must be a String/Object.</strong><br/>(string SQL expression or object SQL expression ( see DB &quot;buildQuery&quot; method description ))</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull)</p>
+<p>Example:</p>
+<pre><code>DB.updateTableRows( &#39;OBJECT&#39;, 100, {name: &#39;Hello World&#39;}, SQLExpr );
+DB.updateTableRows( &#39;OBJECT&#39;, [ 100, 101, 102 ], {name: &#39;Hello World&#39;, value: 0}, SQLExpr );</code></pre></div></div><div class="code"><div class="wrapper">DB.prototype.updateTableRows = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTable, oFieldsAndValues, SQLExpr )</span></span>{
+	<span class="hljs-keyword">var</span> _oDB = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">if</span>( !SQLExpr ){
+		SQLExpr = _oDB.expr();
+	}
+	<span class="hljs-keyword">var</span> _oQuery = _oDB.builder()
+		.update()
+		.table( sTable )
+		.setFields( oFieldsAndValues )
+		.where( SQLExpr )
+	;
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Query</p></div></div><div class="code"><div class="wrapper">		_oDB.query( _oQuery,
+			<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+				<span class="hljs-keyword">if</span>( iError != Constant._NO_ERROR ){
+					fReject( iError );
+				} <span class="hljs-keyword">else</span> {
+					fResolve();
+				}
+			}
+		);
+	});
+};</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method insertTableRows</span></p>
+<p>Method called to insert table&#39;s rows into DB</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sTable must be a String.</strong><br/>(DB&#39;s table name)</p>
+</li>
+<li><p><strong>Rows must be an Array of Object/Objects.</strong><br/>(An object instance describing a single row or an array of object instances describing the single rows)</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull)</p>
+<p>Example:</p>
+<pre><code>DB.insertTableRows( &#39;OBJECT&#39;, 100, {name: &#39;Hello World&#39;}, SQLExpr );
+DB.insertTableRows( &#39;OBJECT&#39;, [ 100, 101, 102 ], {name: &#39;Hello World&#39;, value: 0}, SQLExpr );</code></pre></div></div><div class="code"><div class="wrapper">DB.prototype.insertTableRows = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTable, Rows )</span></span>{
+	<span class="hljs-keyword">var</span> _oDB = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">var</span> _aRows = <span class="hljs-literal">null</span>;
+	<span class="hljs-keyword">if</span>( Tools.isArray( Rows ) ){
+		_aRows = Rows;
+	} <span class="hljs-keyword">else</span> {
+		_aRows = [ Rows ];
+	}
+	<span class="hljs-keyword">var</span> _oQuery = _oDB.builder()
+		.insert()
+		.into( sTable )
+		.setFieldsRows( _aRows )
+	;
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Query</p></div></div><div class="code"><div class="wrapper">		_oDB.query( _oQuery,
+			<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError )</span></span>{
+				<span class="hljs-keyword">if</span>( iError != Constant._NO_ERROR ){
+					fReject( iError );
+				} <span class="hljs-keyword">else</span> {
+					fResolve();
+				}
+			}
+		);
+	});
+};</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method deleteTableRows</span></p>
+<p>Method called to delete table&#39;s rows from DB</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>sTable must be a String.</strong><br/>(DB&#39;s table name)</p>
+</li>
+<li><p><strong>SQLExpr must be a String/Object.</strong><br/>(string SQL expression or object SQL expression ( see DB &quot;buildQuery&quot; method description ))</p>
+</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(this method will return a promise; the promise will fail on error, otherwise it will be successfull and the first parameter will be the collected ROWs)</p>
+<p>Example:</p>
+<pre><code>DB.deleteTableRows( sTable, SQLExpr );</code></pre></div></div><div class="code"><div class="wrapper">DB.prototype.deleteTableRows = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( sTable, SQLExpr )</span></span>{
+	<span class="hljs-keyword">var</span> _oDB = <span class="hljs-keyword">this</span>;
+	<span class="hljs-keyword">if</span>( !SQLExpr ){
+		SQLExpr = _oDB.expr();
+	}
+	<span class="hljs-keyword">var</span> _oQuery = _oDB.builder()
+		.delete()
+		.from( sTable )
+		.where( SQLExpr )
+	;
+	<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>( <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fResolve, fReject )</span></span>{
+		_oDB.query( _oQuery,
+			<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iError, oRows, sQuery )</span></span>{
+				<span class="hljs-keyword">if</span>( iError != Constant._NO_ERROR ){
+					fReject( iError );
+				} <span class="hljs-keyword">else</span> {
+					fResolve( oRows );
+				}
+			}
+		);
+	});
+}
+
+<span class="hljs-built_in">module</span>.exports = DB;</div></div></div></div></body></html>
