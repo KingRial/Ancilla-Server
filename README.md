@@ -16,7 +16,7 @@ Changelog
 ----------------------------
 #v0.0.4
 - Refactored code to be used as a simple NPM's library
-- Reworked code: first step to obtain an easier environment to create and debug scripts created to integrate different technologies in the same supervisor.
+- Reworked code: first step to obtain an easier environment to create, debug and test scripts to integrate different technologies in the same supervisor.
 - Various fixing
 
 #v0.0.3
@@ -81,7 +81,7 @@ TODO
 
 The future
 --------------------------------------
-- Add tests
+- Add automatic testing
 - Add HTTPS/WSS support
 - Add Nest support
 - Add KNX support

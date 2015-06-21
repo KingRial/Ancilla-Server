@@ -1,9 +1,9 @@
 --{{ UPDATE: 0.0.0 to 0.0.1 }}
 -- Creating technology type table
-CREATE TABLE TECHNOLOGY_TYPE ( ID INTEGER PRIMARY KEY AUTOINCREMENT, NAME STRING UNIQUE, TYPE STRING, PATH STRING, CLASSNAME STRING );
-INSERT INTO TECHNOLOGY_TYPE ( ID, NAME, TYPE, PATH, CLASSNAME ) VALUES ( NULL, 'Core', 'nodejs', 'Core.node.js', 'Core' );
-INSERT INTO TECHNOLOGY_TYPE ( ID, NAME ) VALUES ( NULL, 'Web' );
-INSERT INTO TECHNOLOGY_TYPE ( ID, NAME, TYPE, PATH, CLASSNAME ) VALUES ( NULL, 'Bridge', 'nodejs', 'ancilla', 'Bridge' );
+CREATE TABLE TECHNOLOGY_TYPE ( ID INTEGER PRIMARY KEY AUTOINCREMENT, TYPE STRING UNIQUE, LANGUAGE STRING, PATH STRING);
+INSERT INTO TECHNOLOGY_TYPE ( ID, TYPE, LANGUAGE, PATH ) VALUES ( NULL, 'Core', 'nodejs', './lib/Core.node.js' );
+INSERT INTO TECHNOLOGY_TYPE ( ID, TYPE ) VALUES ( NULL, 'Web' );
+INSERT INTO TECHNOLOGY_TYPE ( ID, TYPE, LANGUAGE, PATH ) VALUES ( NULL, 'Bridge', 'nodejs', './integrations/Technology.Bridge.node.js' );
 -- Create Object Table
 CREATE TABLE OBJECT ( ID INTEGER PRIMARY KEY AUTOINCREMENT, NAME STRING, TYPE STRING DEFAULT 'CORE', STATUS INTEGER DEFAULT 0, VALUE STRING DEFAULT NULL, WIDGET_ID INTEGER DEFAULT -1, IS_ENABLED BOOLEAN DEFAULT 1, OPTIONS STRING DEFAULT NULL, TECHNOLOGY STRING DEFAULT 'Core', TECHNOLOGY_ID INTEGER DEFAULT 1, IS_VISIBLE INTEGER DEFAULT 1, IS_PROTECTED INTEGER DEFAULT 0, UNIQUE( ID, TECHNOLOGY, TECHNOLOGY_ID ) );
 -- Create Relation Table
@@ -28,9 +28,9 @@ INSERT INTO WIDGET ( ID, NAME, MODEL, OPTIONS, IS_PROTECTED ) VALUES ( NULL, '_L
 -- ( DEMO STEP ) DELETE THIS STEP
 --{{ UPDATE: 0.0.1 to 0.0.2 }}
 -- Demo Technology
---INSERT INTO TECHNOLOGY_TYPE ( ID, NAME, TYPE, PATH ) VALUES ( NULL, 'Technology.Demo', 'nodejs', './integrations/Technology.Demo.node.js' );
---INSERT INTO OBJECT ( ID, NAME, TYPE, TECHNOLOGY, IS_PROTECTED, OPTIONS ) VALUES ( NULL, 'Bridge', 'TECHNOLOGY', 'Bridge', 1, '{"aArguments":[[{"id":"BridgeEndpoint1","type":"listen","connectionType":"net","port":10001},{"id":"BridgeEndpoint2","type":"listen","connectionType":"net","port":10002},{"id":"BridgeEndpoint3","type":"listen","connectionType":"net","port":10003}]]}' );
---INSERT INTO OBJECT ( ID, NAME, TYPE, TECHNOLOGY, IS_PROTECTED, OPTIONS ) VALUES ( NULL, 'FakeTechnology-1', 'TECHNOLOGY', 'Technology.Demo', 1, '{"aArguments":[[{"id":"FakeEndpoint1","type":"connect","connectionType":"net","port":10003}]]}' );
+--INSERT INTO TECHNOLOGY_TYPE ( ID, TYPE, LANGUAGE, PATH ) VALUES ( NULL, 'Technology.Demo', 'nodejs', './integrations/Technology.Demo.node.js' );
+--INSERT INTO OBJECT ( ID, NAME, TYPE, TECHNOLOGY, IS_PROTECTED, OPTIONS ) VALUES ( NULL, 'Bridge', 'TECHNOLOGY', 'Bridge', 1, '{"aEndpoints":[{"id":"BridgeEndpoint1","type":"listen","connectionType":"net","port":10001},{"id":"BridgeEndpoint2","type":"listen","connectionType":"net","port":10002},{"id":"BridgeEndpoint3","type":"listen","connectionType":"net","port":10003}]}' );
+--INSERT INTO OBJECT ( ID, NAME, TYPE, TECHNOLOGY, IS_PROTECTED, OPTIONS ) VALUES ( NULL, 'Demo-1', 'TECHNOLOGY', 'Technology.Demo', 1, '{"aArguments":[[{"id":"FakeEndpoint1","type":"connect","connectionType":"net","port":10003}]]}' );
 -- Demo Grid
 INSERT INTO OBJECT ( ID, NAME, TYPE, VALUE ) VALUES ( 20, 'Ambiente 1', 'GROUP', '/runtime/grid' );
 INSERT INTO OBJECT ( ID, NAME, TYPE, VALUE ) VALUES ( 21, 'Ambiente 1a', 'GROUP', '/runtime/grid' );
