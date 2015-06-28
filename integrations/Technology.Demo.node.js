@@ -36,7 +36,8 @@ var Technology = Ancilla.Technology;
 var DemoTechnology=function( oDemoOptions ){
 	//Default Technology Options
 	oDemoOptions = Tools.extend({
-		sType: 'Technology.Demo'
+		sType: 'Technology.Demo',
+		bUseLog: false
 	}, oDemoOptions );
 	// Calling inherited constructor
 	DemoTechnology.super_.call( this, oDemoOptions );

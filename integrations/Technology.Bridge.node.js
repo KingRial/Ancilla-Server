@@ -38,7 +38,8 @@ var TechnologyBridge=function( oBridgeOptions ){
 	//Default Technology Options
 	oBridgeOptions = Tools.extend({
 		sType: 'Bridge',
-		bUseDB: false
+		bUseDB: false,
+		bUseLog: false
 	}, oBridgeOptions );
 	// Calling inherited constructor
 	TechnologyBridge.super_.call( this, oBridgeOptions );

@@ -17,6 +17,7 @@ Changelog
 #v0.0.4
 - Refactored code to be used as a simple NPM's library
 - Reworked code: first step to obtain an easier environment to create, debug and test scripts to integrate different technologies in the same supervisor.
+- Added log rotation
 - Various fixing
 
 #v0.0.3
