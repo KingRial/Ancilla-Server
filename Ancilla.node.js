@@ -19,10 +19,11 @@
 var Ancilla = require('./lib/ancilla.node.js');
 var Tools = Ancilla.Tools;
 var Core = Ancilla.Core;
-
-process.argv.push( '--sCwd' );
-process.argv.push( '"."' );
-process.argv.push( '--sUpdatePath' );
-process.argv.push( '"./lib"' );
-// This is the same as using the following command: node lib/Core.node.js --sCwd "." --sUpdatePath "./lib"
-module.exports = Tools.exports( Core, module );
+/*
+ * This is the same as using the following command line:
+ * node lib/Core.node.js --sCwd "." --sUpdatePath "./lib"
+ */
+module.exports = new Core().run({
+  sCwd: '.',
+  sUpdatePath: './lib'
+});

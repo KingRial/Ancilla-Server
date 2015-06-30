@@ -67,4 +67,4 @@ TechnologyBridge.prototype.onData = function( oData, oGWEndpoint ){
 	}
 }
 
-module.exports = Tools.exports( TechnologyBridge, module );
+module.exports = new TechnologyBridge().export( module );

@@ -79,4 +79,4 @@ DemoTechnology.prototype.onAncilla = function( oEvent ){
 	Tools.debug( '[ DemoTechnology "%s" ] Received Ancilla Event [%s]: "%s" ', this.getID(), oEvent.sType, oEvent.data );
 }
 
-module.exports = Tools.exports( DemoTechnology, module );
+module.exports = new DemoTechnology().export( module );
