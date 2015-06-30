@@ -1,4 +1,4 @@
-Ancilla Server — Free Home Automation
+Ancilla Server — Free Home Automation [![Build Status](https://travis-ci.org/KingRial/Ancilla-Server.svg)](https://travis-ci.org/KingRial/Ancilla-Server)
 ==================================================
 
 [![Join the chat at https://gitter.im/KingRial/Ancilla-Server](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/KingRial/Ancilla-Server?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -17,6 +17,7 @@ Changelog
 #v0.0.4
 - Refactored code to be used as a simple NPM's library
 - Reworked code: first step to obtain an easier environment to create, debug and test scripts to integrate different technologies in the same supervisor.
+- Added automatic testing
 - Added log rotation
 - Various fixing
 
@@ -76,16 +77,25 @@ If you wish to run a specific technology or integration
 node integrations/Technology.Demo.node.js
 ```
 
-Running the Unit Tests
+Running the Tests
 --------------------------------------
-TODO
+Using "![vows](http://vowsjs.org/)".
+First you must install vows:
+```bash
+npm install vows
+```
+then you cal call the following command:
+```bash
+npm test
+```
 
 The future
 --------------------------------------
-- Add automatic testing
-- Add HTTPS/WSS support
+- Add behaviour driven tests
 - Add Nest support
 - Add KNX support
+- Add HTTPS/WSS support
+- Improve security
 - more to come!
 
 License
