@@ -27,6 +27,6 @@
 		"winston": "^1.0.1"
 	},
 	"scripts": {
-		"test": "node ./node_modules/vows/bin/vows --spec test/*"
+		"test": "vows --spec test/*"
 	}
 }
