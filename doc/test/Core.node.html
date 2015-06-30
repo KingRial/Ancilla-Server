@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="en"><head><title>test\Core.node</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="test\Core.node"><meta name="groc-project-path" content="test\Core.node.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">test\Core.node.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> vows = <span class="hljs-built_in">require</span>(<span class="hljs-string">'vows'</span>),
+    assert = <span class="hljs-built_in">require</span>(<span class="hljs-string">'assert'</span>);
+<span class="hljs-keyword">var</span> Ancilla = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../lib/ancilla.node.js'</span>);
+<span class="hljs-keyword">var</span> Tools = Ancilla.Tools;
+<span class="hljs-keyword">var</span> Core = Ancilla.Core;
+<span class="hljs-keyword">var</span> _oCore = <span class="hljs-keyword">new</span> Core();</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>var _oCore = new Core({
+  sCwd: ,
+  sDBPath:
+  sDBPathTmp:
+  sLogPath:
+  sLogPathTmp:
+});</p></div></div><div class="code"><div class="wrapper"><span class="hljs-comment">//var Constant = require('./Constants.node.js');</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>notEqual
+isNull
+isNaN
+isNumber
+isTrue</p></div></div><div class="code"><div class="wrapper">vows.describe(<span class="hljs-string">'Technology Core'</span>).addBatch({</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>&#39;[Fake test]&#39;: {
+   &#39;boolean true&#39;: {
+       topic: true,</p>
+<pre><code>   &#39;is instanceOf Core&#39;: function (topic) {
+       assert.equal(topic, true);
+   }</code></pre>
+<p>   }
+ },</p></div></div><div class="code"><div class="wrapper"> <span class="hljs-string">'[Ancilla Core]'</span>: {
+   <span class="hljs-string">'init'</span>: {
+     topic: _oCore,
+
+     <span class="hljs-string">'initialized'</span>: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( topic )</span></span>{
+       assert.instanceOf(topic, Core);
+     }
+   },
+   <span class="hljs-string">'methods'</span>: {
+     topic: _oCore,
+
+     <span class="hljs-string">'getID'</span>: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( topic )</span></span>{
+       assert.isFunction(topic.getID);
+       assert.equal(topic.getID(),<span class="hljs-string">'Core'</span>);
+     },
+
+     <span class="hljs-string">'run'</span>: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( topic )</span></span>{
+       assert.isFunction( topic.run );
+     }
+   }
+ }
+}).export(<span class="hljs-built_in">module</span>);</div></div></div></div></body></html>

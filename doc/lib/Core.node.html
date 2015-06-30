@@ -44,8 +44,39 @@ This file is part of &quot;Ancilla Libary&quot;.</p>
 			}]
 	}, oCoreOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Calling inherited constructor</p></div></div><div class="code"><div class="wrapper">	Core.super_.call( <span class="hljs-keyword">this</span>, oCoreOptions );
 }
-
-Tools.inherits( Core, Technology );</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method onGatewayReady</span></p>
+Tools.inherits( Core, Technology );</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method run</span></p>
+<p>Method called to run the Core technology</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oCoreOptions must be an Array of Objects.</strong><br/>(A javascript object of options used to configure the technology behaviour ( if using the same options will overwrite options set during the creation of the class ))</p>
+</li>
+<li><p><strong>oCurrentModule is optional and must be an Object.</strong><br/>(The current nodejs caller module ( default: the current module used by the required file ))</p>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>Core.run();</code></pre>
+<p>Core.prototype.run = function( oCoreOptions, oCurrentModule ){
+    oCoreOptions = Tools.extend({
+    sID: &#39;Core&#39;,
+    sType: &#39;Core&#39;,
+    iVersion: Constant.<em>ANCILLA_CORE_VERSION,
+    aEndpoints: [{
+            id: &#39;Core&#39;,
+            type: &#39;listen&#39;,
+            connectionType: &#39;net&#39;,
+            host: &#39;localhost&#39;,
+            port: &#39;10000&#39;,
+            isAncillaEventsHandler: true
+        }, {
+            id: &#39;web&#39;,
+            type: &#39;listen&#39;,
+            connectionType: &#39;ws&#39;,
+            isAncillaEventsHandler: true
+        }]
+    }, oCoreOptions );
+    // Calling inherited method
+    Core.super</em>.prototype.run.apply( this, [ oCoreOptions, oCurrentModule ] );
+}</p></div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method onGatewayReady</span></p>
 <p>Method called when event &quot;Gateway Ready&quot; is fired, to initialize the Core</p>
 <p>Example:</p>
 <pre><code>Core.onGatewayReady();</code></pre></div></div><div class="code"><div class="wrapper">Core.prototype.onGatewayReady = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
@@ -872,4 +903,4 @@ Core.__insertTableRows( &#39;OBJECT&#39;, [ { id: 100, name: &#39;Hello World&#3
 	<span class="hljs-keyword">return</span> _oDB.deleteTableRows( sTable, SQLExpr );
 }
 
-<span class="hljs-built_in">module</span>.exports = Tools.exports( Core, <span class="hljs-built_in">module</span> );</div></div></div></div></body></html>
+<span class="hljs-built_in">module</span>.exports = <span class="hljs-keyword">new</span> Core().export( <span class="hljs-built_in">module</span> );</div></div></div></div></body></html>

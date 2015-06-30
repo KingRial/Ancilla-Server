@@ -24,7 +24,8 @@ new TechnologyBridge( { sID: &#39;bridge-2&#39;, aEndpoints: [{ connectionType: 
 	<span class="hljs-comment">//Default Technology Options</span>
 	oBridgeOptions = Tools.extend({
 		sType: <span class="hljs-string">'Bridge'</span>,
-		bUseDB: <span class="hljs-literal">false</span>
+		bUseDB: <span class="hljs-literal">false</span>,
+		bUseLog: <span class="hljs-literal">false</span>
 	}, oBridgeOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Calling inherited constructor</p></div></div><div class="code"><div class="wrapper">	TechnologyBridge.super_.call( <span class="hljs-keyword">this</span>, oBridgeOptions );
 }
 Tools.inherits( TechnologyBridge, Technology );
@@ -46,4 +47,4 @@ TechnologyBridge.prototype.onData = <span class="hljs-function"><span class="hlj
 	}
 }
 
-<span class="hljs-built_in">module</span>.exports = Tools.exports( TechnologyBridge, <span class="hljs-built_in">module</span> );</div></div></div></div></body></html>
+<span class="hljs-built_in">module</span>.exports = <span class="hljs-keyword">new</span> TechnologyBridge().export( <span class="hljs-built_in">module</span> );</div></div></div></div></body></html>

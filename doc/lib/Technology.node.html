@@ -15,11 +15,13 @@ This file is part of &quot;Ancilla Libary&quot;.</p>
 <span class="hljs-keyword">var</span> Tools = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Tools.node.js'</span>);
 <span class="hljs-keyword">var</span> Constant = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Constants.node.js'</span>);
 
+<span class="hljs-keyword">var</span> winston = <span class="hljs-built_in">require</span>(<span class="hljs-string">'winston'</span>);
+
 <span class="hljs-keyword">var</span> EventEmitter = <span class="hljs-built_in">require</span>( <span class="hljs-string">'events'</span> ).EventEmitter;
 <span class="hljs-keyword">var</span> Fs = <span class="hljs-built_in">require</span>(<span class="hljs-string">'fs-extra'</span>);
 <span class="hljs-keyword">var</span> Path =  <span class="hljs-built_in">require</span>(<span class="hljs-string">'path'</span>);
 <span class="hljs-keyword">var</span> <span class="hljs-built_in">Promise</span> = <span class="hljs-built_in">require</span>(<span class="hljs-string">'bluebird'</span>);</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public class Technology</span></p>
-<p>A generic class to describe a generic Technology behaviour</p>
+<p>A generic class to describe a generic Technology behaviour.</p>
 <p>Parameters:</p>
 <ul>
 <li><strong>oTechnologyOptions must be an Array of Objects.</strong><br/>(A javascript object of options used to configure the technology behaviour)</li>
@@ -32,22 +34,89 @@ new Technology( { sID: &#39;tech-3&#39;, sType: &#39;tech&#39;, bUseDB: true, aE
 new Technology( { sID: &#39;tech-4&#39;, sType: &#39;tech&#39;, bUseDB: true }, aEndpoints: [{ type: &#39;listen&#39;, connectionType: &#39;ws&#39;, port: 10003 }] );
 new Technology( { sID: &#39;tech-5&#39;, sType: &#39;tech&#39;, bUseDB: true }, aEndpoints: [{ type: &#39;listen&#39;, connectionType: &#39;wss&#39;, port: 10004 }] );
 new Technology( { sID: &#39;tech-6&#39;, sType: &#39;tech&#39; }, aEndpoints: [{ type: &#39;connect&#39;, connectionType: &#39;ws&#39;, host: &#39;192.168.0.100&#39;, port: 10005 }] );
-new Technology( { sID: &#39;tech-7&#39;, sType: &#39;tech&#39; }, aEndpoints: [{ type: &#39;connect&#39;, connectionType: &#39;wss&#39;, host: &#39;192.168.0.100&#39;, port: 10006 }] );</code></pre></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Technology=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oTechnologyOptions )</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Default Technology Options</p></div></div><div class="code"><div class="wrapper">	oTechnologyOptions = Tools.extend({
+new Technology( { sID: &#39;tech-7&#39;, sType: &#39;tech&#39; }, aEndpoints: [{ type: &#39;connect&#39;, connectionType: &#39;wss&#39;, host: &#39;192.168.0.100&#39;, port: 10006 }] );</code></pre></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> Technology=<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oTechnologyOptions )</span></span>{
+	<span class="hljs-keyword">this</span>.__oOptions = Tools.extend({}, oTechnologyOptions );
+	Technology.super_.call( <span class="hljs-keyword">this</span> );
+}
+Tools.inherits( Technology, EventEmitter );</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method run</span></p>
+<p>Method called to run the technology</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>oTechnologyOptions must be an Array of Objects.</strong><br/>(A javascript object of options used to configure the technology behaviour ( if using the same options will overwrite options set during the creation of the class ))</p>
+</li>
+<li><p><strong>oCurrentModule is optional and must be an Object.</strong><br/>(The current nodejs caller module ( default: the current module used by the required file ))</p>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>Technology.run();
+Technology.run( { sID: &#39;tech-1&#39;, sType: &#39;tech&#39;, aEndpoints: [{ type: &#39;listen&#39;, connectionType: &#39;net&#39;, host: &#39;localhost&#39;, port: 10001 }] } );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.run = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oTechnologyOptions, oCurrentModule )</span></span>{
+	<span class="hljs-keyword">var</span> _Technology = <span class="hljs-keyword">this</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Selecting current module if none specified</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">if</span>( !oCurrentModule ){
+		oCurrentModule = <span class="hljs-built_in">module</span>;
+	}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init options overwriting previous options passed ar argument of the created class</p></div></div><div class="code"><div class="wrapper">	oTechnologyOptions = Tools.extend( <span class="hljs-keyword">this</span>.__oOptions, oTechnologyOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Default Technology Options</p></div></div><div class="code"><div class="wrapper">	oTechnologyOptions = Tools.extend({
 		sID: <span class="hljs-string">'tech-'</span> + <span class="hljs-built_in">Math</span>.random(),
 		sType: <span class="hljs-string">'unknown'</span>,
-		sDBPath: <span class="hljs-string">'.'</span>, <span class="hljs-comment">// TODO: process.cwd(), // DB persistent path should be where the script technology is located</span>
-		sDBPathTmp: ( Tools.isOSWin() ? <span class="hljs-string">'.'</span> : <span class="hljs-string">'/tmp'</span> ), <span class="hljs-comment">// TODO: DB volatile path should be located on TMP under UNIX or ? under Windows</span>
+		bUseSwap: <span class="hljs-literal">true</span>,
+		sCwd: Path.dirname( oCurrentModule.filename ),
+		sDBPath: <span class="hljs-string">'.'</span>, <span class="hljs-comment">// DB persistent path should be where the script technology is located ( if using relative path it's relative to sCwd )</span>
+		sDBPathTmp: ( Tools.isOSWin() ? <span class="hljs-string">'.'</span> : <span class="hljs-string">'/tmp'</span> ), <span class="hljs-comment">// TODO: DB volatile path should be located on TMP under UNIX or ? under Windows ( if using relative path it's relative to sCwd )</span>
+		sLogPath: <span class="hljs-string">'.'</span>, <span class="hljs-comment">// Log persistent path should be where the script technology is located ( if using relative path it's relative to sCwd )</span>
+		sLogPathTmp: ( Tools.isOSWin() ? <span class="hljs-string">'.'</span> : <span class="hljs-string">'/var/log'</span> ), <span class="hljs-comment">// TODO: Log volatile path should be located on TMP under UNIX or ? under Windows ( if using relative path it's relative to sCwd )</span>
 		bUseDB: <span class="hljs-literal">true</span>,
+		bUseLog: <span class="hljs-literal">true</span>,
+		iLogMaxSize: <span class="hljs-number">500000</span>, <span class="hljs-comment">// kB</span>
+		iLogMaxFiles: <span class="hljs-number">3</span>,
 		iVersion : <span class="hljs-number">0</span>,
 		bDebug: <span class="hljs-literal">false</span>,
 		aLogStyle: Tools.__styleTerminalGetRandom() <span class="hljs-comment">// Chalk Log style array [ Modifier, Colour, Background ]</span>
-	}, oTechnologyOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Other options dependant from sType initialization</p></div></div><div class="code"><div class="wrapper">	oTechnologyOptions = Tools.extend({
-		sDBName: oTechnologyOptions.sType + <span class="hljs-string">'.'</span> + oTechnologyOptions.sID + <span class="hljs-string">'.sqlite'</span>,
+	}, oTechnologyOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Other options dependant from sType initialization</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _sTechnologyFilename = oTechnologyOptions.sType + <span class="hljs-string">'.'</span> + oTechnologyOptions.sID;
+	oTechnologyOptions = Tools.extend({
+		sDBName: _sTechnologyFilename + <span class="hljs-string">'.sqlite'</span>,
 		<span class="hljs-comment">//sUpdatePath: process.cwd(), // Update file should be where the script technology is located</span>
 		sUpdatePath: <span class="hljs-string">'.'</span>,
 		sUpdateName: oTechnologyOptions.sType + <span class="hljs-string">'.update.sql'</span>
-	}, oTechnologyOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init variables</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">this</span>.__oOptions = oTechnologyOptions;
-	<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'Starting technology with following options:\n\t%j\n'</span>, oTechnologyOptions );
+	}, oTechnologyOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Remembering computed technology&#39;s options</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">this</span>.__oOptions = Tools.extend( {}, oTechnologyOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Process working directory</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">if</span>( oTechnologyOptions.sCwd != process.cwd() ){
+		process.chdir( oTechnologyOptions.sCwd );
+	}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init Loggers</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">if</span>( <span class="hljs-keyword">this</span>.__oOptions.bUseLog ){
+		winston.loggers.add(<span class="hljs-string">'log-rotation'</span>, {
+			<span class="hljs-built_in">console</span>: {<span class="hljs-comment">// TODO: use this console instead of custom logger for console outputs ?</span>
+				level: <span class="hljs-string">'debug'</span>,
+				timestamp: <span class="hljs-literal">true</span>,
+				silent: <span class="hljs-literal">true</span> <span class="hljs-comment">// Disabled until we start to use this logged instead of custom logger from Tools class</span>
+			},
+	    file: {
+				timestamp: <span class="hljs-literal">true</span>,
+				filename: <span class="hljs-keyword">this</span>.__oOptions.sLogPathTmp + <span class="hljs-string">'/'</span> + _sTechnologyFilename + <span class="hljs-string">'.log'</span>,
+				maxsize: <span class="hljs-keyword">this</span>.__oOptions.iLogMaxSize, <span class="hljs-comment">// 500 kB</span>
+				maxFiles: <span class="hljs-keyword">this</span>.__oOptions.iLogMaxFiles,
+				json: <span class="hljs-literal">false</span>,
+				tailable: <span class="hljs-literal">true</span>,
+				zippedArchive: <span class="hljs-literal">true</span>,
+				exitOnError: <span class="hljs-literal">false</span>
+	    }
+	  });
+		<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'Logging technology on: "%s"...'</span>, winston.loggers.get(<span class="hljs-string">'log-rotation'</span>).transports.file.filename );
+	}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Setting process events</p></div></div><div class="code"><div class="wrapper">	process.on(<span class="hljs-string">'SIGINT'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+		_Technology.info(<span class="hljs-string">'Event SIGINT...'</span> );
+		process.exit();
+	});
+	process.on(<span class="hljs-string">'SIGTERM'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+		_Technology.info(<span class="hljs-string">'Event SIGTERM...'</span> );
+		process.exit();
+	});
+	process.on(<span class="hljs-string">'SIGHUP'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+		_Technology.info(<span class="hljs-string">' Event SIGHUP...'</span> );
+		process.exit();
+	});
+	process.on(<span class="hljs-string">'exit'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iCode )</span></span>{
+		<span class="hljs-comment">//TODO: killing process children before exiting current process</span>
+		_Technology.info(<span class="hljs-string">'Closing ( exit code: %s )...'</span>, iCode );
+	});
+	process.on(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iCode )</span> </span>{
+		_Technology.info( <span class="hljs-string">'exited with code "%s" '</span>, process.argv[<span class="hljs-number">2</span>], iCode  );
+	});
+	process.on(<span class="hljs-string">'uncaughtException'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
+		_Technology.error(<span class="hljs-string">'Uncaught Exception: %s...'</span>, oError );
+	});</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init debug</p></div></div><div class="code"><div class="wrapper">	Tools.setDebug( oTechnologyOptions.bDebug );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Logging CWD</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'set working directory to: "%s"...'</span>, oTechnologyOptions.sCwd );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Starting technology</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'Starting technology with following options:\n\t%j\n'</span>, oTechnologyOptions );
 	<span class="hljs-keyword">this</span>.__oDefferedAncillaEvents = {};
 	<span class="hljs-keyword">this</span>.__oStatus = {
 		bGatewayReady: <span class="hljs-literal">false</span>,
@@ -55,21 +124,13 @@ new Technology( { sID: &#39;tech-7&#39;, sType: &#39;tech&#39; }, aEndpoints: [{
 	};
 	<span class="hljs-keyword">this</span>.__sDBVersion = <span class="hljs-literal">null</span>;
 	<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'Starting technology [ version: "%s" ] ...'</span>, <span class="hljs-keyword">this</span>.__oOptions.iVersion );
-	<span class="hljs-keyword">if</span>( oTechnologyOptions.bUseDB ){
-		<span class="hljs-keyword">this</span>.__registerEvents(
-			Tools.proxy( <span class="hljs-keyword">this</span>.__swapDB, <span class="hljs-keyword">this</span>, <span class="hljs-keyword">this</span>.__DBgetRelativePersistantPath(), <span class="hljs-keyword">this</span>.__DBgetRelativePath(), Tools.proxy(
-				<span class="hljs-keyword">this</span>.__DBinit, <span class="hljs-keyword">this</span>, Tools.proxy(
-					<span class="hljs-keyword">this</span>.__initGWs, <span class="hljs-keyword">this</span>, <span class="hljs-keyword">this</span>.__oOptions.aEndpoints
-					)
-				)
+	<span class="hljs-keyword">this</span>.__registerEvents( Tools.proxy(
+		<span class="hljs-keyword">this</span>.__initDB, <span class="hljs-keyword">this</span>, Tools.proxy(
+			<span class="hljs-keyword">this</span>.__initGWs, <span class="hljs-keyword">this</span>, <span class="hljs-keyword">this</span>.__oOptions.aEndpoints
 			)
-		);
-	} <span class="hljs-keyword">else</span> {
-		<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'DB not needed'</span> );
-		<span class="hljs-keyword">this</span>.__registerEvents( Tools.proxy( <span class="hljs-keyword">this</span>.__initGWs, <span class="hljs-keyword">this</span>, <span class="hljs-keyword">this</span>.__oOptions.aEndpoints ) );
-	}
-}
-Tools.inherits( Technology, EventEmitter );</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __registerEvents</span></p>
+		)
+	);
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __registerEvents</span></p>
 <p>Method called to register events to the current technology</p>
 <p>Parameters:</p>
 <ul>
@@ -129,14 +190,33 @@ Technology.prototype.__onEvent = <span class="hljs-function"><span class="hljs-k
 			}
 		<span class="hljs-keyword">break</span>;
 	}
-}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __DBinit</span></p>
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __initDB</span></p>
 <p>Method called to initialize DB</p>
 <p>Parameters:</p>
 <ul>
 <li><strong>fCallback must be a Function.</strong><br/>(The callback function to call when the initialize DB operation is completed)</li>
 </ul>
 <p>Example:</p>
-<pre><code>Technology.__DBinit( fCallback );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__DBinit = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fCallback )</span></span>{
+<pre><code>Technology.__initDB( fCallback );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__initDB = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fCallback )</span></span>{
+	<span class="hljs-keyword">if</span>( <span class="hljs-keyword">this</span>.__oOptions.bUseDB ){
+		<span class="hljs-keyword">this</span>.__swapDB( <span class="hljs-keyword">this</span>.__DBgetRelativePersistantPath(), <span class="hljs-keyword">this</span>.__DBgetRelativePath(), Tools.proxy(
+				<span class="hljs-keyword">this</span>.__DBCheckUpdate, <span class="hljs-keyword">this</span>, fCallback
+			)
+		);
+	} <span class="hljs-keyword">else</span> {
+		<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'DB not used'</span> );
+		<span class="hljs-keyword">if</span>( fCallback ){
+			fCallback();
+		}
+	}
+}</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private method __DBCheckUpdate</span></p>
+<p>Method called to check if the DB version needs to be updated to the latest one</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>fCallback must be a Function.</strong><br/>(The callback function to call when the initialize DB operation is completed)</li>
+</ul>
+<p>Example:</p>
+<pre><code>Technology.__DBCheckUpdate( fCallback );</code></pre></div></div><div class="code"><div class="wrapper">Technology.prototype.__DBCheckUpdate = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fCallback )</span></span>{
 	<span class="hljs-keyword">var</span> _Technology = <span class="hljs-keyword">this</span>;
 	<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'Checking DB "%s" ( Path: "%s" )'</span>, _Technology.__oOptions.sDBName, _Technology.__DBgetRelativePath() );
 	_Technology._oDB = <span class="hljs-keyword">new</span> DB( _Technology.__DBgetRelativePath() );
@@ -517,21 +597,41 @@ Technology.triggerAnswer( oEvent, Constant._NO_ERROR, oAdditionalData );</code><
 Technology.prototype.__logParseArguments = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( args )</span></span>{
 	<span class="hljs-keyword">var</span> _aArgs = <span class="hljs-built_in">Array</span>.prototype.slice.call( args );
 	<span class="hljs-keyword">var</span> _aTerminalStyle = <span class="hljs-keyword">this</span>.__oOptions.aLogStyle;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Adding schema</p></div></div><div class="code"><div class="wrapper">	_aArgs[ <span class="hljs-number">0</span> ] = <span class="hljs-string">'[ '</span> + Tools.__styleTerminalMessage( <span class="hljs-string">'Technology "%s"'</span>, _aTerminalStyle ) + <span class="hljs-string">' ] '</span> + _aArgs[ <span class="hljs-number">0</span> ];</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Adding value schema</p></div></div><div class="code"><div class="wrapper">	_aArgs.splice( <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-keyword">this</span>.getID() );
-
 	<span class="hljs-keyword">return</span> _aArgs;
 }
 
-Technology.prototype.info = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
-	<span class="hljs-keyword">var</span> _aArguments = <span class="hljs-keyword">this</span>.__logParseArguments( <span class="hljs-built_in">arguments</span> );
-	Tools.info.apply( Tools, _aArguments );
+Technology.prototype.info = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Adding technology header to current info</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _aArguments = <span class="hljs-keyword">this</span>.__logParseArguments( <span class="hljs-built_in">arguments</span> );
+	Tools.info.apply( Tools, _aArguments );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Using default arguments intead of the one with technology header</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _oLogRotation = winston.loggers.get(<span class="hljs-string">'log-rotation'</span>);
+	<span class="hljs-keyword">if</span>( _oLogRotation ){
+		_oLogRotation.info.apply( _oLogRotation, <span class="hljs-built_in">arguments</span> );
+	}
 }
-Technology.prototype.debug = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
-	<span class="hljs-keyword">var</span> _aArguments = <span class="hljs-keyword">this</span>.__logParseArguments( <span class="hljs-built_in">arguments</span> );
+Technology.prototype.debug = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Adding technology header to current info</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _aArguments = <span class="hljs-keyword">this</span>.__logParseArguments( <span class="hljs-built_in">arguments</span> );
 	Tools.debug.apply( Tools, _aArguments );
+	<span class="hljs-keyword">var</span> _oLogRotation = winston.loggers.get(<span class="hljs-string">'log-rotation'</span>);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Using default arguments instead of the one with technology header and adding &#39;debug&#39; parameter</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _oLogRotation = winston.loggers.get(<span class="hljs-string">'log-rotation'</span>);
+	<span class="hljs-keyword">if</span>( _oLogRotation ){
+		<span class="hljs-keyword">var</span> _aArgs = <span class="hljs-built_in">Array</span>.prototype.slice.call( <span class="hljs-built_in">arguments</span> );
+		_aArgs.unshift( <span class="hljs-string">'debug'</span> );
+		_oLogRotation.log.apply( _oLogRotation, _aArgs );
+	}
 }
-Technology.prototype.error = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
-	<span class="hljs-keyword">var</span> _aArguments = <span class="hljs-keyword">this</span>.__logParseArguments( <span class="hljs-built_in">arguments</span> );
-	Tools.error.apply( Tools, _aArguments );
+Technology.prototype.error = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Adding technology header to current info</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _aArguments = <span class="hljs-keyword">this</span>.__logParseArguments( <span class="hljs-built_in">arguments</span> );
+	Tools.error.apply( Tools, _aArguments );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Using default arguments instead of the one with technology header and adding &#39;debug&#39; parameter</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">var</span> _oLogRotation = winston.loggers.get(<span class="hljs-string">'log-rotation'</span>);
+	<span class="hljs-keyword">if</span>( _oLogRotation ){
+		_oLogRotation.error.apply( _oLogRotation, <span class="hljs-built_in">arguments</span> );
+	}
 }
 
+Technology.prototype.export = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">( oCurrentModule, oOptions )</span> </span>{
+		<span class="hljs-keyword">if</span>( <span class="hljs-built_in">require</span>.main === oCurrentModule ){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Arguments</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">var</span> _oArgs = Tools.processArgs( process.argv.slice( <span class="hljs-number">2</span> ) );
+				<span class="hljs-keyword">var</span> _sProcessName = Path.basename( oCurrentModule.filename );
+				oOptions = Tools.extend({
+					sCwd: Path.dirname( oCurrentModule.filename ),
+					bDebug: ( <span class="hljs-literal">false</span> || _oArgs.debug )
+				}, _oArgs );
+				<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.run( oOptions, oCurrentModule );
+		} <span class="hljs-keyword">else</span> {
+				<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.constructor;
+		}
+};
 <span class="hljs-built_in">module</span>.exports = Technology;</div></div></div></div></body></html>

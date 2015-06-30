@@ -194,48 +194,6 @@ return _fChalk( sMessage );</p></div></div><div class="code"><div class="wrapper
 		<span class="hljs-comment">//if( _sBackground != 'bgBlack' ){</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>_sColour=&#39;black&#39;;</p></div></div><div class="code"><div class="wrapper">		<span class="hljs-comment">//}</span>
 		<span class="hljs-comment">//return [ _sModifier, _sColour, _sBackground ];</span>
 		<span class="hljs-keyword">return</span> [ _sModifier, _sColour ];
-	},
-	exports: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( fClass, oCurrentModule )</span> </span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Checking if we are &quot;requiring&quot; the class or calling it using command shell</p></div></div><div class="code"><div class="wrapper">	  	<span class="hljs-keyword">if</span>( <span class="hljs-built_in">require</span>.main === oCurrentModule ){
-				<span class="hljs-keyword">var</span> _Tools = <span class="hljs-keyword">this</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Arguments</p></div></div><div class="code"><div class="wrapper">	      <span class="hljs-keyword">var</span> _oArgs = <span class="hljs-keyword">this</span>.processArgs( process.argv.slice( <span class="hljs-number">2</span> ) );
-				<span class="hljs-keyword">var</span> _sProcessName = path.basename( oCurrentModule.filename );
-	      <span class="hljs-keyword">var</span> _oClassOptions = <span class="hljs-keyword">this</span>.extend({
-	        sCwd: path.dirname( oCurrentModule.filename ),
-	      	bDebug: ( <span class="hljs-literal">false</span> || _oArgs.debug )
-	      }, _oArgs );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Init debug</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">this</span>.setDebug( _oClassOptions.bDebug );
-				<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'[ Process: "%s" ] Using Debug...'</span>, _sProcessName );
-				<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'[ Process: "%s" ] starting from command with arguments "%j"...'</span>, _sProcessName, _oClassOptions );</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Process working directory</p></div></div><div class="code"><div class="wrapper">	      <span class="hljs-keyword">if</span>( _oClassOptions.sCwd != process.cwd() ){
-	        process.chdir( _oClassOptions.sCwd );
-					<span class="hljs-keyword">this</span>.info( <span class="hljs-string">'[ Process: "%s" ] set working directory to: "%s"...'</span>, _sProcessName, _oClassOptions.sCwd );
-	      } <span class="hljs-keyword">else</span> {
-					<span class="hljs-keyword">this</span>.debug( <span class="hljs-string">'[ Process: "%s" ] using working directory: "%s"...'</span>, _sProcessName, _oClassOptions.sCwd );
-	      }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Executing</p></div></div><div class="code"><div class="wrapper">	      <span class="hljs-keyword">try</span> {
-					<span class="hljs-keyword">var</span> _oObject = <span class="hljs-keyword">new</span> fClass( _oClassOptions );
-	      } <span class="hljs-keyword">catch</span>( oError ){
-					<span class="hljs-keyword">this</span>.error( <span class="hljs-string">'[ Process: "%s" ] Error: "%s". Unable to start process...'</span>, _sProcessName, oError );
-	      }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Setting process events</p></div></div><div class="code"><div class="wrapper">	      process.on(<span class="hljs-string">'SIGINT'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
-					_Tools.info(<span class="hljs-string">'[ Process: "%s" ] Event SIGINT...'</span>, _sProcessName );
-	      	process.exit();
-	      });
-	      process.on(<span class="hljs-string">'SIGTERM'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
-					_Tools.info(<span class="hljs-string">'[ Process: "%s" ] Event SIGTERM...'</span>, _sProcessName );
-	      	process.exit();
-	      });
-	      process.on(<span class="hljs-string">'SIGHUP'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
-					_Tools.info(<span class="hljs-string">'[ Process: "%s" ] Event SIGHUP...'</span>, _sProcessName );
-	      	process.exit();
-	      });
-	      process.on(<span class="hljs-string">'exit'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iCode )</span></span>{
-	      	<span class="hljs-comment">//TODO: killing process children before exiting current process</span>
-					_Tools.info(<span class="hljs-string">'[ Process: "%s" ] Closing ( exit code: %s )...'</span>, _sProcessName, iCode );
-	      });
-	      process.on(<span class="hljs-string">'close'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( iCode )</span> </span>{
-					_Tools.info( <span class="hljs-string">'[ Process: "%s" ] Process "%s" exited with code "%s" '</span>, _sProcessName, process.argv[<span class="hljs-number">2</span>], iCode  );
-	      });
-	      process.on(<span class="hljs-string">'uncaughtException'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">( oError )</span></span>{
-					_Tools.error(<span class="hljs-string">'[ Process: "%s" ] Uncaught Exception: %s...'</span>, _sProcessName, oError );
-	      });
-	    } <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Since it&#39;s required instead of called by command line, we are returning the class</p></div></div><div class="code"><div class="wrapper">	      <span class="hljs-keyword">return</span> fClass;
-	    }
 	}
 }
 
