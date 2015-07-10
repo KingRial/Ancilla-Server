@@ -15,10 +15,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with "Ancilla Libary".  If not, see <http://www.gnu.org/licenses/>.
 */
-var Technology = require('./Technology.node.js');
-var Event = require('./Event.node.js');
-var Tools = require('./Tools.node.js');
-var Constant = require('./Constants.node.js');
+var Ancilla = require('../../lib/ancilla.node.js');
+var Technology = Ancilla.Technology;
+var Event = Ancilla.Event;
+var Tools = Ancilla.Tools;
+var Constant = Ancilla.Constant;
+
 var Promise = require('bluebird');
 
 var ChildProcess = require('child_process');

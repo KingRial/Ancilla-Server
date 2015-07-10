@@ -16,9 +16,9 @@
  *  along with "Ancilla Libary".  If not, see <http://www.gnu.org/licenses/>.
 */
 
-var Ancilla = require('./lib/ancilla.node.js');
-var Tools = Ancilla.Tools;
-var Core = Ancilla.Core;
+//var Ancilla = require('lib/ancilla.node.js');
+//var Tools = Ancilla.Tools;
+var Core = require('integrations/Core/Technology.Core.node.js');
 /*
  * This is the same as using the following command line:
  * node lib/Core.node.js --sCwd "." --sUpdatePath "./lib"

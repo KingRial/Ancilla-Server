@@ -3,8 +3,6 @@ Ancilla Server — Free Home Automation
 
 [![Build Status](https://travis-ci.org/KingRial/Ancilla-Server.svg)](https://travis-ci.org/KingRial/Ancilla-Server) [![Join the chat at https://gitter.im/KingRial/Ancilla-Server](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/KingRial/Ancilla-Server?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-==================================================
-
 This is the server-side part of the Ancilla project.
 Built with [nodeJS](https://nodejs.org/) the purpose is to create a scalable, secure, customizable and free solution to handle home automation.
 
@@ -19,6 +17,7 @@ Changelog
 #v0.0.4
 - Refactored code to be used as a simple NPM's library
 - Reworked code: first step to obtain an easier environment to create, debug and test scripts to integrate different technologies in the same supervisor.
+- Refactored DB management to easily add, mantain, use a DB for each technology/integration using [sequelize](http://docs.sequelizejs.com/en/latest/): each integration/technology has now a DB subdirectory in which you will find DB's "models" and "migrations" and the current used DB
 - Added automatic testing
 - Added log rotation
 - Various fixing

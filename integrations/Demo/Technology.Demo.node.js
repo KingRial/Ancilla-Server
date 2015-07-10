@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with "Ancilla Libary".  If not, see <http://www.gnu.org/licenses/>.
 */
-var Ancilla = require('../lib/ancilla.node.js');
+var Ancilla = require('../../lib/ancilla.node.js');
 var Tools = Ancilla.Tools;
 var Technology = Ancilla.Technology;
 
@@ -36,6 +36,7 @@ var Technology = Ancilla.Technology;
 var DemoTechnology=function( oDemoOptions ){
 	//Default Technology Options
 	oDemoOptions = Tools.extend({
+		sID: 'Demo-1',
 		sType: 'Technology.Demo',
 		bUseLog: false
 	}, oDemoOptions );
