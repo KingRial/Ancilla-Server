@@ -25,6 +25,7 @@ var Promise = require('bluebird');
 
 var ChildProcess = require('child_process');
 var Path = require('path');
+var Fs = require('fs');
 
 /**
  * A generic class to describe the central Ancilla's Core; it's build as a technology
@@ -75,7 +76,6 @@ Tools.inherits( Core, Technology );
  * @example
  *   Core.run();
  */
-/*
 Core.prototype.run = function( oCoreOptions, oCurrentModule ){
 	oCoreOptions = Tools.extend({
 		sID: 'Core',
@@ -98,7 +98,6 @@ Core.prototype.run = function( oCoreOptions, oCurrentModule ){
 	// Calling inherited method
 	Core.super_.prototype.run.apply( this, [ oCoreOptions, oCurrentModule ] );
 }
-*/
 
 /**
  * Method called when event "Gateway Ready" is fired, to initialize the Core
@@ -111,38 +110,35 @@ Core.prototype.run = function( oCoreOptions, oCurrentModule ){
  */
 Core.prototype.onGatewayReady = function(){
 	var _Core = this;
-	this.info( 'is ready to process...' );
-// TODO: setting timers to handle swap DB http://nodejs.org/api/timers.html
+	// Core Technology doesn't need to be introduced; overwriting previous status and faking introduction
+	this.__oStatus = Tools.extend( this.__oStatus, {
+		bIsIntroduced: true
+	});
+	this.info( 'Starting configured technologies...' );
 	// Selecting technology's type
-	_Core.__selectTableRows( 'TECHNOLOGY_TYPE' )
-		.then( function( oRows ){
-			var _oDB = _Core.__DBget();
-			var _oTechnologyTypes = {};
-			for ( var _iIndex in oRows ){
-				var _oCurrentRow = oRows[ _iIndex ];
-				_oTechnologyTypes[ _oCurrentRow[ 'TYPE' ] ] = oRows[ _iIndex ];
-			}
+	_Core.getDBModel( 'TECHNOLOGY_TYPE' ).findAll()
+		.then( function( aTechnologyTypes ){
 			// Selecting configured technologies and create a process to execute them
-			_Core.__selectTableRows( 'OBJECT', _oDB.expr()
-					.and( "TYPE='TECHNOLOGY'" )
-					.and( "TECHNOLOGY NOT IN ?", [ Constant._TECHNOLOGY_TYPE_CORE, Constant._TECHNOLOGY_TYPE_WEB ] )
-					.and( "IS_ENABLED=1" )
-				)
-				.then( function( oRows ){
-					if( oRows.length > 0 ){
-						for ( var _iIndex in oRows ){
-							var _oCurrentRow = oRows[ _iIndex ];
-							var _sTechnologyName = _oCurrentRow[ 'NAME' ];
-							var _sTechnologyType = _oCurrentRow[ 'TECHNOLOGY' ];
-							var _sTechnologyPath = _oTechnologyTypes[ _sTechnologyType ][ 'PATH' ];
-							var _sTechnologyLanguage = _oTechnologyTypes[ _sTechnologyType ][ 'LANGUAGE' ];
-							var _sTechonlogyPathFile = Path.basename( _sTechnologyPath );
-							var _sTechonlogyPathDir = Path.dirname( _sTechnologyPath );
-							var _sTechnologyAdditionalArgs = _oCurrentRow[ 'OPTIONS' ] || '';
-							var _aAdditionalArgs = JSON.parse( _sTechnologyAdditionalArgs.replace(/\\"/g, '"') );
+			return _Core.getDBModel( 'OBJECT').findAll({
+					where: {
+						type: Constant._OBJECT_TYPE_TECHNOLOGY,
+						technology: {
+							not: [ Constant._TECHNOLOGY_TYPE_CORE, Constant._TECHNOLOGY_TYPE_WEB ]
+						},
+						isEnabled: true
+					}
+				})
+				.then( function( aTechnologies ){
+					if( aTechnologies.length > 0 ){
+						for ( var _iIndex in aTechnologies ){
+							var _oObject = aTechnologies[ _iIndex ];
+							var _oTechnologyType = aTechnologyTypes[ _oObject.technology ];
+							var _sTechonlogyPathFile = Path.basename( _oTechnologyType.path );
+							var _sTechonlogyPathDir = Path.dirname( _oTechnologyType.path );
+							var _aAdditionalArgs = JSON.parse( _oObject.options );
 							// Building Args to start process
 							var _oArgs = {
-								sID: _sTechnologyName,
+								sID: _oObject.name,
 								sCwd: _sTechonlogyPathDir
 							};
 							for( var _sArg in _aAdditionalArgs ){
@@ -166,19 +162,19 @@ Core.prototype.onGatewayReady = function(){
 								}
 							}
 							// Checking supported technology script type
-							switch( _sTechnologyLanguage ){
+							switch( _oTechnologyType.language ){
 								case 'nodejs':
-									_Core.info( 'Starting technology "%s" type: "%s"\n\tArguments: "%j"', _sTechnologyName, _sTechnologyType, _oArgs );
+									_Core.info( 'Starting technology "%s" type: "%s"\n\tArguments: "%j"', _oObject.name, _oObject.technology, _oArgs );
 								break;
 								default:
 									_Core.error( 'Unable to start technology "%s" ( type: "%s", File: "%s", cwd: "%s" ). Script type "%s" is not supported by Core.', _sTechnologyName, _sTechnologyType, _sTechonlogyPathFile, _sTechonlogyPathDir, _sTechnologyLanguage );
 								break;
 							}
 							// Creating new Process by technology ( if the current script type is supported )
-							switch( _sTechnologyLanguage ){
+							switch( _oTechnologyType.language ){
 								case 'nodejs':
 									// Init Args for spawning child process
-									var _aArgs = [ _sTechnologyPath ];
+									var _aArgs = [ _oTechnologyType.path ];
 									for( var _sField in _oArgs ){
 										var _value = _oArgs[ _sField ];
 										if( _value ){
@@ -195,16 +191,17 @@ Core.prototype.onGatewayReady = function(){
 									_oProcess.stderr.pipe( process.stderr );
 								break;
 								default:
-									_Core.error( 'Unknown technology script type: "%s"; unable to start technology.', _sTechnologyLanguage );
+									_Core.error( 'Unknown technology script type: "%s"; unable to start technology.', _oTechnologyType.language );
 								break;
 							}
 						}
 					} else {
 						_Core.info( 'No configured technologies to start.' );
 					}
+					// Returning promise
+					return this;
 				})
 				.catch( function( oError ){
-console.error( 'error: %j', arguments );
 					_Core.error( '[ Error: %j ] Unable to get technologies.', oError );
 					process.exit();
 				})
@@ -276,6 +273,7 @@ Core.prototype.setConnectedSocketID = function( oGateway, oGatewayEndpoint, iSoc
 * @example
 *   Core.__getTechnology( sTechnologyID );
 */
+/*
 Core.prototype.__getTechnology = function( sTechnologyID, bCreateOnMissing ){
 	var _Core = this;
 	return new Promise( function( fResolve, fReject ){
@@ -316,6 +314,7 @@ Core.prototype.__getTechnology = function( sTechnologyID, bCreateOnMissing ){
 		;
 	});
 }
+*/
 /**
 * Method called to get the user used by a particular technology
 *
@@ -329,6 +328,7 @@ Core.prototype.__getTechnology = function( sTechnologyID, bCreateOnMissing ){
 * @example
 *   Core.__technologyGetUser( sTechnologyID );
 */
+/*
 Core.prototype.__technologyGetUser = function( sTechnologyID ){
 	var _Core = this;
 	return new Promise( function( fResolve, fReject ){
@@ -349,6 +349,7 @@ Core.prototype.__technologyGetUser = function( sTechnologyID ){
 		;
 	});
 }
+*/
 /**
 * Method called to get the user used by a particular technology
 *
@@ -362,6 +363,7 @@ Core.prototype.__technologyGetUser = function( sTechnologyID ){
 * @example
 *   Core.__technologyGetUserID( sTechnologyID );
 */
+/*
 Core.prototype.__technologyGetUserID = function( sTechnologyID ){
 	var _Core = this;
 	return new Promise( function( fResolve, fReject ){
@@ -393,6 +395,7 @@ Core.prototype.__technologyGetUserID = function( sTechnologyID ){
 		);
 	});
 };
+*/
 /**
 * Method called to set a technology logged as a user
 *
@@ -407,6 +410,7 @@ Core.prototype.__technologyGetUserID = function( sTechnologyID ){
 * @example
 *   Core.__technologyLogIn( sTechnologyID, iUserID );
 */
+/*
 Core.prototype.__technologyLogIn = function( sTechnologyID, iUserID ){
 	var _Core = this;
 	return new Promise( function( fResolve, fReject ){
@@ -442,6 +446,7 @@ Core.prototype.__technologyLogIn = function( sTechnologyID, iUserID ){
 		})
 	;
 }
+*/
 /**
 * Method called to log out a technology
 *
@@ -455,6 +460,7 @@ Core.prototype.__technologyLogIn = function( sTechnologyID, iUserID ){
 * @example
 *   Core.__technologyLogOut( sTechnologyID, iUserID );
 */
+/*
 Core.prototype.__technologyLogOut = function( sTechnologyID ){
 	var _Core = this;
 	return _Core.__getTechnology( sTechnologyID )
@@ -487,6 +493,7 @@ Core.prototype.__technologyLogOut = function( sTechnologyID ){
 		})
 	;
 }
+*/
 /**
 * Method called to see if the technology is logged
 *
@@ -500,6 +507,7 @@ Core.prototype.__technologyLogOut = function( sTechnologyID ){
 * @example
 *   Core.__technologyIsLogged( sTechnologyID );
 */
+/*
 Core.prototype.__technologyIsLogged = function( sTechnologyID ){
 	var _Core = this;
 	return new Promise( function( fResolve, fReject ){
@@ -516,7 +524,7 @@ Core.prototype.__technologyIsLogged = function( sTechnologyID ){
 		;
 	});
 }
-
+*/
 /**
 * Method called when event "Ancilla" is fired, to handle it
 *
@@ -572,17 +580,7 @@ Core.prototype.onAncilla = function( oEvent ){
 		var _oMainPromise = new Promise( function( fResolve, fReject ){
 		// Choosing the ancilla event type handler
 			switch( _sEventType ){
-	/**
-	* Ancilla Event used to introduce a new technology to the Core
-	*
-	* @method    Constant._EVENT_TYPE_INTRODUCE
-	* @public
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_INTRODUCE } );
-	*/
+/*
 				case Constant._EVENT_TYPE_INTRODUCE:
 					// Using technology ID to get the current connected socket
 					var _oConnectedSocket = _Core.getConnectedSocket( _sTechnologyID );
@@ -615,17 +613,6 @@ Core.prototype.onAncilla = function( oEvent ){
 						;
 					}
 				break;
-	/**
-	* Ancilla Event used to login
-	*
-	* @method    Constant._EVENT_TYPE_LOGIN
-	* @public
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_LOGIN } );
-	*/
 				case Constant._EVENT_TYPE_LOGIN:
 					_Core.__selectTableRows( 'OBJECT', _Core.__DBget().expr()
 							.and( 'NAME = ?', oEvent.sUsername )
@@ -660,17 +647,6 @@ Core.prototype.onAncilla = function( oEvent ){
 						})
 					;
 				break;
-	/**
-	* Ancilla Event used to login
-	*
-	* @method    Constant._EVENT_TYPE_LOGOUT
-	* @public
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_LOGOUT } );
-	*/
 				case Constant._EVENT_TYPE_LOGOUT:
 					_Core.__technologyLogOut( _sTechnologyID )
 						.then(function(){
@@ -685,18 +661,6 @@ Core.prototype.onAncilla = function( oEvent ){
 						})
 					;
 				break;
-	/**
-	* Ancilla Event used by the client to load specific objects by ID.
-	*
-	* @method    Constant._EVENT_TYPE_OBJ_LOAD_BY_ID
-	* @public
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_OBJ_LOAD_BY_ID, ids: 100 } );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_OBJ_LOAD_BY_ID, ids: [ 100, 101, 102 ] } );
-	*/
 				case Constant._EVENT_TYPE_OBJ_LOAD_BY_ID:
 					var ids = oEvent.ids;
 					_Core.__loadObjectByID( ids )
@@ -711,18 +675,6 @@ Core.prototype.onAncilla = function( oEvent ){
 						})
 					;
 					break;
-	/**
-	* Ancilla Event used by the client to load specific objects by type.
-	*
-	* @method    Constant._EVENT_TYPE_OBJ_LOAD_BY_TYPE
-	* @public
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_OBJ_LOAD_BY_TYPE, types: 'TECHNOLOGY' } );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_OBJ_LOAD_BY_TYPE, types: [ 'TECHNOLOGY', 'GROUP' ] } );
-	*/
 				case Constant._EVENT_TYPE_OBJ_LOAD_BY_TYPE:
 					var types = oEvent.types;
 					_Core.__loadObjectByType( types )
@@ -737,20 +689,6 @@ Core.prototype.onAncilla = function( oEvent ){
 						})
 					;
 					break;
-	/**
-	* Ancilla Event used by the client to create specific objects/relations/widgets.
-	*
-	* @method    Constant._EVENT_TYPE_CREATE
-	* @public
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_CREATE, aObjs: [ { ... Object 1 ... }, { ... Object 2 ... } ] );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_CREATE, aRelations: [ { ... Relation 1 ... }, { ... Relation 2 ... } ] );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_CREATE, aWidgets: [ { ... Widget 1 ... }, { ... Widget 2 ... } ] );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_CREATE, aObjs: [ { ... Object 1 ... }, { ... Object 2 ... } ], aRelations: [ { ... Relation 1 ... }, { ... Relation 2 ... } ], aWidgets: [ { ... Widget 1 ... }, { ... Widget 2 ... } ] );
-	*/
 				case Constant._EVENT_TYPE_CREATE:
 					var _aCreatePromises = [];
 					if( oEvent.aObjs ){
@@ -774,20 +712,6 @@ Core.prototype.onAncilla = function( oEvent ){
 						})
 					;
 				break;
-	/**
-	* Ancilla Event used by the client to update specific objects/relations/widgets.
-	*
-	* @method    Constant._EVENT_TYPE_UPDATE
-	* @public
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_UPDATE, aObjs: [ { ... Object 1 ... }, { ... Object 2 ... } ] );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_UPDATE, aRelations: [ { ... Relation 1 ... }, { ... Relation 2 ... } ] );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_UPDATE, aWidgets: [ { ... Widget 1 ... }, { ... Widget 2 ... } ] );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_UPDATE, aObjs: [ { ... Object 1 ... }, { ... Object 2 ... } ], aRelations: [ { ... Relation 1 ... }, { ... Relation 2 ... } ], aWidgets: [ { ... Widget 1 ... }, { ... Widget 2 ... } ] );
-	*/
 				case Constant._EVENT_TYPE_UPDATE:
 //TODO: handle events linked to obj or relation!
 					var _aUpdatePromises = [];
@@ -821,20 +745,6 @@ Core.prototype.onAncilla = function( oEvent ){
 						})
 					;
 				break;
-	/**
-	* Ancilla Event used by the client to update specific objects/relations/widgets.
-	*
-	* @method    Constant._EVENT_TYPE_DELETE
-	* @public
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_DELETE, aObjIDs: [ iID1, iID2, ... ] );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_DELETE, aRelationIDs: [ iID1, iID2, ... ] );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_DELETE, aWidgetIDs: [ iID1, iID2, ... ] );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_DELETE, aObjIDs: [ iID1, iID2, ... ], aRelationIDs: [ iID1, iID2, ... ], aWidgetIDs: [ iID1, iID2, ... ] );
-	*/
 				case Constant._EVENT_TYPE_DELETE:
 					var _aDeletePromises = [];
 					if( oEvent.aObjIDs ){
@@ -858,53 +768,19 @@ Core.prototype.onAncilla = function( oEvent ){
 						})
 					;
 				break;
-	/**
-	* Ancilla Event used to observe changes over objects inside the Core.
-	*
-	* @method    Constant._EVENT_TYPE_OBSERVE_OBJECTS
-	* @public
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_OBSERVE_OBJECTS, ids: 100 } );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_OBSERVE_OBJECTS, ids: [ 100, 101, 102 ] } );
-	*/
 				case Constant._EVENT_TYPE_OBSERVE_OBJECTS:
 // TODO:
 					console.error( 'TODO: _EVENT_TYPE_OBSERVE_OBJECTS: %j ', oEvent );
 				break;
-	/**
-	* Ancilla Event used to unobserve changes over objects inside the Core, previously observed.
-	*
-	* @method    Constant._EVENT_TYPE_UNOBSERVER_OBJECTS
-	* @public
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_UNOBSERVER_OBJECTS, ids: 100 } );
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_UNOBSERVER_OBJECTS, ids: [ 100, 101, 102 ] } );
-	*/
 				case Constant._EVENT_TYPE_UNOBSERVER_OBJECTS:
 // TODO:
 					console.error( 'TODO: _EVENT_TYPE_UNOBSERVER_OBJECTS: %j ', oEvent );
 				break;
-	/**
-	* Ancilla Event used to register technology's objects inside the Core
-	*
-	* @method    Constant._EVENT_TYPE_REGISTER_OBJECTS
-	* @public
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   Technology.trigger( {sType: Constant._EVENT_TYPE_REGISTER_OBJECTS, aObjects: [ { ... oObject1 ... }, { ... oObject2 ... }, { ... oObject3 ... } ] } );
-	*/
 				case Constant._EVENT_TYPE_REGISTER_OBJECTS:
 // TODO:
 					console.error( 'TODO: _EVENT_TYPE_REGISTER_OBJECTS: %j ', oEvent );
 				break;
+*/
 				// Deafult Beahviour
 				default:
 					_Core.error( 'Unknown Ancilla Event: "%s" [ %j ]...', oEvent.getType(), oEvent );
@@ -976,6 +852,7 @@ Core.prototype.__onAncillaDispatch = function( oEvent ){
  * @example
  *   Core.__loadObjectByID( ids );
  */
+/*
 Core.prototype.__loadObjectByID = function( ids ){
 	//TODO: checking if current user has rights to access the object/relations and filter them
 	//TODO: caching results somehow ?
@@ -1067,7 +944,7 @@ Core.prototype.__loadObjectByID = function( ids ){
 		;
 	});
 }
-
+*/
 /**
  * Method called to load object's surrounding from DB by object type
  *
@@ -1081,6 +958,7 @@ Core.prototype.__loadObjectByID = function( ids ){
  * @example
  *   Core.__loadObjectByType( types );
  */
+/*
 Core.prototype.__loadObjectByType = function( types ){
 	// Transforming into array if needed
 	var _aTypes = null;
@@ -1117,7 +995,7 @@ Core.prototype.__loadObjectByType = function( types ){
 		})
 	;
 }
-
+*/
 /**
  * Method called to get default filter for collecting datas from the DB
  *
@@ -1131,6 +1009,7 @@ Core.prototype.__loadObjectByType = function( types ){
  * @example
  *   Core.__getDefaultDBFilters( SQLExpr );
  */
+/*
 Core.prototype.__getDefaultDBFilters = function( SQLExpr ){
 	// Init variable if missing
 	if( !SQLExpr ){
@@ -1151,7 +1030,7 @@ Core.prototype.__getDefaultDBFilters = function( SQLExpr ){
 		.end()
 	;
 }
-
+*/
 /**
  * Method called to get table's rows from DB
  *
@@ -1167,6 +1046,7 @@ Core.prototype.__getDefaultDBFilters = function( SQLExpr ){
  * @example
  *   Core.__selectTableRows( sTable, SQLExpr );
  */
+/*
 Core.prototype.__selectTableRows = function( sTable, SQLExpr, bUseDefaultFilter ){
 	var _oDB = this.__DBget();
 	// Adding default DB filter if needed
@@ -1178,7 +1058,7 @@ Core.prototype.__selectTableRows = function( sTable, SQLExpr, bUseDefaultFilter 
 	}
 	return _oDB.selectTableRows( sTable, SQLExpr );
 }
-
+*/
 /**
  * Method called to update table's fields by IDs from DB
  *
@@ -1197,7 +1077,7 @@ Core.prototype.__selectTableRows = function( sTable, SQLExpr, bUseDefaultFilter 
  *   Core.__updateTableRows( 'OBJECT', 100, {name: 'Hello World'}, SQLExpr );
  *   Core.__updateTableRows( 'OBJECT', [ 100, 101, 102 ], {name: 'Hello World', value: 0}, SQLExpr );
  */
-
+/*
 Core.prototype.__updateTableRows = function( sTable, oFieldsAndValues, SQLExpr, bUseDefaultFilter ){
 	var _oDB = this.__DBget();
 	// Adding default DB filter if needed
@@ -1210,7 +1090,7 @@ Core.prototype.__updateTableRows = function( sTable, oFieldsAndValues, SQLExpr, 
 	// Updating table rows
 	return _oDB.updateTableRows( sTable, oFieldsAndValues, SQLExpr );
 };
-
+*/
 /**
  * Method called to insert table's rows into DB
  *
@@ -1226,12 +1106,12 @@ Core.prototype.__updateTableRows = function( sTable, oFieldsAndValues, SQLExpr, 
  *   Core.__insertTableRows( 'OBJECT', { id: 100, name: 'Hello World', value: 0 } );
  *   Core.__insertTableRows( 'OBJECT', [ { id: 100, name: 'Hello World', value: 0 }, { id: 101, name: 'Hello World 1', value: 1 } ] );
  */
-
+/*
 Core.prototype.__insertTableRows = function( sTable, Rows ){
 	var _oDB = this.__DBget();
 	return _oDB.insertTableRows( sTable, Rows );
 };
-
+*/
 /**
  * Method called to delete table's rows from DB
  *
@@ -1247,6 +1127,7 @@ Core.prototype.__insertTableRows = function( sTable, Rows ){
  * @example
  *   Core.__selectTableRows( sTable, SQLExpr );
  */
+/*
 Core.prototype.__deleteTableRows = function( sTable, SQLExpr, bUseDefaultFilter ){
 	var _oDB = this.__DBget();
 	// Adding default DB filter if needed
@@ -1258,5 +1139,5 @@ Core.prototype.__deleteTableRows = function( sTable, SQLExpr, bUseDefaultFilter 
 	}
 	return _oDB.deleteTableRows( sTable, SQLExpr );
 }
-
+*/
 module.exports = new Core().export( module );

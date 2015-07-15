@@ -99,6 +99,7 @@ module.exports = {
         migration.sequelize.models.OBJECT.create({
             name: '_LANG_TECHNOLOGY_CORE',
             type: 'TECHNOLOGY',
+            technology: 'Core',
             isProtected: true,
             options: ''
           })
