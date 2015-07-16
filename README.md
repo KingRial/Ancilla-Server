@@ -48,7 +48,7 @@ Each "Ancilla Event" is just a simple JSON message following specific signatures
 
 API
 ----------------------------
-Here the [API documentation](http://htmlpreview.github.io/?https://github.com/KingRial/Ancilla-Server/blob/master/doc/Ancilla.node.html) for Ancilla
+Here the [API documentation](http://kingrial.github.io/Ancilla-Server/doc/Ancilla.node.html) for Ancilla
 
 How to install your own Ancilla server
 ----------------------------
