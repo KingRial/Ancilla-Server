@@ -14,17 +14,7 @@ See documentation for details.
 
 Changelog
 ----------------------------
-#v0.0.4
-- Refactored code to be used as a simple NPM's library
-- Reworked code: first step to obtain an easier environment to create, debug and test scripts to integrate different technologies in the same supervisor.
-- Refactored DB management to easily add, mantain, use a DB for each technology/integration using [sequelize](http://docs.sequelizejs.com/en/latest/): each integration/technology has now a DB subdirectory in which you will find DB's "models" and "migrations" and the current used DB
-- Using breeze-sequelize to open a possible new type of communication with the Web UI using [Breeze](http://www.getbreezenow.com/)
-- Added automatic testing
-- Added log rotation
-- Various fixing
-
-#v0.0.3
-- Added to GiTHub
+![Technology Concept](CHANGELOG.md)
 
 Project documentation
 ----------------------------
@@ -66,17 +56,25 @@ npm install
 
 Now you are ready to start the server execution and all the technologies configured into the server's database
 ```bash
-node Ancilla.node.js
+node Ancilla.js
+```
+if node still doesn't support ES6 standards:
+```bash
+babel-node Ancilla.js
+```
+if you don't have the module "babel" installed as global use the folloging path
+```bash
+node_modules/.bin/babel-node Ancilla.js
 ```
 
 If you wish to see all the debug messages use the following options while starting the server
 ```bash
-node Ancilla.node.js --debug
+babel-node Ancilla.js --debug
 ```
 
 If you wish to run a specific technology or integration
 ```bash
-node integrations/Technology.Demo.node.js
+babel-node integrations/Technology.Demo.js
 ```
 
 Running the Tests

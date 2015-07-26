@@ -15,16 +15,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with "Ancilla Libary".  If not, see <http://www.gnu.org/licenses/>.
 */
-var Tools = require('./Tools.node.js');
 
-//Object
-var Object=function(){
-}
-
-Object.prototype.fillByArray = function( oArray ){
-	for( var _sField in oArray ){
-		this[ _sField.toLowerCase() ] = oArray[ _sField ];
-	}
-}
-
-module.exports = Object;
+var Core = require('./integrations/Core/Technology.Core.js');
+/*
+ * This is the same as using the following command line:
+ * node ./integrations/Core/Technology.Core.js
+ */
+module.exports = new Core().run({
+  sAssetsPath: './integrations/Core'
+}, module );

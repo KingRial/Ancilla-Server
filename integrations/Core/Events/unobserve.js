@@ -1,4 +1,4 @@
-var Ancilla = require('../../../lib/ancilla.node.js');
+var Ancilla = require('../../../lib/ancilla.js');
 var Constant = Ancilla.Constant;
 
 /**

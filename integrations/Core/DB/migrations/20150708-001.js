@@ -29,7 +29,7 @@ module.exports = {
         .then( migration.sequelize.models.TECHNOLOGY_TYPE.create({
           type: 'Web'
         }) )
-        // Adding Brdige Technology Type
+        // Adding Bridge Technology Type
         .then( migration.sequelize.models.TECHNOLOGY_TYPE.create(  {
             type: 'Bridge',
             language: 'nodejs',
@@ -212,8 +212,7 @@ module.exports = {
           name: '_LANG_WIDGET_ONOFF',
           model: 'widget.onoff',
           options: '[{"value":0,"label":"_LANG_OFF","css":"off"},{"value":1,"label":"_LANG_ON","css":"on"}]',
-          isProtected: true,
-          options: ''
+          isProtected: true
         }) )
         // Widget Generic Input ( no controls over input )
         .then( migration.sequelize.models.WIDGET.create({

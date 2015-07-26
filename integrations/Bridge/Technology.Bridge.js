@@ -15,9 +15,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with "Ancilla Libary".  If not, see <http://www.gnu.org/licenses/>.
 */
-var Ancilla = require('../../lib/ancilla.node.js');
-var Tools = Ancilla.Tools;
+var Ancilla = require('../../lib/ancilla.js');
 var Technology = Ancilla.Technology;
+
+var _ = require( 'lodash' );
 
 /**
  * A Technology which will link multiple endpoints; every data received from a configured endpoint will be written on all the other ones
@@ -34,37 +35,41 @@ var Technology = Ancilla.Technology;
  * @return	{Void}
  *
  */
-var TechnologyBridge=function( oBridgeOptions ){
-	//Default Technology Options
-	oBridgeOptions = Tools.extend({
-		sType: 'Bridge',
-		bUseDB: false,
-		bUseLog: false
-	}, oBridgeOptions );
-	// Calling inherited constructor
-	TechnologyBridge.super_.call( this, oBridgeOptions );
-}
-Tools.inherits( TechnologyBridge, Technology );
+class TechnologyBridge extends Technology {
 
-TechnologyBridge.prototype.onReady = function(){
-	// Calling inherited constructor
-	TechnologyBridge.super_.prototype.onReady.apply( this );
-	//Executing custom onReady event actions
-	this.info( 'is ready to process...' );
-}
-
-TechnologyBridge.prototype.onData = function( oData, oGWEndpoint ){
-	var _Bridge = this;
-	var _aEndpoints = _Bridge.getEndpoints();
-	var _oCoreEnpoint = _Bridge.getCoreEndpoint();
-	for( var _sID in _aEndpoints ){
-		// Ignoring endpoint which received the "data" or the endpoint to the Ancilla Core; otherwise writing on the configured endpoint
-		if( _sID == oGWEndpoint.getID() || _sID == _oCoreEnpoint.getID() ){
-			continue;
-		}
-		this.debug('Data received: "%s" from Gateway Endpoint: "%s" writing to Endpoint: "%s"...', oData.toString('hex'), oGWEndpoint.getID(), _sID );
-		_Bridge.write( _sID, oData );
+	constructor( oBridgeOptions ){
+		//Default Technology Options
+		oBridgeOptions = _.extend({
+			sID: 'Bridge-1',
+			sType: 'Bridge',
+			bUseDB: false,
+			bUseLog: false
+		}, oBridgeOptions );
+		// Calling inherited constructor
+		super( oBridgeOptions );
 	}
+
+	onReady(){
+		// Calling inherited constructor
+		super.onReady();
+		//Executing custom onReady event actions
+		this.info( 'is ready to process...' );
+	}
+
+	onData( oData, oGWEndpoint ){
+		var _Bridge = this;
+		var _aEndpoints = _Bridge.getEndpoints();
+		var _oCoreEnpoint = _Bridge.getCoreEndpoint();
+		for( var _sID in _aEndpoints ){
+			// Ignoring endpoint which received the "data" or the endpoint to the Ancilla Core; otherwise writing on the configured endpoint
+			if( _sID == oGWEndpoint.getID() || _sID == _oCoreEnpoint.getID() ){
+				continue;
+			}
+			this.debug('Data received: "%s" from Gateway Endpoint: "%s" writing to Endpoint: "%s"...', oData.toString('hex'), oGWEndpoint.getID(), _sID );
+			_Bridge.write( _sID, oData );
+		}
+	}
+
 }
 
 module.exports = new TechnologyBridge().export( module );
