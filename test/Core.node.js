@@ -1,8 +1,8 @@
 var vows = require('vows'),
     assert = require('assert');
-var Ancilla = require('../lib/ancilla.node.js');
+var Ancilla = require('../lib/ancilla.js');
 var Tools = Ancilla.Tools;
-var Core = Ancilla.Core;
+var Core = require('../integrations/Core/Technology.Core.js');
 var _oCore = new Core();
 /*
 var _oCore = new Core({
@@ -13,7 +13,7 @@ var _oCore = new Core({
   sLogPathTmp:
 });
 */
-//var Constant = require('./Constants.node.js');
+//var Constant = require('./Constants.js');
 /*
 notEqual
 isNull
@@ -27,7 +27,7 @@ vows.describe('Technology Core').addBatch({
      'boolean true': {
          topic: true,
 
-         'is instanceOf Core': function (topic) {
+         'is equal to true': function (topic) {
              assert.equal(topic, true);
          }
      }
@@ -38,15 +38,15 @@ vows.describe('Technology Core').addBatch({
      topic: _oCore,
 
      'initialized': function( topic ){
-       assert.instanceOf(topic, Core);
+       assert.instanceOf( topic, Core );
      }
    },
    'methods': {
      topic: _oCore,
 
      'getID': function( topic ){
-       assert.isFunction(topic.getID);
-       assert.equal(topic.getID(),'Core');
+       assert.isFunction( topic.getID );
+       assert.equal( topic.getID(), 'Core' );
      },
 
      'run': function( topic ){

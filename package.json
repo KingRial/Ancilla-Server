@@ -36,6 +36,6 @@
   },
   "scripts": {
     "start": "babel-node integrations/Core/Technology.Core.js",
-    "test": "node ./node_modules/vows/bin/vows --spec test/*"
+    "test": "./node_modules/.bin/babel-node ./node_modules/vows/bin/vows --spec test/*"
   }
 }
