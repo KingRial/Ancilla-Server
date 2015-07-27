@@ -44,3 +44,4 @@ Temporary Items
 *.sqlite
 node_modules
 generate DOC.bat
+/*.log

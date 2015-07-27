@@ -17,14 +17,14 @@
 */
 var Ancilla = require('../../lib/ancilla.js');
 var Technology = Ancilla.Technology;
-var Event = Ancilla.Event;
+var Tools = Ancilla.Tools;
 var Constant = Ancilla.Constant;
 
-var Promise = require('bluebird');
+var Bluebird = require('bluebird');
 
 var ChildProcess = require('child_process');
 var Path = require('path');
-var Fs = require('fs');
+//var Fs = require('fs');
 var _ = require( 'lodash' );
 
 /**
@@ -43,6 +43,9 @@ var _ = require( 'lodash' );
 var _oDefaultCoreOptions = {
 	sID: 'Core',
 	sType: 'Core',
+	bUseBreeze: true,
+	sBreezeRequestPath: '/breeze/',
+	iBreezePort: 3000,
 	iVersion: Constant._ANCILLA_CORE_VERSION,
 	aEndpoints: [{
 			id: 'ancilla-net',
@@ -56,10 +59,7 @@ var _oDefaultCoreOptions = {
 			type: 'listen',
 			connectionType: 'ws',
 			isAncillaEventsHandler: true
-		}/*,{
-			id: 'ancilla-breeze',
-			connectionType: 'web'
-		}*/]
+		}]
 };
 
 class Core extends Technology{
@@ -106,41 +106,32 @@ class Core extends Technology{
 			bIsIntroduced: true
 		});
 		this.info( 'Starting configured technologies...' );
-		// Selecting technology's type
-		_Core.getDBModel( 'TECHNOLOGY_TYPE' ).findAll()
-			.then( function( aTechnologyTypes ){
-				// Selecting configured technologies and create a process to execute them
-				return _Core.getDBModel( 'OBJECT').findAll({
-						where: {
-							type: Constant._OBJECT_TYPE_TECHNOLOGY,
-							technology: {
-								not: [ Constant._TECHNOLOGY_TYPE_CORE, Constant._TECHNOLOGY_TYPE_WEB ]
-							},
-							isEnabled: true
-						}
-					})
-					.then( function( aTechnologies ){
-						if( aTechnologies.length > 0 ){
-							var _aPromisesToReturn = [];
-							for ( var _iIndex in aTechnologies ){
-								_aPromisesToReturn.push( _Core.startTechnology( aTechnologies.name, aTechnologies[ _iIndex ] ) );
-							}
-							// Returning promise
-							return Promise.all( _aPromisesToReturn );
-						} else {
-							_Core.info( 'No configured technologies to start.' );
-						}
-						// Returning generic
-						return this;
-					})
-					.catch( function( oError ){
-						_Core.error( '[ Error: %j ] Unable to get technologies.', oError );
-						process.exit();
-					})
-				;
+		// Selecting configured technologies and create a process to execute them
+		return _Core.getTechnology({
+				where: {
+					type: Constant._OBJECT_TYPE_TECHNOLOGY,
+					technology: {
+						not: [ Constant._TECHNOLOGY_TYPE_CORE, Constant._TECHNOLOGY_TYPE_WEB ]
+					},
+					isEnabled: true
+				}
+			})
+			.then( function( aTechnologies ){
+				if( aTechnologies.length > 0 ){
+					var _aPromisesToReturn = [];
+					for ( let _oTechnology of aTechnologies ){
+						_aPromisesToReturn.push( _Core.startTechnology( _oTechnology ) );
+					}
+					// Returning promise
+					return Bluebird.all( _aPromisesToReturn );
+				} else {
+					_Core.info( 'No configured technologies to start.' );
+				}
+				// Returning generic
+				return this;
 			})
 			.catch( function( oError ){
-				_Core.error( '[ Error: %j ] Unable to get technology types.', oError );
+				_Core.error( '[ Error: %j ] Unable to get technologies.', oError );
 				process.exit();
 			})
 		;
@@ -162,8 +153,7 @@ class Core extends Technology{
 	//TODO: improve this
 		var _oSocket = null;
 		var _aEndpoints = this.getGateway().getEndpoints();
-		for( var _iIndex in _aEndpoints ){
-			var _oEndpoint = _aEndpoints[ _iIndex ];
+		for( let _oEndpoint of _aEndpoints ){
 			_oSocket = _oEndpoint.getConnectedSocket( sID );
 			if( _oSocket ){
 				_oSocket = ( bGetSocketFromWebsocket && _oSocket._socket ? _oSocket._socket : _oSocket ); // Handling websockets custom environment
@@ -191,32 +181,80 @@ class Core extends Technology{
 		this.getGateway( oGateway.getID() ).getEndpoints( oGatewayEndpoint.getID() ).setConnectedSocketID( iSocketIndex, sConnectedSocketID );
 	}
 
+	getObject( oWhere ){
+		return this.getDBModel( 'OBJECT' ).findAll( oWhere );
+	}
+
+	/**
+	* Method called to get a technology joined with the correct technology object type
+	*
+	* @method    getTechnology
+	* @public
+	*
+	* @param	{Object}	[ options ]			The technology ID or the where clause; if missing all technology object's will be loaded
+	*
+	* @return	{Object}	The technology object joined with the correct technology object type
+	*
+	* @example
+	*   Core.getTechnology();
+	*		Core.getTechnology( sTechnologyID );
+	*		Core.getTechnology( { where: { isEnabled: 1 } } );
+	*/
+	getTechnology( options ){
+		var _oWhere = {
+			where: {
+				type: Constant._OBJECT_TYPE_TECHNOLOGY
+			}
+		};
+		// Extending where clause if technology's ID is set as parameter
+		_oWhere = _.extend(_oWhere, ( options ?
+			( Tools.isString( options ) ?
+				{
+					where: {
+						name: options
+					}
+				} : options
+			) : {} )
+		);
+		return this.getObject( _oWhere );
+	}
+
+	getTechnologyType( oWhere ){
+		return this.getDBModel( 'TECHNOLOGY_TYPE' ).findAll( oWhere );
+	}
+
 	/**
 	* Method called to start a specific technology and link it to the Core
 	*
 	* @method    startTechnology
 	* @public
 	*
-	* @param	{Object}	sTechnologyID							Technology's ID
-	* @param	{Object}	[ oTechnology ]							An object describing the technology; if not used the method will seek datas on DB
+	* @param	{Object}	technology							The Technology's ID or An object describing the technology; if not used the method will seek datas on DB
+	* @param	{Object}	[ oTechnologyType ]			An object describing the technology type; if not used the method will seek datas on DB
 	*
 	* @return    {Object}	this method will return a promise
 	*
 	* @example
-	*   Core.startTechnology( 'Bridge-1', { technology: 'Bridge', path: 'integrations/Bridge/Technology.Bridge.node.js', language:'nodejs', options: { aEndpoints: [{ connectionType: 'serial', port: '/dev/ttyS0', baudrate: 9600, databits: 8, stopbits: 1, parity: 'none', buffersize: 255 },{ type: 'listen', connectionType: 'ws', port: 10003 }] } );
+	*   Core.startTechnology( 'Bridge-1' );
+	*   Core.startTechnology( { technology: 'Bridge', path: 'integrations/Bridge/Technology.Bridge.node.js', language:'nodejs', options: { aEndpoints: [{ connectionType: 'serial', port: '/dev/ttyS0', baudrate: 9600, databits: 8, stopbits: 1, parity: 'none', buffersize: 255 },{ type: 'listen', connectionType: 'ws', port: 10003 }] } );
 	*/
-	startTechnology( sTechnologyID, oTechnology ){
+	startTechnology( technology, oTechnologyType ){
 		var _Core = this;
-		return ( !oTechnology ? _Core.getDBModel( 'OBJECT').findAll({
+		var _oTechnology = null;
+		// Collecting technology data if needed
+		return ( ( !technology || Tools.isString( technology ) ) ? _Core.getTechnology( technology ) : Bluebird.resolve( technology ) )
+		.then( function( oTechnologyResult ){
+			_oTechnology = oTechnologyResult;
+			// Collecting technology type data if needed
+			return ( !oTechnologyType ? _Core.getTechnologyType({
 				where: {
-					name: sTechnologyID,
-					type: Constant._OBJECT_TYPE_TECHNOLOGY
+					type: _oTechnology.technology
 				}
-			}) : Promise.resolve( oTechnology ) )
+			}) : Bluebird.resolve( oTechnologyType ) );
+		} )
 		.then( function( oTechnology ){
-			var _oTechnologyType = aTechnologyTypes[ oTechnology.technology ];
-			var _sTechonlogyPathFile = Path.basename( _oTechnologyType.path );
-			var _sTechonlogyPathDir = Path.dirname( _oTechnologyType.path );
+			var _sTechonlogyPathFile = Path.basename( oTechnologyType.path );
+			var _sTechonlogyPathDir = Path.dirname( oTechnologyType.path );
 			var _aAdditionalArgs = JSON.parse( oTechnology.options );
 			// Building Args to start process
 			var _oArgs = {
@@ -224,7 +262,7 @@ class Core extends Technology{
 			  sCwd: _sTechonlogyPathDir
 			};
 			if( !_Core.__oProcesses[ _oArgs.sID ] ){
-				for( var _sArg in _aAdditionalArgs ){
+				for( let _sArg of _aAdditionalArgs ){
 				  switch( _sArg ){
 				    case 'aEndpoints':
 				      var _oCoreEndpoint = _Core.getEndpoints( 'Core' );
@@ -245,21 +283,20 @@ class Core extends Technology{
 				  }
 				}
 				// Checking supported technology script type
-				switch( _oTechnologyType.language ){
+				switch( oTechnologyType.language ){
 				  case 'nodejs':
 				    _Core.info( 'Starting technology "%s" type: "%s"\n\tArguments: "%j"', oTechnology.name, oTechnology.technology, _oArgs );
 				  break;
 				  default:
-				    _Core.error( 'Unable to start technology "%s" ( type: "%s", File: "%s", cwd: "%s" ). Script type "%s" is not supported by Core.', _sTechnologyName, _sTechnologyType, _sTechonlogyPathFile, _sTechonlogyPathDir, _sTechnologyLanguage );
+				    _Core.error( 'Unable to start technology "%s" ( type: "%s", File: "%s", cwd: "%s" ). Script type "%s" is not supported by Core.', oTechnology.name, oTechnology.technology, _sTechonlogyPathFile, _sTechonlogyPathDir, oTechnologyType.language );
 				  break;
 				}
 				// Creating new Process by technology ( if the current script type is supported )
-				switch( _oTechnologyType.language ){
+				switch( oTechnologyType.language ){
 				  case 'nodejs':
 				    // Init Args for spawning child process
-				    var _aArgs = [ _oTechnologyType.path ];
-				    for( var _sField in _oArgs ){
-				      var _value = _oArgs[ _sField ];
+				    var _aArgs = [ oTechnologyType.path ];
+						for( let [ _sField, _value ] of Object.entries( _oArgs ) ){
 				      if( _value ){
 				        _aArgs.push( '--' + _sField );
 				        if( _value !== true ){
@@ -276,7 +313,7 @@ class Core extends Technology{
 						_Core.__oProcesses[ _oArgs.sID ] = _oProcess.pid;
 				  break;
 				  default:
-				    _Core.error( 'Unknown technology script type: "%s"; unable to start technology.', _oTechnologyType.language );
+				    _Core.error( 'Unknown technology script type: "%s"; unable to start technology.', oTechnologyType.language );
 				  break;
 				}
 			} else {
@@ -303,10 +340,10 @@ class Core extends Technology{
 	*/
 	stopTechnology( sTechnologyID ){
 		if( this.__oProcesses[ sTechnologyID ] ){
-			kill( this.__oProcesses[ sTechnologyID ] );
+			process.kill( this.__oProcesses[ sTechnologyID ] );
 			delete this.__oProcesses[ sTechnologyID ];
 		} else {
-			this.error( 'Unable to stop technology "%s".', _oTechnologyType.language );
+			this.error( 'Unable to stop technology "%s".', sTechnologyID );
 		}
 	}
 
@@ -638,9 +675,9 @@ class Core extends Technology{
 		var _iSocketIndex = arguments[3];
 		var _sTechnologyID = oEvent.getFrom();
 		var _sEventType = oEvent.getType();
-		var _bCheckIfLogged = true;
+		//var _bCheckIfLogged = true;
 		// Handling Ancilla Event Requests sent to the core and preparing answer if needed
-		if( oEvent.isRequest() && ( oEvent.getTo() == this.getID() ) ){
+		if( oEvent.isRequest() && ( oEvent.getTo() === this.getID() ) ){
 			var _Core = this;
 			// Technology is Logged Promise
 			var _oIsLoggedPromise = new Promise( function( fResolve, fReject ){
@@ -674,7 +711,7 @@ class Core extends Technology{
 			var _oAncillaEventPromise = new Promise( function( fResolve, fReject ){
 				// Choosing the ancilla event type handler
 				var _fAncillaEvent = _Core.getAncillaEvent( _sEventType );
-				if( typeof _fAncillaEvent == 'function' ){
+				if( typeof _fAncillaEvent === 'function' ){
 					return _fAncillaEvent( _Core );
 				} else {
 					_Core.error( 'Unknown Ancilla Event: "%s" [ %j ]...', oEvent.getType(), oEvent );
@@ -682,10 +719,11 @@ class Core extends Technology{
 				}
 			});
 			// Main Promises handler
-			Promise.all( [ _oAncillaEventPromise, _oIsLoggedPromise ] )
+			Bluebird.all( [ _oAncillaEventPromise, _oIsLoggedPromise ] )
 				.then( function( aArguments ){ // the "All" will return an array of arguments; since the Main promise is the first promise, the first argument of the array will be the returned Event
 					var _oEvent = aArguments[ 0 ];
-					_Core.__onAncillaDispatch( oEvent );
+					//_Core.__onAncillaDispatch( oEvent );
+					_Core.__onAncillaDispatch( _oEvent );
 				})
 				.catch( function( iError ){
 					_Core.error( '[ Error "%s" ] on Ancilla Event: "%s" [ %j ]; closing socket without answering...', iError, oEvent.getType(), oEvent );
@@ -762,7 +800,7 @@ class Core extends Technology{
 					// Checking if we have at least one ID to obtain
 					if( _aIDsToSeach.length == 0 ){
 						// Returning resolved Promise with empty Rows
-						return Promise.resolve( [] );
+						return Bluebird.resolve( [] );
 					} else {
 						// Collecting OBJECT datas
 						return _Core.__selectTableRows( 'OBJECT', _oDB.expr()
@@ -784,7 +822,7 @@ class Core extends Technology{
 					// Checking if we have at least one ID to obtain
 					if( _aIDs.length == 0 ){
 						// Returning resolved Promise with empty Rows
-						return Promise.resolve( [] );
+						return Bluebird.resolve( [] );
 					} else {
 						// Collecting WIDGET datas
 						return _Core.__selectTableRows( 'WIDGET', _oDB.expr()
@@ -844,7 +882,7 @@ class Core extends Technology{
 				// Checking if we have at least one ID to obtain
 				if( _aIDs.length == 0 ){
 					// Returning resolved Promise with empty Rows
-					return Promise.resolve( [] );
+					return Bluebird.resolve( [] );
 				} else {
 					// Collecting OBJECT datas
 					return _Core.__loadObjectByID( _aIDs );

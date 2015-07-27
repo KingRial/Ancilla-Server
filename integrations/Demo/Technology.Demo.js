@@ -65,11 +65,13 @@ class DemoTechnology extends Technology {
 		var _DemoTechnology = this;
 		_DemoTechnology.debug('Data received: "%s" from Gateway Endpoint: "%s"; tracking...', oData.toString('hex'), oGWEndpoint.getID() );
 		// Tracking Data when something is received
+		/*
 		_DemoTechnology.__DBget().query( "INSERT INTO TRACK ( DATA_STRING, DATA_HEX ) VALUES ( '" + oData.toString() + "', '" + oData.toString('hex') + "' );", function( iError, oRows, sQuery ){
 			if( iError != 0 ){
 				_DemoTechnology.error( 'Error on tracking data' );
 			}
 		});
+		*/
 		// Sending Event to itself using the Core ( no real reason :P Just to show how to trigger events )
 		_DemoTechnology.trigger({
 			sType: 'demoEvent',

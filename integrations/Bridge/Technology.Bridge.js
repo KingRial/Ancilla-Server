@@ -60,9 +60,9 @@ class TechnologyBridge extends Technology {
 		var _Bridge = this;
 		var _aEndpoints = _Bridge.getEndpoints();
 		var _oCoreEnpoint = _Bridge.getCoreEndpoint();
-		for( var _sID in _aEndpoints ){
+		for( let [ _sID, _aEndpoint ] of Object.entries( _aEndpoints ) ){
 			// Ignoring endpoint which received the "data" or the endpoint to the Ancilla Core; otherwise writing on the configured endpoint
-			if( _sID == oGWEndpoint.getID() || _sID == _oCoreEnpoint.getID() ){
+			if( _sID === oGWEndpoint.getID() || _sID === _oCoreEnpoint.getID() ){
 				continue;
 			}
 			this.debug('Data received: "%s" from Gateway Endpoint: "%s" writing to Endpoint: "%s"...', oData.toString('hex'), oGWEndpoint.getID(), _sID );

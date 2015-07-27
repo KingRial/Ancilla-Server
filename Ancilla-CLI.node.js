@@ -65,7 +65,7 @@ class AncillaCLI extends Technology{
 	onError( oError ){
 	  super.onError( oError );
 	  process.exit();
-	};
-};
+	}
+}
 
-var _oAncillaCLI = new AncillaCLI().run();
+new AncillaCLI().run();
