@@ -44,6 +44,7 @@ var _oDefaultCoreOptions = {
 	sID: 'Core',
 	sType: 'Core',
 	bUseBreeze: true,
+	sDBModelsDir: 'DB/models/breeze',
 	sBreezeRequestPath: '/breeze/',
 	iBreezePort: 3000,
 	iVersion: Constant._ANCILLA_CORE_VERSION,
@@ -680,7 +681,7 @@ class Core extends Technology{
 		if( oEvent.isRequest() && ( oEvent.getTo() === this.getID() ) ){
 			var _Core = this;
 			// Technology is Logged Promise
-			var _oIsLoggedPromise = new Promise( function( fResolve, fReject ){
+			var _oIsLoggedPromise = new Bluebird( function( fResolve, fReject ){
 				switch( _sEventType ){
 					// login check can be ignored on the following cases
 					case Constant._EVENT_TYPE_INTRODUCE:
@@ -708,7 +709,7 @@ class Core extends Technology{
 				}
 			});
 			// Main promise
-			var _oAncillaEventPromise = new Promise( function( fResolve, fReject ){
+			var _oAncillaEventPromise = new Bluebird( function( fResolve, fReject ){
 				// Choosing the ancilla event type handler
 				var _fAncillaEvent = _Core.getAncillaEvent( _sEventType );
 				if( typeof _fAncillaEvent === 'function' ){

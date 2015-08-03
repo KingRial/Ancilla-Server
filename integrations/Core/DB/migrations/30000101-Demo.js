@@ -1,5 +1,3 @@
-//var Promise = require('bluebird');
-
 /*
  * Demo STEP
  * This step will preinstall some objects to build a DEMO project while waiting for the web UI to grow enough and being able to do such things
@@ -80,16 +78,14 @@ module.exports = {
         childID: 24,
         options: ''
       }) )
-    )
+    );
   },
 
   down: function( migration, DataTypes ) {
-    return new Promise( function( fResolve, fReject ){
-      return migration.sequelize.models.OBJECT.destroy({
-        where: {
-          id: [ 20, 21, 22, 23, 24, 30]
-        }
-      })
+    return migration.sequelize.models.OBJECT.destroy({
+      where: {
+        id: [ 20, 21, 22, 23, 24, 30]
+      }
     })
     .then(
       migration.sequelize.models.RELATION.destroy({

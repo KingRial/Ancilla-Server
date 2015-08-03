@@ -1,6 +1,8 @@
 var Ancilla = require('../../../lib/ancilla.js');
 var Constant = Ancilla.Constant;
 
+var Bluebird = require('bluebird');
+
 /**
 * Ancilla Event used to introduce a new technology to the Core
 *
@@ -15,7 +17,8 @@ var Constant = Ancilla.Constant;
 module.exports = {
   name: Constant._EVENT_TYPE_INTRODUCE,
   event: function( oCore, oEvent ) {
-    return new Promise( function( fResolve, fReject ){
+    "use strict";
+    return new Bluebird( function( fResolve, fReject ){
       var _sTechnologyID = oEvent.getFrom();
     	var _sEventType = oEvent.getType();
       // Using technology ID to get the current connected socket
@@ -50,4 +53,4 @@ module.exports = {
       }
     });
   }
-}
+};
