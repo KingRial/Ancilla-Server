@@ -20,6 +20,11 @@ var Core = require('./integrations/Core/Technology.Core.js');
 /*
  * This is the same as using the following command line:
  * node ./integrations/Core/Technology.Core.js
+ * babel-node ./integrations/Core/Technology.Core.js
+ *
+ * if you wish to use Debug:
+ * node ./integrations/Core/Technology.Core.js --debug
+ * babel-node -- ./integrations/Core/Technology.Core.js --debug
  */
 module.exports = new Core().run({
   sAssetsPath: './integrations/Core'
