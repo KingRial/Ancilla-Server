@@ -1,3 +1,5 @@
+"use strict";
+
 /*
  *	Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
  *	This file is part of "Ancilla Libary".
@@ -15,17 +17,17 @@
  *  You should have received a copy of the GNU General Public License
  *  along with "Ancilla Libary".  If not, see <http://www.gnu.org/licenses/>.
 */
-var Ancilla = require('../../lib/ancilla.js');
-var Technology = Ancilla.Technology;
-var Tools = Ancilla.Tools;
-var Constant = Ancilla.Constant;
+let ChildProcess = require('child_process');
+let Path = require('path');
 
-var Bluebird = require('bluebird');
+let _ = require( 'lodash' );
+let Bluebird = require('bluebird');
 
-var ChildProcess = require('child_process');
-var Path = require('path');
-//var Fs = require('fs');
-var _ = require( 'lodash' );
+let Ancilla = require('../../lib/ancilla.js');
+let Technology = Ancilla.Technology;
+let Tools = Ancilla.Tools;
+let Constant = Ancilla.Constant;
+
 
 /**
  * A generic class to describe the central Ancilla's Core; it's build as a technology
@@ -40,7 +42,7 @@ var _ = require( 'lodash' );
  * @example
  *		new Core()
  */
-var _oDefaultCoreOptions = {
+let _oDefaultCoreOptions = {
 	sID: 'Core',
 	sType: 'Core',
 	bUseBreeze: true,
@@ -48,19 +50,18 @@ var _oDefaultCoreOptions = {
 	sBreezeRequestPath: '/breeze/',
 	iBreezePort: 3000,
 	iVersion: Constant._ANCILLA_CORE_VERSION,
-	aEndpoints: [{
-			id: 'ancilla-net',
-			type: 'listen',
-			connectionType: 'net',
+	oEndpoints: {
+		'ancilla-net': {
+			type: 'server.net',
 			host: Constant._EVENT_CORE_ENDPOINT_NET_HOST,
 			port: Constant._EVENT_CORE_ENDPOINT_NET_PORT,
 			isAncillaEventsHandler: true
-		}, {
+		},
+		'ancilla-websocket': {
 			id: 'ancilla-websocket',
-			type: 'listen',
-			connectionType: 'ws',
-			isAncillaEventsHandler: true
-		}]
+			type: 'server.ws',
+			bIsAncilla: true
+		}}
 };
 
 class Core extends Technology{
@@ -100,12 +101,14 @@ class Core extends Technology{
 	 * @example
 	 *   Core.onGatewayReady();
 	 */
-	onGatewayReady(){
-		var _Core = this;
+	onReady(){
+		let _Core = this;
 		// Core Technology doesn't need to be introduced; overwriting previous status and faking introduction
+		/*
 		this.__oStatus = _.extend( this.__oStatus, {
 			bIsIntroduced: true
 		});
+		*/
 		this.info( 'Starting configured technologies...' );
 		// Selecting configured technologies and create a process to execute them
 		return _Core.getTechnology({
@@ -119,7 +122,7 @@ class Core extends Technology{
 			})
 			.then( function( aTechnologies ){
 				if( aTechnologies.length > 0 ){
-					var _aPromisesToReturn = [];
+					let _aPromisesToReturn = [];
 					for ( let _oTechnology of aTechnologies ){
 						_aPromisesToReturn.push( _Core.startTechnology( _oTechnology ) );
 					}
@@ -150,10 +153,11 @@ class Core extends Technology{
 	* @example
 	*   Core.getConnectedSocket( sID );
 	*/
+	/*
 	getConnectedSocket( sID, bGetSocketFromWebsocket ){
 	//TODO: improve this
-		var _oSocket = null;
-		var _aEndpoints = this.getGateway().getEndpoints();
+		let _oSocket = null;
+		let _aEndpoints = this.getGateway().getEndpoints();
 		for( let _oEndpoint of _aEndpoints ){
 			_oSocket = _oEndpoint.getConnectedSocket( sID );
 			if( _oSocket ){
@@ -163,6 +167,7 @@ class Core extends Technology{
 		}
 		return _oSocket;
 	}
+	*/
 
 	/**
 	* Method called to set ad ID to a connected socket
@@ -178,9 +183,11 @@ class Core extends Technology{
 	* @example
 	*   Core.setConnectedSocketID( oGateway, oGatewayEndpoint, iSocketIndex, sConnectedSocketID );
 	*/
+	/*
 	setConnectedSocketID( oGateway, oGatewayEndpoint, iSocketIndex, sConnectedSocketID ){
 		this.getGateway( oGateway.getID() ).getEndpoints( oGatewayEndpoint.getID() ).setConnectedSocketID( iSocketIndex, sConnectedSocketID );
 	}
+	*/
 
 	getObject( oWhere ){
 		return this.getDBModel( 'OBJECT' ).findAll( oWhere );
@@ -202,7 +209,7 @@ class Core extends Technology{
 	*		Core.getTechnology( { where: { isEnabled: 1 } } );
 	*/
 	getTechnology( options ){
-		var _oWhere = {
+		let _oWhere = {
 			where: {
 				type: Constant._OBJECT_TYPE_TECHNOLOGY
 			}
@@ -237,11 +244,11 @@ class Core extends Technology{
 	*
 	* @example
 	*   Core.startTechnology( 'Bridge-1' );
-	*   Core.startTechnology( { technology: 'Bridge', path: 'integrations/Bridge/Technology.Bridge.node.js', language:'nodejs', options: { aEndpoints: [{ connectionType: 'serial', port: '/dev/ttyS0', baudrate: 9600, databits: 8, stopbits: 1, parity: 'none', buffersize: 255 },{ type: 'listen', connectionType: 'ws', port: 10003 }] } );
+	*   Core.startTechnology( { technology: 'Bridge', path: 'integrations/Bridge/Technology.Bridge.node.js', language:'nodejs', options: { oEndpoints: {"Endpoint-1":{"type":"client.net","host":"192.168.0.110","port":10001},"Endpoint-2":{"type":"server.net","host":"localhost","port":10002}} } );
 	*/
 	startTechnology( technology, oTechnologyType ){
-		var _Core = this;
-		var _oTechnology = null;
+		let _Core = this;
+		let _oTechnology = null;
 		// Collecting technology data if needed
 		return ( ( !technology || Tools.isString( technology ) ) ? _Core.getTechnology( technology ) : Bluebird.resolve( technology ) )
 		.then( function( oTechnologyResult ){
@@ -254,29 +261,33 @@ class Core extends Technology{
 			}) : Bluebird.resolve( oTechnologyType ) );
 		} )
 		.then( function( oTechnology ){
-			var _sTechonlogyPathFile = Path.basename( oTechnologyType.path );
-			var _sTechonlogyPathDir = Path.dirname( oTechnologyType.path );
-			var _aAdditionalArgs = JSON.parse( oTechnology.options );
+			let _sTechonlogyPathFile = Path.basename( oTechnologyType.path );
+			let _sTechonlogyPathDir = Path.dirname( oTechnologyType.path );
+			let _aAdditionalArgs = JSON.parse( oTechnology.options );
 			// Building Args to start process
-			var _oArgs = {
+			let _oArgs = {
 			  sID: oTechnology.name,
 			  sCwd: _sTechonlogyPathDir
 			};
 			if( !_Core.__oProcesses[ _oArgs.sID ] ){
 				for( let _sArg of _aAdditionalArgs ){
 				  switch( _sArg ){
-				    case 'aEndpoints':
-				      var _oCoreEndpoint = _Core.getEndpoints( 'Core' );
-				      var _aEndpoints = _aAdditionalArgs.aEndpoints || {};
-				      _aEndpoints.unshift({
-				        id: _oCoreEndpoint.getID(),
-				        type: 'connect',
-				        connectionType: _oCoreEndpoint.getConnectionType(),
-				        host: _oCoreEndpoint.getHost(),
-				        port: _oCoreEndpoint.getPort(),
-				        isAncillaEventsHandler: true
-				      });
-				      _oArgs[ _sArg ] = JSON.stringify( _aEndpoints );
+				    case 'oEndpoints':
+				      let _oCoreEndpoint = _Core.getEndpoints( 'Core' );
+							let _sCoreEndpointID = _oCoreEndpoint.getID();
+				      let _oEndpoints = _aAdditionalArgs.oEndpoints || {};
+							if( _oEndpoints[ _sCoreEndpointID ] ){
+								_Core.warn( 'Endpoint to "Ancilla Core" has already been configured on technology "%s"...',_oArgs.sID );
+							} else {
+					      _oEndpoints[ _sCoreEndpointID ] = {
+					        id: _sCoreEndpointID,
+					        type: 'client.net',
+					        host: _oCoreEndpoint.getHost(),
+					        port: _oCoreEndpoint.getPort(),
+					        bIsAncilla: true
+					      };
+				      _oArgs[ _sArg ] = JSON.stringify( _oEndpoints );
+						}
 				    break;
 				    default:
 				      _oArgs[ _sArg ] = _aAdditionalArgs[ _sArg ];
@@ -296,7 +307,7 @@ class Core extends Technology{
 				switch( oTechnologyType.language ){
 				  case 'nodejs':
 				    // Init Args for spawning child process
-				    var _aArgs = [ oTechnologyType.path ];
+				    let _aArgs = [ oTechnologyType.path ];
 						for( let [ _sField, _value ] of Object.entries( _oArgs ) ){
 				      if( _value ){
 				        _aArgs.push( '--' + _sField );
@@ -306,7 +317,7 @@ class Core extends Technology{
 				      }
 				    }
 				    // Spawning process
-				    var _oProcess = ChildProcess.spawn( 'node', _aArgs );
+				    let _oProcess = ChildProcess.spawn( 'node', _aArgs );
 				    // Pi@ping process stdout/stderror to Core stdout/stderror
 				    _oProcess.stdout.pipe( process.stdout );
 				    _oProcess.stderr.pipe( process.stderr );
@@ -364,7 +375,7 @@ class Core extends Technology{
 	*/
 	/*
 	Core.prototype.__getTechnology = function( sTechnologyID, bCreateOnMissing ){
-		var _Core = this;
+		let _Core = this;
 		return new Promise( function( fResolve, fReject ){
 			_Core.__selectTableRows( 'OBJECT', _Core.__DBget().expr()
 					.and( 'NAME = ?', sTechnologyID )
@@ -419,7 +430,7 @@ class Core extends Technology{
 	*/
 	/*
 	Core.prototype.__technologyGetUser = function( sTechnologyID ){
-		var _Core = this;
+		let _Core = this;
 		return new Promise( function( fResolve, fReject ){
 			_Core.__technologyGetUserID( sTechnologyID )
 				.then( function( iUserID ){
@@ -454,11 +465,11 @@ class Core extends Technology{
 	*/
 	/*
 	Core.prototype.__technologyGetUserID = function( sTechnologyID ){
-		var _Core = this;
+		let _Core = this;
 		return new Promise( function( fResolve, fReject ){
-			var _oSocket = _Core.getConnectedSocket( sTechnologyID, true );
-			var _oAddress = _oSocket.address(); // {"address":"127.0.0.1","family":"IPv4","port":10080}
-			var _oDB = _Core.__DBget();
+			let _oSocket = _Core.getConnectedSocket( sTechnologyID, true );
+			let _oAddress = _oSocket.address(); // {"address":"127.0.0.1","family":"IPv4","port":10080}
+			let _oDB = _Core.__DBget();
 			_oDB.query( _oDB.builder()
 				.select()
 				.from( 'OBJECT' )
@@ -501,15 +512,15 @@ class Core extends Technology{
 	*/
 	/*
 	Core.prototype.__technologyLogIn = function( sTechnologyID, iUserID ){
-		var _Core = this;
+		let _Core = this;
 		return new Promise( function( fResolve, fReject ){
 				_Core.__getTechnology( sTechnologyID )
 					.then( function( oRowTechnology ){
 						if( !oRowTechnology ){
 							fReject( Constant._ERROR_TECHNOLOGY_UNKNOWN );
 						} else {
-							var _oSocket = _Core.getConnectedSocket( sTechnologyID, true );
-							var _oAddress = _oSocket.address(); // {"address":"127.0.0.1","family":"IPv4","port":10080}
+							let _oSocket = _Core.getConnectedSocket( sTechnologyID, true );
+							let _oAddress = _oSocket.address(); // {"address":"127.0.0.1","family":"IPv4","port":10080}
 							_Core.__insertTableRows( 'RELATION', {
 									PARENT_ID: iUserID,
 									CHILD_ID: oRowTechnology[ 'ID' ],
@@ -551,14 +562,14 @@ class Core extends Technology{
 	*/
 	/*
 	Core.prototype.__technologyLogOut = function( sTechnologyID ){
-		var _Core = this;
+		let _Core = this;
 		return _Core.__getTechnology( sTechnologyID )
 			.then(function( oRowTechnology ){
 				return new Promise( function( fResolve, fReject ){
 					if( !oRowTechnology ){
 						fReject( Constant._ERROR_TECHNOLOGY_UNKNOWN );
 					} else {
-						var _oDB = _Core.__DBget();
+						let _oDB = _Core.__DBget();
 						_oDB.query( _oDB.builder()
 							.delete()
 							.from( 'RELATION' )
@@ -598,9 +609,9 @@ class Core extends Technology{
 	*/
 	/*
 	Core.prototype.__technologyIsLogged = function( sTechnologyID ){
-		var _Core = this;
+		let _Core = this;
 		return new Promise( function( fResolve, fReject ){
-			var _bIsLogged = false;
+			let _bIsLogged = false;
 			_Core.__technologyGetUserID( sTechnologyID )
 				.then(function( iUserID ){
 					_bIsLogged = ( iUserID ? true : false );
@@ -628,11 +639,11 @@ class Core extends Technology{
 	/*
 	// Overwriting default onAncilla event
 	onAncilla( oEvent, oOptions ){
-		var _oIsLoggedPromise = null;
-		var _aPromisesToHandle = ( Array.isArray( aPromisesToHandle ) ? aPromisesToHandle : [] );
+		let _oIsLoggedPromise = null;
+		let _aPromisesToHandle = ( Array.isArray( aPromisesToHandle ) ? aPromisesToHandle : [] );
 		// Handling Ancilla Event Requests sent to the core and preparing answer if needed
 		if( oEvent.isRequest() && ( oEvent.getTo() == this.getID() ) ){
-			var _Core = this;
+			let _Core = this;
 			// Technology is Logged Promise
 			_oIsLoggedPromise = new Promise( function( fResolve, fReject ){
 				switch( _sEventType ){
@@ -671,17 +682,17 @@ class Core extends Technology{
 
 	onAncilla( oEvent ){
 		this.debug( 'Received Ancilla Event: "%j".', oEvent );
-		var _oGateway = arguments[1];
-		var _oGatewayEndpoint = arguments[2];
-		var _iSocketIndex = arguments[3];
-		var _sTechnologyID = oEvent.getFrom();
-		var _sEventType = oEvent.getType();
-		//var _bCheckIfLogged = true;
+		let _oGateway = arguments[1];
+		let _oGatewayEndpoint = arguments[2];
+		let _iSocketIndex = arguments[3];
+		let _sTechnologyID = oEvent.getFrom();
+		let _sEventType = oEvent.getType();
+		//let _bCheckIfLogged = true;
 		// Handling Ancilla Event Requests sent to the core and preparing answer if needed
 		if( oEvent.isRequest() && ( oEvent.getTo() === this.getID() ) ){
-			var _Core = this;
+			let _Core = this;
 			// Technology is Logged Promise
-			var _oIsLoggedPromise = new Bluebird( function( fResolve, fReject ){
+			let _oIsLoggedPromise = new Bluebird( function( fResolve, fReject ){
 				switch( _sEventType ){
 					// login check can be ignored on the following cases
 					case Constant._EVENT_TYPE_INTRODUCE:
@@ -709,9 +720,9 @@ class Core extends Technology{
 				}
 			});
 			// Main promise
-			var _oAncillaEventPromise = new Bluebird( function( fResolve, fReject ){
+			let _oAncillaEventPromise = new Bluebird( function( fResolve, fReject ){
 				// Choosing the ancilla event type handler
-				var _fAncillaEvent = _Core.getAncillaEvent( _sEventType );
+				let _fAncillaEvent = _Core.getAncillaEvent( _sEventType );
 				if( typeof _fAncillaEvent === 'function' ){
 					return _fAncillaEvent( _Core );
 				} else {
@@ -722,7 +733,7 @@ class Core extends Technology{
 			// Main Promises handler
 			Bluebird.all( [ _oAncillaEventPromise, _oIsLoggedPromise ] )
 				.then( function( aArguments ){ // the "All" will return an array of arguments; since the Main promise is the first promise, the first argument of the array will be the returned Event
-					var _oEvent = aArguments[ 0 ];
+					let _oEvent = aArguments[ 0 ];
 					//_Core.__onAncillaDispatch( oEvent );
 					_Core.__onAncillaDispatch( _oEvent );
 				})
@@ -758,17 +769,17 @@ class Core extends Technology{
 		//TODO: checking if current user has rights to access the object/relations and filter them
 		//TODO: caching results somehow ?
 		// Transforming ids into array if needed
-		var _aIDs = null;
+		let _aIDs = null;
 		if( Tools.isArray( ids ) ){
 			_aIDs = ids;
 		} else {
 			_aIDs = [ ids ];
 		}
-		var _Core = this;
-		var _oResult = {
+		let _Core = this;
+		let _oResult = {
 			aLoadedSurroundings: _aIDs
 		};
-		var _oDB = _Core.__DBget();
+		let _oDB = _Core.__DBget();
 		return new Promise( function( fResolve, fReject ){
 			// Collecting RELATION datas
 			// Checking if we have at least one ID to obtain
@@ -786,11 +797,11 @@ class Core extends Technology{
 					// Saving collected relations data to result
 					_oResult.aRelations = oRows;
 					// Getting all ID's objects which must be loaded and add them to the current IDs if needed ( current IDs could be objects without relations )
-					var _aIDsToSeach = _aIDs.slice();
-					for( var _iIndex in oRows ){
-						var _oCurrentRow = oRows[ _iIndex ];
-						var _iParentID = _oCurrentRow[ 'PARENT_ID' ];
-						var _iChildID = _oCurrentRow[ 'CHILD_ID' ];
+					let _aIDsToSeach = _aIDs.slice();
+					for( let _iIndex in oRows ){
+						let _oCurrentRow = oRows[ _iIndex ];
+						let _iParentID = _oCurrentRow[ 'PARENT_ID' ];
+						let _iChildID = _oCurrentRow[ 'CHILD_ID' ];
 						if( _aIDsToSeach.indexOf( _iParentID )==-1 ){
 							_aIDsToSeach.push( _iParentID );
 						}
@@ -813,9 +824,9 @@ class Core extends Technology{
 					// Saving collected objects data to result
 					_oResult.aObjs = oRows;
 					// Getting all ID's widgets which must be loaded
-					var _aIDs = [];
-					for( var _iIndex in oRows ){
-						var _oCurrentRow = oRows[ _iIndex ];
+					let _aIDs = [];
+					for( let _iIndex in oRows ){
+						let _oCurrentRow = oRows[ _iIndex ];
 						if( _aIDs.indexOf( _oCurrentRow[ 'WIDGET_ID' ] )==-1 ){
 							_aIDs.push( _oCurrentRow[ 'WIDGET_ID' ] );
 						}
@@ -862,22 +873,22 @@ class Core extends Technology{
 	/*
 	Core.prototype.__loadObjectByType = function( types ){
 		// Transforming into array if needed
-		var _aTypes = null;
+		let _aTypes = null;
 		if( Tools.isArray( types ) ){
 			_aTypes = types;
 		} else {
 			_aTypes = [ types ];
 		}
-		var _Core = this;
-		var _oDB = _Core.__DBget();
+		let _Core = this;
+		let _oDB = _Core.__DBget();
 		return _Core.__selectTableRows( 'OBJECT', _oDB.expr()
 				.or( 'TYPE IN ?', _aTypes )
 			)
 			.then( function( oRows ){
 				// Getting all ID's objects which must be loaded
-				var _aIDs = [];
-				for( var _iIndex in oRows ){
-					var _oCurrentRow = oRows[ _iIndex ];
+				let _aIDs = [];
+				for( let _iIndex in oRows ){
+					let _oCurrentRow = oRows[ _iIndex ];
 					_aIDs.push( _oCurrentRow[ 'ID' ] );
 				}
 				// Checking if we have at least one ID to obtain
@@ -949,7 +960,7 @@ class Core extends Technology{
 	 */
 	/*
 	Core.prototype.__selectTableRows = function( sTable, SQLExpr, bUseDefaultFilter ){
-		var _oDB = this.__DBget();
+		let _oDB = this.__DBget();
 		// Adding default DB filter if needed
 		if( bUseDefaultFilter ){
 			if( !SQLExpr ){
@@ -980,7 +991,7 @@ class Core extends Technology{
 	 */
 	/*
 	Core.prototype.__updateTableRows = function( sTable, oFieldsAndValues, SQLExpr, bUseDefaultFilter ){
-		var _oDB = this.__DBget();
+		let _oDB = this.__DBget();
 		// Adding default DB filter if needed
 		if( bUseDefaultFilter ){
 			if( !SQLExpr ){
@@ -1009,7 +1020,7 @@ class Core extends Technology{
 	 */
 	/*
 	Core.prototype.__insertTableRows = function( sTable, Rows ){
-		var _oDB = this.__DBget();
+		let _oDB = this.__DBget();
 		return _oDB.insertTableRows( sTable, Rows );
 	};
 	*/
@@ -1030,7 +1041,7 @@ class Core extends Technology{
 	 */
 	/*
 	Core.prototype.__deleteTableRows = function( sTable, SQLExpr, bUseDefaultFilter ){
-		var _oDB = this.__DBget();
+		let _oDB = this.__DBget();
 		// Adding default DB filter if needed
 		if( bUseDefaultFilter ){
 			if( !SQLExpr ){

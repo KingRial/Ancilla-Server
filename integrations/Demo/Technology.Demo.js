@@ -1,3 +1,5 @@
+"use strict";
+
 /*
  *	Copyright (C) 2014  Riccardo Re <kingrichard1980.gmail.com>
  *	This file is part of "Ancilla Libary".
@@ -15,10 +17,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with "Ancilla Libary".  If not, see <http://www.gnu.org/licenses/>.
 */
-var Ancilla = require('../../lib/ancilla.js');
-var Technology = Ancilla.Technology;
+let Technology = require('../../lib/ancilla.js').Technology;
 
-var _ = require( 'lodash' );
+let _ = require( 'lodash' );
 
 /**
  * A Demo Technology used to show how to integrate new technologies using ancilla library
@@ -29,7 +30,7 @@ var _ = require( 'lodash' );
  * @param	{Object[]}		oDemoOptions		A javascript object of options used to configure the technology behaviour
  *
  * @example
- *		new DemoTechnology( { sID: 'demo-1', aEndpoints: [{ type: 'listen', connectionType: 'net', host: 'localhost', port: 10001 }, { type: 'connect', connectionType: 'net', host: '192.168.0.100', port: 10002 }] } );
+ *		new DemoTechnology( { sID: 'demo-1', oEndpoints: {"Endpoint-1":{"type":"client.net","host":"192.168.0.110","port":10001},"Endpoint-2":{"type":"server.net","host":"localhost","port":10002}} } );
  *
  * @return	{Void}
  *
@@ -52,31 +53,17 @@ class DemoTechnology extends Technology {
 		super.onReady();
 		// Executing custom onReady event actions
 		this.info( 'is ready to process...' );
-		/*
-		// Registering Fake Objects
-		this.trigger({
-			sType: 'register-objects',
-			aObjects: [ { id:1, name: 'Oggetto Fake 1' }, { id:2, name: 'Oggetto Fake 2' },{ id:3, name: 'Oggetto Fake 3' } ]
-		});
-		*/
 	}
 
-	onData( oData, oGWEndpoint ){
+	onData( oBuffer, oEndpoint ){
 		var _DemoTechnology = this;
-		_DemoTechnology.debug('Data received: "%s" from Gateway Endpoint: "%s"; tracking...', oData.toString('hex'), oGWEndpoint.getID() );
-		// Tracking Data when something is received
-		/*
-		_DemoTechnology.__DBget().query( "INSERT INTO TRACK ( DATA_STRING, DATA_HEX ) VALUES ( '" + oData.toString() + "', '" + oData.toString('hex') + "' );", function( iError, oRows, sQuery ){
-			if( iError != 0 ){
-				_DemoTechnology.error( 'Error on tracking data' );
-			}
-		});
-		*/
+		_DemoTechnology.debug('Data received: "%s" from Gateway Endpoint: "%s"; tracking...', oBuffer.toString('hex'), oEndpoint.getID() );
 		// Sending Event to itself using the Core ( no real reason :P Just to show how to trigger events )
+		_DemoTechnology.debug('Triggering Ancilla events to itself...' );
 		_DemoTechnology.trigger({
 			sType: 'demoEvent',
 			sToID: this.getID(),
-			data: oData.toString()
+			data: oBuffer.toString()
 		});
 	}
 

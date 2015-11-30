@@ -9,6 +9,8 @@ Built with [nodeJS](https://nodejs.org/) the purpose is to create a scalable, se
 See documentation for details.
 
 *Please be aware this is just an experimental version used to test technologies and solutions; it's still far from being the final result*
+The current main branch is still under rework.
+If you wish to find a functional experimental release, please check the "GiT releases".
 
 *Any idea or contribution is welcome!*
 
