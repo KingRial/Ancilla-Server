@@ -1,0 +1,50 @@
+<html>
+  <body>
+  <h1>Live Logs</h1>
+  <div id="live-logs"></div>
+  <link href="style.css" rel="stylesheet" type="text/css">
+  <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
+  <script src="./socket.io/socket.io.js"></script>
+  <script>
+    var _oSocket = io.connect( document.URL + 'logs');
+    _oSocket.on('error', function(oError){
+      console.error( oError );
+    });
+    _oSocket.on('disconnect', function(){
+      console.info( 'disconnected' );
+    });
+    _oSocket.on('reconnect', function(iAttempts){
+      console.info( 'Reconnected after "%s" attempts', iAttempts );
+    });
+    _oSocket.on('connect', function(socket){
+      console.info( 'Connected' );
+    });
+    _oSocket.on('log', function( oData ){
+      JSON
+        .parse( oData )
+        .forEach( function( l ){
+          var _jLine = $('<div>', {
+              class: 'line'
+            }).append(
+              $('<span>',{ class: 'level ' + l.level }).text( '[ ' + l.level.toUpperCase() + ' ]' )
+            )
+            .append(
+              $('<span>',{ class: 'space' }).text( ' ' )
+            )
+            .append(
+              $('<span>',{ class: 'date' }).text( l.createdAt )
+            )
+            .append(
+              $('<span>',{ class: 'space' }).text( ' ' )
+            )
+            .append(
+              $('<span>',{ class: 'message' }).text( l.message )
+            )
+          ;
+          _jLine.prependTo('#live-logs');
+        } )
+      ;
+    });
+  </script>
+  </body>
+</html>
