@@ -16,7 +16,7 @@ If you wish to find a functional experimental release, please check the "GiT rel
 
 Changelog
 ----------------------------
-![Technology Concept](CHANGELOG.md)
+[Changelog](CHANGELOG.md)
 
 Project documentation
 ----------------------------

@@ -7,6 +7,8 @@ Ancilla Server — CHANGELOG
 - Reworked code: first step to obtain an easier environment to create, debug and test scripts to integrate different technologies in the same supervisor.
 - Refactored DB management to easily add, mantain, use a DB for each technology/integration using [sequelize](http://docs.sequelizejs.com/en/latest/): each integration/technology has now a DB subdirectory in which you will find DB's "models" and "migrations" and the current used DB
 - Using breeze-sequelize to open a possible new type of communication with the Web UI using [Breeze](http://www.getbreezenow.com/)
+- Added "Datagram" class to create faster new technology's integrations
+- Added flag "--remote-debug" to enable remote debugging on port 3000 using a a browser pointing at http://AncillaServerIP:3000
 - Added automatic testing
 - Added log rotation
 - Various fixing
