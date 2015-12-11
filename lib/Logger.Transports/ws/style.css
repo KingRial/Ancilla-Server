@@ -2,11 +2,17 @@
   color: red;
 }
 .warn{
-  color: yellow;
+  color: orange;
 }
 .info{
   color: green;
 }
+.verbose{
+  color: black;
+}
 .debug{
   color: blue;
+}
+.silly{
+  color: violet;
 }
