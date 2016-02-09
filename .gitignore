@@ -46,3 +46,4 @@ node_modules
 generate DOC.bat
 /*.log
 /integrations/iKon/*.log
+*.log

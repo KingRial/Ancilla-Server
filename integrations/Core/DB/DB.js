@@ -155,13 +155,18 @@ class DBCore extends DB {
 							access_token: sAccessToken
 						} })
 						.then(function( oToken ){
-              _DB.debug( '[ oAuth2 ] Successfully get access token: %j', sAccessToken );
-				      fCallback( null, {
-				        accessToken: oToken.access_token,
-				        clientId: oToken.client_id,
-				        expires: oToken.expires,
-				        userId: oToken.userId
-				      });
+              if( oToken ){
+                _DB.debug( '[ oAuth2 ] Successfully get access token: %j', sAccessToken );
+  				      fCallback( null, {
+  				        accessToken: oToken.access_token,
+  				        clientId: oToken.client_id,
+  				        expires: oToken.expires,
+  				        userId: oToken.userId
+  				      });
+              } else {
+                _DB.error( '[ oAuth2 ] Unable to find access token "%j": ', sAccessToken );
+								return fCallback();
+              }
 						})
 						.catch(function(error){
               _DB.error( '[ oAuth2 ] Error %j: Failed to get access token: %j', error, sAccessToken );
@@ -316,7 +321,7 @@ class DBCore extends DB {
 			let _oEntityQuery = Breeze.EntityQuery.fromUrl( oRequest.originalUrl, _sResourceName );
 			let _oQuery = new BreezeSequelize.SequelizeQuery( _DB._oSequelizeManager, _oEntityQuery );
 console.error( 'DB -> Called :entity' );
-console.error( 'TODO: Table Check ( NO OAUTH tables for example! )' );
+console.error( 'TODO: Filtering sensible tables' );
 console.error( 'TODO: Permissions Check' );
 			_oQuery.execute().then( function( results ){
 					// Enable CORS
