@@ -25,7 +25,6 @@ let Bluebird = require('bluebird');
 
 let Ancilla = require('../../lib/ancilla.js');
 let Technology = Ancilla.Technology;
-let Tools = Ancilla.Tools;
 let Constant = Ancilla.Constant;
 
 
@@ -45,23 +44,24 @@ let Constant = Ancilla.Constant;
 let _oDefaultCoreOptions = {
 	sID: 'Core',
 	sType: 'Core',
-	bUseBreeze: true,
+	bUseDB: true,
+	oDB: require( './DB/DB.js' ),
 	sDBModelsDir: 'DB/models/breeze',
-	sBreezeRequestPath: '/breeze/',
-	iBreezePort: 3000,
 	iVersion: Constant._ANCILLA_CORE_VERSION,
 	oEndpoints: {
 		'ancilla-net': {
 			type: 'server.net',
 			host: Constant._EVENT_CORE_ENDPOINT_NET_HOST,
 			port: Constant._EVENT_CORE_ENDPOINT_NET_PORT,
-			isAncillaEventsHandler: true
-		},
+			bIsAncilla: true
+		}/*
+		,
 		'ancilla-websocket': {
 			id: 'ancilla-websocket',
 			type: 'server.ws',
 			bIsAncilla: true
-		}}
+		}*/
+	}
 };
 
 class Core extends Technology{
@@ -93,50 +93,48 @@ class Core extends Technology{
 	}
 
 	/**
-	 * Method called when event "Gateway Ready" is fired, to initialize the Core
+	 * Method called to initialize the Core
 	 *
-	 * @method    onGatewayReady
+	 * @method    ready
 	 * @public
 	 *
 	 * @example
-	 *   Core.onGatewayReady();
+	 *   Core.ready();
 	 */
-	onReady(){
+	ready(){
 		let _Core = this;
-		// Core Technology doesn't need to be introduced; overwriting previous status and faking introduction
-		/*
-		this.__oStatus = _.extend( this.__oStatus, {
-			bIsIntroduced: true
-		});
-		*/
-		this.info( 'Starting configured technologies...' );
-		// Selecting configured technologies and create a process to execute them
-		return _Core.getTechnology({
-				where: {
-					type: Constant._OBJECT_TYPE_TECHNOLOGY,
-					technology: {
-						not: [ Constant._TECHNOLOGY_TYPE_CORE, Constant._TECHNOLOGY_TYPE_WEB ]
-					},
-					isEnabled: true
-				}
-			})
-			.then( function( aTechnologies ){
-				if( aTechnologies.length > 0 ){
-					let _aPromisesToReturn = [];
-					for ( let _oTechnology of aTechnologies ){
-						_aPromisesToReturn.push( _Core.startTechnology( _oTechnology ) );
-					}
-					// Returning promise
-					return Bluebird.all( _aPromisesToReturn );
-				} else {
-					_Core.info( 'No configured technologies to start.' );
-				}
-				// Returning generic
-				return this;
-			})
-			.catch( function( oError ){
-				_Core.error( '[ Error: %j ] Unable to get technologies.', oError );
-				process.exit();
+		return super.ready()
+			.then( function(){
+				_Core.info( 'Starting configured technologies...' );
+				// Selecting configured technologies and create a process to execute them
+				return _Core.getTechnology({
+						where: {
+							type: Constant._OBJECT_TYPE_TECHNOLOGY,
+							technology: {
+								not: [ Constant._TECHNOLOGY_TYPE_CORE, Constant._TECHNOLOGY_TYPE_WEB ]
+							},
+							isEnabled: true
+						}
+					})
+					.then( function( aTechnologies ){
+						if( aTechnologies.length > 0 ){
+							let _aPromisesToReturn = [];
+							for ( let _oTechnology of aTechnologies ){
+								_aPromisesToReturn.push( _Core.startTechnology( _oTechnology ) );
+							}
+							// Returning promise
+							return Bluebird.all( _aPromisesToReturn );
+						} else {
+							_Core.info( 'No configured technologies to start.' );
+						}
+						// Returning generic
+						return this;
+					})
+					.catch( function( oError ){
+						_Core.error( '[ Error: %j ] Unable to get technologies.', oError );
+						process.exit();
+					})
+				;
 			})
 		;
 	}
@@ -216,7 +214,7 @@ class Core extends Technology{
 		};
 		// Extending where clause if technology's ID is set as parameter
 		_oWhere = _.extend(_oWhere, ( options ?
-			( Tools.isString( options ) ?
+			( _.isString( options ) ?
 				{
 					where: {
 						name: options
@@ -250,7 +248,7 @@ class Core extends Technology{
 		let _Core = this;
 		let _oTechnology = null;
 		// Collecting technology data if needed
-		return ( ( !technology || Tools.isString( technology ) ) ? _Core.getTechnology( technology ) : Bluebird.resolve( technology ) )
+		return ( ( !technology || _.isString( technology ) ) ? _Core.getTechnology( technology ) : Bluebird.resolve( technology ) )
 		.then( function( oTechnologyResult ){
 			_oTechnology = oTechnologyResult;
 			// Collecting technology type data if needed
@@ -308,13 +306,17 @@ class Core extends Technology{
 				  case 'nodejs':
 				    // Init Args for spawning child process
 				    let _aArgs = [ oTechnologyType.path ];
-						for( let [ _sField, _value ] of Object.entries( _oArgs ) ){
-				      if( _value ){
-				        _aArgs.push( '--' + _sField );
-				        if( _value !== true ){
-				          _aArgs.push( _value );
-				        }
-				      }
+						//for( let [ _sField, _value ] of Object.entries( _oArgs ) ){
+						for( let _sField in _oArgs ){
+							if( _oArgs.hasOwnProperty( _sField ) ){
+								let _value = _oArgs[ _sField ];
+								if( _value ){
+					        _aArgs.push( '--' + _sField );
+					        if( _value !== true ){
+					          _aArgs.push( _value );
+					        }
+					      }
+							}
 				    }
 				    // Spawning process
 				    let _oProcess = ChildProcess.spawn( 'node', _aArgs );
@@ -333,7 +335,7 @@ class Core extends Technology{
 			}
 		})
 		.catch( function( oError ){
-			_Core.error( '[ Error: %s ] Unable to get technology.', oError, sTechnologyID );
+			_Core.error( '[ Error: %s ] Unable to get technology.', oError );
 			return this;
 		})
 		;
@@ -693,16 +695,17 @@ class Core extends Technology{
 			let _Core = this;
 			// Technology is Logged Promise
 			let _oIsLoggedPromise = new Bluebird( function( fResolve, fReject ){
+				let _oPromiseToReturn = null;
 				switch( _sEventType ){
 					// login check can be ignored on the following cases
 					case Constant._EVENT_TYPE_INTRODUCE:
 					case Constant._EVENT_TYPE_LOGIN:
 					case Constant._EVENT_TYPE_LOGOUT:
 						_Core.debug( 'Ancilla event "%s" not requires a login check...', _sEventType );
-						fResolve();
+						_oPromiseToReturn = fResolve();
 						break;
 					default: // Login check must be done
-						return _Core.__technologyIsLogged( _sTechnologyID )
+						_oPromiseToReturn = _Core.__technologyIsLogged( _sTechnologyID )
 							.then( function( bIsLogged ){
 								if( bIsLogged ){
 									_Core.debug( 'Technology "%s" is logged...', _sTechnologyID );
@@ -718,6 +721,7 @@ class Core extends Technology{
 						;
 					break;
 				}
+				return _oPromiseToReturn;
 			});
 			// Main promise
 			let _oAncillaEventPromise = new Bluebird( function( fResolve, fReject ){

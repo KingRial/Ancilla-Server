@@ -1,3 +1,5 @@
+"use strict";
+
 module.exports = {
   up: function( migration, DataTypes ) {
     // Using single transaction for "up" migrations; this way if any errors occurs we can rollback it
@@ -117,26 +119,6 @@ module.exports = {
             }, {
               transaction: oTransaction
             })
-          // Create user "Admin" with password "admin"
-          .then( migration.sequelize.models.OBJECT.create({
-            name: 'admin',
-            type: 'USER',
-            value: 'd033e22ae348aeb5660fc2140aec35850c4da997',
-            isProtected: true,
-            options: ''
-          }, {
-            transaction: oTransaction
-          }) )
-          // Create user "User" with password "user"
-          .then( migration.sequelize.models.OBJECT.create({
-            name: 'user',
-            type: 'USER',
-            value: '12dea96fec20593566ab75692c9949596833adc9',
-            is_protected: true,
-            options: ''
-          }, {
-            transaction: oTransaction
-          }) )
           // Create Root's Groups
           .then( migration.sequelize.models.OBJECT.create({
             name: '_LANG_GROUP_ROOT',
@@ -252,11 +234,115 @@ module.exports = {
             transaction: oTransaction
           }) )
         )
+// oAUTH 2.0
+  // Create ACCESS TOKENS Table
+        .then(
+          migration.createTable( 'OAUTH_ACCESS_TOKENS', {
+            access_token: {
+              type: DataTypes.STRING,
+              primaryKey: true,
+              allowNull: false
+            },
+            client_id: {
+              type: DataTypes.STRING,
+              allowNull: false
+            },
+            user_id: {
+              type: DataTypes.INTEGER,
+              allowNull: false
+            },
+            expires: {
+              type: DataTypes.DATE,
+              allowNull: false
+            }
+          }, {
+            transaction: oTransaction
+          })
+        )
+  // Create REFRESH TOKENS Table
+        .then(
+          migration.createTable( 'OAUTH_REFRESH_TOKENS', {
+            refresh_token: {
+              type: DataTypes.STRING,
+              primaryKey: true,
+              allowNull: false
+            },
+            client_id: {
+              type: DataTypes.STRING,
+              allowNull: false
+            },
+            user_id: {
+              type: DataTypes.INTEGER,
+              allowNull: false
+            },
+            expires: {
+              type: DataTypes.DATE,
+              allowNull: false
+            }
+          }, {
+            transaction: oTransaction
+          })
+        )
+  // Create CLIENTS Table
+        .then(
+          migration.createTable( 'OAUTH_CLIENTS', {
+            client_id: {
+              type: DataTypes.STRING,
+              primaryKey: true,
+              allowNull: false
+            },
+            client_secret: {
+              type: DataTypes.STRING,
+              primaryKey: true,
+              allowNull: false
+            },
+            redirect_uri: {
+              type: DataTypes.STRING,
+              allowNull: false
+            }
+          }, {
+            transaction: oTransaction
+          })
+        )
+  // Create USERS Table
+        .then(
+          migration.createTable( 'OAUTH_USERS', {
+            id: {
+              type: DataTypes.INTEGER,
+              primaryKey: true,
+              autoIncrement: true
+            },
+            username: {
+              type: DataTypes.STRING,
+              allowNull: false
+            },
+            password: {
+              type: DataTypes.STRING,
+              allowNull: false
+            }
+          }, {
+            transaction: oTransaction
+          })
+          .then(
+            migration.sequelize.models.OAUTH_USERS.create({
+              username: 'admin',
+              password: 'd033e22ae348aeb5660fc2140aec35850c4da997'
+            }, {
+              transaction: oTransaction
+            })
+            .then( migration.sequelize.models.OAUTH_USERS.create({
+              username: 'user',
+              password: '12dea96fec20593566ab75692c9949596833adc9'
+            }, {
+              transaction: oTransaction
+            }) )
+          )
+        )
       ;
     });
   },
 
-  down: function( migration, DataTypes ) {
+  down: function( migration ) {
     return migration
       .dropAllTables()
     ;

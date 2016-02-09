@@ -1,0 +1,25 @@
+{
+  "name": "Ancilla-Core",
+  "version": "0.1.0",
+  "description": "Ancilla project - Free home automation - Server - Core",
+  "keywords": [
+    "Domotique",
+    "Home automation",
+    "Supervisor"
+  ],
+  "homepage": "https://github.com/KingRial/Ancilla-Server",
+  "bugs": {
+    "url": "https://github.com/KingRial/Ancilla-Server/issues"
+  },
+  "license": "MIT",
+  "author": "Riccardo Re <r.re@domoticalabs.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KingRial/Ancilla-Server"
+  },
+  "dependencies": {
+    "crypto": "0.0.3",
+    "breeze-sequelize": "^0.0.14",
+    "oauth2-server": "^2.4.1"
+  }
+}

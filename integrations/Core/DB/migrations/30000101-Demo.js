@@ -1,10 +1,12 @@
+"use strict";
+
 /*
  * Demo STEP
  * This step will preinstall some objects to build a DEMO project while waiting for the web UI to grow enough and being able to do such things
  */
 
 module.exports = {
-  up: function( migration, DataTypes ) {
+  up: function( migration ) {
     return migration.sequelize.models.OBJECT.create({
         id: 20,
         name: 'Environment One',
@@ -81,7 +83,7 @@ module.exports = {
     );
   },
 
-  down: function( migration, DataTypes ) {
+  down: function( migration ) {
     return migration.sequelize.models.OBJECT.destroy({
       where: {
         id: [ 20, 21, 22, 23, 24, 30]

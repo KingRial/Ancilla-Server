@@ -1,26 +1,19 @@
+"use strict";
+
 module.exports = function(sequelize, DataTypes) {
-  var Table = sequelize.define( 'WIDGET', {
+  var Table = sequelize.define( 'OAUTH_USERS', {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true
     },
-    name: {
+    username: {
       type: DataTypes.STRING,
+      allowNull: false
     },
-    model: {
+    password: {
       type: DataTypes.STRING,
-    },
-    options: {
-      type: DataTypes.STRING
-    },
-    isVisible: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true
-    },
-    isProtected: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false
+      allowNull: false
     }
   }, {
     timestamps: false,
