@@ -23,6 +23,7 @@ let crypto = require('crypto');
 
 let _ = require('lodash');
 let Bluebird = require('bluebird');
+let Cors = require('cors');
 
 let Ancilla = require('../../../lib/ancilla.js');
 let DB = Ancilla.DB;
@@ -33,7 +34,7 @@ class DBCore extends DB {
 		//Default DB Options
 		oOptions = _.extend({
 			sBreezeRequestPath: '/breeze/',
-			iBreezePort: Constant._PORT_BREEZE
+			iBreezePort: Constant._PORT_HTTP
 		}, oOptions );
     super( oOptions );
 	}
@@ -146,6 +147,16 @@ class DBCore extends DB {
       }
       fNext( error );
     });
+    // Enbale CORS
+    _oApp.use( Cors() );
+    /*
+    _oApp.use( function( oRequest, oResponse, fNext ){
+      oResponse.header('Access-Control-Allow-Origin', '*');
+      //oResponse.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+      oResponse.header( 'Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept' );
+      fNext();
+    });
+    */
 		// oAuth 2.0
 		_oApp.oauth = OAuth2Server({
 		  model: {
@@ -189,6 +200,24 @@ class DBCore extends DB {
 						})
 					;
 				},
+        revokeRefreshToken: function( sRefreshToken, fCallback) {
+          _DB.getModel( 'OAUTH_REFRESH_TOKENS' )
+            .destroy({
+              where: {
+                refresh_token: sRefreshToken
+              }
+            })
+            .then(function(){
+              _DB.debug( '[ oAuth2 ] Successfully revoke refresh token: %j', sRefreshToken );
+              fCallback( null );
+            })
+            .catch(function(error){
+              _DB.error( '[ oAuth2 ] Error %j: Failed to revoke refresh token: %j', error, sRefreshToken );
+              fCallback( error );
+            })
+          ;
+          //dal.doDelete(OAuthRefreshTokenTable, { refreshToken: { S: bearerToken }}, callback);
+        },
 				getClient: function( sClientID, sClientSecret, fCallback ){
           let _sHashedSecret = crypto.createHash('sha1').update( sClientSecret ).digest('hex');
 					_DB.getModel( 'OAUTH_CLIENTS' )
@@ -236,7 +265,7 @@ class DBCore extends DB {
 				},
 				grantTypeAllowed: function( sClientID, sGrantType, fCallback ){
 // TODO: how to improve this ?
-          let _bGrant = (sGrantType === 'password' ? true : false );
+          let _bGrant = ( sGrantType === 'password' ? true : false );
           fCallback( false, _bGrant );
 				},
 				saveAccessToken: function( sAccessToken, sClientID, sExpires, iUserID, fCallback ){
@@ -277,7 +306,12 @@ class DBCore extends DB {
 
 				}
 			},
-		  grants: [ 'password' ], //grants: [ 'password', 'refresh_token' ],
+		  grants: [ 'password', 'refresh_token' ],
+      //accessTokenLifetime: 3600,
+      accessTokenLifetime: 30,
+      refreshTokenLifetime: 60,
+      //refreshTokenLifetime: 1209600,
+      //authCodeLifetime: 30,
 		  //debug: function( oError ){ _DB.debug( '[ oAuth ] %j', oError ); }
       debug: false
 		});
@@ -324,7 +358,6 @@ console.error( 'DB -> Called :entity' );
 console.error( 'TODO: Filtering sensible tables' );
 console.error( 'TODO: Permissions Check' );
 			_oQuery.execute().then( function( results ){
-					// Enable CORS
 					_DB.__answerBreezeRequest( oResponse, results);
       	})
 				.catch( next )
@@ -353,6 +386,20 @@ console.error( 'TODO: reset' );
         });
     });
 */
+    // Adding Ancilla operations by HTTP/HTTPS protocol
+    _oApp.get( '/ancilla/:operation', _oApp.oauth.authorise(), function( oRequest, oResponse ){
+      switch( oRequest.params.operation ){
+        case 'rules':
+          let _oRulesOfEngamenet = {
+            iVersion: Constant._ANCILLA_CORE_VERSION
+          };
+          oResponse.send( JSON.stringify( _oRulesOfEngamenet ) );
+        break;
+        default:
+          oResponse.status(404).end();
+        break;
+      }
+    });
 		// Listening on breeze port
 		_oApp.listen( _DB.__oOptions.iBreezePort );
     _DB.info( 'Breeze listening on port: %s...', _DB.__oOptions.iBreezePort );
@@ -360,10 +407,6 @@ console.error( 'TODO: reset' );
 	}
 
 	__answerBreezeRequest( oResponse, results ){
-		// Enable CORS
-		oResponse.header('Access-Control-Allow-Origin', '*');
-		//oResponse.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-		//oResponse.header('Access-Control-Allow-Headers', 'Content-Type');
 		// Answering
 		oResponse.setHeader( 'Content-Type:', 'application/json' );
 		oResponse.send( results );

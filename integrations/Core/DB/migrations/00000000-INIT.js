@@ -303,6 +303,14 @@ module.exports = {
           }, {
             transaction: oTransaction
           })
+          .then(
+            migration.sequelize.models.OAUTH_CLIENTS.create({
+              client_id: 'ancilla-web-UI',
+              client_secret: 'a104750c3cabe05501e4826afd02251f0828755e' // @anc1ll@w3BU1
+            }, {
+              transaction: oTransaction
+            })
+          )
         )
   // Create USERS Table
         .then(
