@@ -18,9 +18,14 @@ module.exports = function( breeze, oMetadataStore ) {
         isPartOfKey: true
       }) )
       .addProperty( new breeze.DataProperty({
+        name: 'grant_types',
+        dataType: breeze.DataType.String,
+        defaultValue: null
+      }) )
+      .addProperty( new breeze.DataProperty({
         name: 'redirect_uri',
         dataType: breeze.DataType.String,
-        defaultValue: 0
+        defaultValue: null
       }) )
     ;
     try{

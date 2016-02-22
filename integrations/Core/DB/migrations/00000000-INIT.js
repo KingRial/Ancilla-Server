@@ -296,9 +296,13 @@ module.exports = {
               primaryKey: true,
               allowNull: false
             },
+            grant_types: {
+              type: DataTypes.STRING,
+              allowNull: true
+            },
             redirect_uri: {
               type: DataTypes.STRING,
-              allowNull: false
+              allowNull: true
             }
           }, {
             transaction: oTransaction
@@ -306,7 +310,8 @@ module.exports = {
           .then(
             migration.sequelize.models.OAUTH_CLIENTS.create({
               client_id: 'ancilla-web-UI',
-              client_secret: 'a104750c3cabe05501e4826afd02251f0828755e' // @anc1ll@w3BU1
+              client_secret: 'a104750c3cabe05501e4826afd02251f0828755e', // @anc1ll@w3BU1
+              grant_types: '["password","refresh_token"]'
             }, {
               transaction: oTransaction
             })

@@ -12,9 +12,13 @@ module.exports = function(sequelize, DataTypes) {
       primaryKey: true,
       allowNull: false
     },
+    grant_types: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
     redirect_uri: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: true
     }
   }, {
     timestamps: false,
