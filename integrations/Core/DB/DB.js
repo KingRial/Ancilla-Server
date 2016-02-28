@@ -20,10 +20,17 @@
 let fs = require('fs');
 let path = require('path');
 let crypto = require('crypto');
+//let URLutils = require("url");
 
 let _ = require('lodash');
 let Bluebird = require('bluebird');
 let Cors = require('cors');
+let BreezeSequelize = require('breeze-sequelize');
+let Breeze = BreezeSequelize.breeze;
+let Express = require('express');
+let OAuth2Server = require('oauth2-server');
+let Compress     = require('compression');
+let BodyParser   = require('body-parser');
 
 let Ancilla = require('../../../lib/ancilla.js');
 let DB = Ancilla.DB;
@@ -65,7 +72,6 @@ class DBCore extends DB {
   __initEnvBreeze(){
     // Breeze - Sequelize ( http://breeze.github.io/doc-node-sequelize/class-descriptions.html )
     let _DB = this;
-		let BreezeSequelize = require('breeze-sequelize');
 		let SequelizeManager = BreezeSequelize.SequelizeManager;
 		// Init Sequelize Manager
 		this._oSequelizeManager = new SequelizeManager({
@@ -128,14 +134,8 @@ class DBCore extends DB {
 	*   DB.__startBreezeService();
 	*/
 	__startBreezeService(){
-    let BreezeSequelize = require('breeze-sequelize');
-    let Breeze = BreezeSequelize.breeze;
     let _DB = this;
-    let Express = require('express');
-    let OAuth2Server = require('oauth2-server');
     let _oApp = Express();
-    let Compress     = require('compression');
-    let BodyParser   = require('body-parser');
 		//_oApp.use(logger('dev'));
 		_oApp.use( Compress() );
 		_oApp.use( BodyParser.urlencoded( { extended: true } ) );
@@ -351,25 +351,19 @@ class DBCore extends DB {
           let _sMetadata = _DB._oSequelizeManager.metadataStore.exportMetadata();
           // Clearing metadata from sensible tables
           let _oMetadata = JSON.parse( _sMetadata );
-          let _aNewStrucutralType = [];
+          let _aNewStructuralType = [];
           for( let _iIndex=0; _iIndex < _oMetadata.structuralTypes.length; _iIndex++ ){
             var _oTable = _oMetadata.structuralTypes[ _iIndex ];
-            switch( _oTable.shortName ){
-              case 'OAUTH_USERS':
-              case 'OAUTH_CLIENTS':
-              case 'OAUTH_REFRESH_TOKENS':
-              case 'OAUTH_ACCESS_TOKENS':
-                // Removing from metadata
-                delete _oMetadata.resourceEntityTypeMap[ _oTable.shortName ];
-              break;
-              default:
-                // Allowrd table metadata
-                _aNewStrucutralType.push( _oTable );
-              break;
+            if( _DB.__isSensibleTable( _oTable.shortName ) ){
+              // Removing from metadata
+              delete _oMetadata.resourceEntityTypeMap[ _oTable.shortName ];
+            } else {
+              // Allowed table metadata
+              _aNewStructuralType.push( _oTable );
             }
           }
           // Setting new filtered structural type
-          _oMetadata.structuralTypes = _aNewStrucutralType;
+          _oMetadata.structuralTypes = _aNewStructuralType;
           // Preparing answer
           _sMetadata = JSON.stringify( _oMetadata );
           // Answering
@@ -379,22 +373,37 @@ class DBCore extends DB {
 				}
     });
 		_oApp.get( path.posix.join( _DB.__oOptions.sBreezeRequestPath, ':entity' ), _oApp.oauth.authorise(), function( oRequest, oResponse, next ){
-			let _sResourceName = oRequest.params.entity;
-console.error( 'TODO: original URL', oRequest.originalUrl );
-			let _oEntityQuery = Breeze.EntityQuery.fromUrl( oRequest.originalUrl, _sResourceName );
-			let _oQuery = new BreezeSequelize.SequelizeQuery( _DB._oSequelizeManager, _oEntityQuery );
-console.error( 'DB -> Called :entity' );
-console.error( 'TODO: Filtering sensible tables' );
-console.error( 'TODO: Permissions Check' );
-			_oQuery.execute().then( function( results ){
-					_DB.__answerBreezeRequest( oResponse, results);
-      	})
-				.catch( next )
-			;
+      let _sResourceName = oRequest.params.entity;
+      // Filtering request to sensible Data
+      if( _DB.__isSensibleTable( _sResourceName ) ){
+        _DB.error( 'A request is trying to access a sensible table "%s": ', _sResourceName );
+        next();
+      } else {
+        let _sQueryURL = oRequest.originalUrl;
+        let _oEntityQuery = Breeze.EntityQuery.fromUrl( _sQueryURL, _sResourceName )
+// Filtering by DEFAULT behaviour ( You cannot access invisible and protected items )
+          .where({
+            or: [
+              { 'IS_PROTECTED': { '!=': 1 } },
+              { 'IS_PROTECTED': 1, 'IS_VISIBLE': 1 }
+            ]
+          })
+        ;
+console.error( 'TODO: USER Permissions Check on GET query' );
+  			let _oQuery = new BreezeSequelize.SequelizeQuery( _DB._oSequelizeManager, _oEntityQuery );
+  			_oQuery.execute().then( function( results ){
+  					_DB.__answerBreezeRequest( oResponse, results);
+        	})
+  				.catch( next )
+  			;
+      }
     });
 /*
     _oApp.post( path.posix.join( _DB.__oOptions.sBreezeRequestPath, 'Save' ).replace(/[\\$'"]/g, "\\$&"), function ( req, res, next ) {
 console.error( 'TODO: save' );
+console.error( 'Checking sensbilbe tables' );
+console.error( 'Checking default where behaviour' );
+console.error( 'Checking user premission' );
         let saveHandler = new SequelizeSaveHandler(_sequelizeManager, req);
         saveHandler.save().then(function(r) {
             returnResults(r, res);
@@ -404,12 +413,18 @@ console.error( 'TODO: save' );
     });
     _oApp.post( path.posix.join( _DB.__oOptions.sBreezeRequestPath, 'Purge' ).replace(/[\\$'"]/g, "\\$&"), function( req, res, next ){
 console.error( 'TODO: purge' );
+console.error( 'Checking sensbilbe tables' );
+console.error( 'Checking default where behaviour' );
+console.error( 'Checking user premission' );
         purge().then(function(){
            res.send('purged');
         });
     });
     _oApp.post( path.posix.join( _DB.__oOptions.sBreezeRequestPath, 'Reset' ).replace(/[\\$'"]/g, "\\$&"), function( req, res, next ){
 console.error( 'TODO: reset' );
+console.error( 'Checking sensbilbe tables' );
+console.error( 'Checking default where behaviour' );
+console.error( 'Checking user premission' );
         purge().then(seed).then(function(){
             res.send('reset');
         });
@@ -440,5 +455,21 @@ console.error( 'TODO: reset' );
 		oResponse.setHeader( 'Content-Type:', 'application/json' );
 		oResponse.send( results );
 	}
+
+  __isSensibleTable( sTableName ){
+    let _bSensible = false;
+    switch( sTableName ){
+      case 'OAUTH_USERS':
+      case 'OAUTH_CLIENTS':
+      case 'OAUTH_REFRESH_TOKENS':
+      case 'OAUTH_ACCESS_TOKENS':
+        _bSensible = true;
+      break;
+      default:
+        _bSensible = false;
+      break;
+    }
+    return _bSensible;
+  }
 }
 module.exports = DBCore;
