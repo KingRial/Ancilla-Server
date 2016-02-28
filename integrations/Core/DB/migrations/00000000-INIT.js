@@ -109,8 +109,17 @@ module.exports = {
           })
         )
         .then(
-          // Creating CORE technology instance
+          // Create FAVOURITEs Group
           migration.sequelize.models.OBJECT.create({
+            name: '_LANG_GROUP_FAVOURITES',
+            type: 'GROUP',
+            isProtected: true,
+            options: ''
+          }, {
+            transaction: oTransaction
+          })
+          // Creating CORE technology instance
+          .then(  migration.sequelize.models.OBJECT.create({
               name: '_LANG_TECHNOLOGY_CORE',
               type: 'TECHNOLOGY',
               technology: 'Core',
@@ -119,15 +128,7 @@ module.exports = {
             }, {
               transaction: oTransaction
             })
-          // Create Root's Groups
-          .then( migration.sequelize.models.OBJECT.create({
-            name: '_LANG_GROUP_ROOT',
-            type: 'GROUP',
-            isProtected: true,
-            options: ''
-          }, {
-            transaction: oTransaction
-          }) )
+          )
         )
   // Create RELATION Table
         .then(

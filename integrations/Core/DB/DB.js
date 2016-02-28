@@ -20,7 +20,6 @@
 let fs = require('fs');
 let path = require('path');
 let crypto = require('crypto');
-//let URLutils = require("url");
 
 let _ = require('lodash');
 let Bluebird = require('bluebird');
@@ -104,7 +103,7 @@ class DBCore extends DB {
 			});
 		return Bluebird.all( _aPromises )
 			.then( function(){
-				// setting entity type for resource name
+				// Setting entity type for resource name
 				let _aTypes = _oMetadataStore.getEntityTypes();
         _aTypes.forEach( function ( oType ){
             if( oType instanceof BreezeSequelize.breeze.EntityType ){
@@ -380,12 +379,15 @@ class DBCore extends DB {
         next();
       } else {
         let _sQueryURL = oRequest.originalUrl;
+        // Filtering by DEFAULT behaviour ( You cannot access invisible and protected items )
         let _oEntityQuery = Breeze.EntityQuery.fromUrl( _sQueryURL, _sResourceName )
-// Filtering by DEFAULT behaviour ( You cannot access invisible and protected items )
           .where({
-            or: [
-              { 'IS_PROTECTED': { '!=': 1 } },
-              { 'IS_PROTECTED': 1, 'IS_VISIBLE': 1 }
+            'or':[
+              { 'isProtected': { '!=': 1 } },
+              {
+                'isProtected': 1,
+                'isVisible': 1
+              }
             ]
           })
         ;
