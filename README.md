@@ -58,7 +58,7 @@ npm install
 
 Now you are ready to start the server execution and all the technologies configured into the server's database
 ```bash
-node Ancilla.js
+node --harmony Ancilla.js
 ```
 if node still doesn't support ES6 standards:
 ```bash
@@ -71,12 +71,12 @@ node_modules/.bin/babel-node Ancilla.js
 
 If you wish to see all the debug messages use the following options while starting the server
 ```bash
-babel-node Ancilla.js --debug
+node --harmony Ancilla.js --debug
 ```
 
 If you wish to run a specific technology or integration
 ```bash
-babel-node integrations/Technology.Demo.js
+node --harmony integrations/Technology.Demo.js
 ```
 
 Running the Tests

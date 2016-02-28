@@ -335,10 +335,10 @@ class DBCore extends DB {
 				}
 			},
 		  grants: [ 'password', 'refresh_token' ],
-      //accessTokenLifetime: 3600,
-      accessTokenLifetime: 30,
-      refreshTokenLifetime: 60,
-      //refreshTokenLifetime: 1209600,
+      accessTokenLifetime: 3600,
+      //accessTokenLifetime: 30,
+      //refreshTokenLifetime: 60,
+      refreshTokenLifetime: 1209600,
       //authCodeLifetime: 30,
 		  //debug: function( oError ){ _DB.debug( '[ oAuth ] %j', oError ); }
       debug: false
