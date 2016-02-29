@@ -47,3 +47,4 @@ generate DOC.bat
 /*.log
 /integrations/iKon/*.log
 *.log
+/integrations/Core/*.gz
