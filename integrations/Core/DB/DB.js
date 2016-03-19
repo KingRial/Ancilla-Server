@@ -454,7 +454,7 @@ console.error( 'Checking user premission' );
 
 	__answerBreezeRequest( oResponse, results ){
 		// Answering
-		oResponse.setHeader( 'Content-Type:', 'application/json' );
+		oResponse.set( 'Content-Type', 'application/json' );
 		oResponse.send( results );
 	}
 
