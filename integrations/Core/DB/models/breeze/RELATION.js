@@ -4,7 +4,7 @@ module.exports = function( breeze, oMetadataStore ) {
   "use strict";
   return new Bluebird( function( fResolve, fReject ){
     var _oEntityType = new breeze.EntityType({
-        shortName: 'RELATION',
+        shortName: 'RELATION'
         //namespace: 'myAppNamespace'
     });
     _oEntityType
@@ -32,6 +32,11 @@ module.exports = function( breeze, oMetadataStore ) {
       .addProperty( new breeze.DataProperty({
         name: 'options',
         dataType: breeze.DataType.String
+      }) )
+      .addProperty( new breeze.DataProperty({
+        name: 'orderNum',
+        dataType: breeze.DataType.Int32,
+        defaultValue: 0
       }) )
       .addProperty( new breeze.DataProperty({
         name: 'isEnabled',

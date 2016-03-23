@@ -153,6 +153,10 @@ module.exports = {
             options: {
               type: DataTypes.STRING
             },
+            orderNum: {
+              type: DataTypes.INTEGER,
+              defaultValue: 0
+            },
             isEnabled: {
               type: DataTypes.BOOLEAN,
               defaultValue: true

@@ -4,7 +4,7 @@ module.exports = function( breeze, oMetadataStore ) {
   "use strict";
   return new Bluebird( function( fResolve, fReject ){
     var _oEntityType = new breeze.EntityType({
-        shortName: 'OBJECT',
+        shortName: 'OBJECT'
         //namespace: 'myAppNamespace'
     });
     _oEntityType
@@ -64,6 +64,16 @@ module.exports = function( breeze, oMetadataStore ) {
         dataType: breeze.DataType.Boolean,
         defaultValue: false
       }) )
+      /*
+      .addProperty( new breeze.NavigationProperty({
+        name: 'parentID',
+        //entityTypeName: 'RELATION:#myAppNamespace',
+        entityTypeName: 'RELATION:#',
+        isScalar: true,
+        associationName: 'parentID',
+        foreignKeyNames: ['parentID']
+      }) )
+      */
       //timestamps ?
     ;
     try{
