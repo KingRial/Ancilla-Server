@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "breeze-sequelize": "^0.0.18",
-    "cors": "^2.7.1",
     "crypto": "0.0.3",
     "oauth2-server": "^2.4.1"
   }

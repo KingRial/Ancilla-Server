@@ -19,9 +19,11 @@
 */
 let ChildProcess = require('child_process');
 let Path = require('path');
+let crypto = require('crypto');
 
 let _ = require( 'lodash' );
 let Bluebird = require('bluebird');
+let OAuth2Server = require('oauth2-server');
 
 let Ancilla = require('../../lib/ancilla.js');
 let Technology = Ancilla.Technology;
@@ -41,55 +43,55 @@ let Constant = Ancilla.Constant;
  * @example
  *		new Core()
  */
-let _oDefaultCoreOptions = {
-	sID: 'Core',
-	sType: 'Core',
-	bUseDB: true,
-	oDB: require( './DB/DB.js' ),
-	sDBModelsDir: 'DB/models/breeze',
-	iVersion: Constant._ANCILLA_CORE_VERSION,
-	oEndpoints: {
-		'ancilla-net': {
-			type: 'server.net',
-			host: Constant._EVENT_CORE_ENDPOINT_NET_HOST,
-			port: Constant._EVENT_CORE_ENDPOINT_NET_PORT,
-			bIsAncilla: true
-		}/*
-		,
-		'ancilla-websocket': {
-			id: 'ancilla-websocket',
-			type: 'server.ws',
-			bIsAncilla: true
-		}*/
-	}
-};
 
-class Core extends Technology{
+class Core extends Technology {
 
 	constructor( oCoreOptions ){
-		oCoreOptions = _.extend( _oDefaultCoreOptions, oCoreOptions );
 		// Calling inherited constructor
-		super( oCoreOptions );
+		super();
+		this.configDefault({
+			sID: 'Core',
+			sType: 'Core',
+			bUseDB: true,
+			oDB: require( './DB/DB.js' ),
+			sDBModelsDir: 'DB/models/breeze',
+			iVersion: Constant._ANCILLA_CORE_VERSION,
+			oEndpoints: {
+				'web': {
+					type: 'server.rest',
+					bUseCors: true,
+					oRoutes: {
+						'all': {
+							'/oauth/token': ( oRequest, oResponse, next ) => this.getAuth().grant()( oRequest, oResponse, next )
+						},
+						'get': {
+							'/breeze/:Metadata': [
+								( oRequest, oResponse, next ) => this.getAuth().authorise()( oRequest, oResponse, next ),
+								( oRequest, oResponse, next ) => this.getDB().handleBreezeRequestMetadata( oRequest, oResponse, next )
+							],
+							'/breeze/:entity': [
+								( oRequest, oResponse, next ) => this.getAuth().authorise()( oRequest, oResponse, next ),
+								( oRequest, oResponse, next ) => this.getDB().handleBreezeRequestEntity( oRequest, oResponse, next )
+							]
+						}
+					}
+				},
+				'ancilla-net': {
+					type: 'server.net',
+					host: Constant._EVENT_CORE_ENDPOINT_NET_HOST,
+					port: Constant._EVENT_CORE_ENDPOINT_NET_PORT,
+					bIsAncilla: true
+				}/*
+				,
+				'ancilla-websocket': {
+					id: 'ancilla-websocket',
+					type: 'server.ws',
+					bIsAncilla: true
+				}*/
+			}
+		});
+		this.config( oCoreOptions );
 		this.__oProcesses = {};
-	}
-
-	/**
-	 * Method called to run the Core technology
-	 *
-	 * @method    run
-	 * @public
-	 *
-	 * @param	{Object[]}		oCoreOptions		A javascript object of options used to configure the technology behaviour ( if using the same options will overwrite options set during the creation of the class )
-	 * @param	{Object}		[oCurrentModule]	The current nodejs caller module ( default: the current module used by the required file )
-	 *
-	 * @example
-	 *   Core.run();
-	 */
-	run( oCoreOptions, oCurrentModule ){
-		oCoreOptions = _.extend( _oDefaultCoreOptions, oCoreOptions );
-		// Calling inherited method
-		//Core.super_.prototype.run.apply( this, [ oCoreOptions, oCurrentModule ] );
-		super.run( oCoreOptions, oCurrentModule );
 	}
 
 	/**
@@ -104,6 +106,12 @@ class Core extends Technology{
 	ready(){
 		let _Core = this;
 		return super.ready()
+			.then ( function(){ // Init Endpoints
+				return _Core.__initAuth();
+			})
+			.catch( function( oError ){
+				_Core.error( '[ Error: %s ] Unable to correctly initialize Oauth 2.0.', oError );
+			})
 			.then( function(){
 				_Core.info( 'Starting configured technologies...' );
 				// Selecting configured technologies and create a process to execute them
@@ -138,6 +146,201 @@ class Core extends Technology{
 			})
 		;
 	}
+
+	getAuth(){
+		return this.__oAuth;
+	}
+
+	__initAuth(){
+    let _Core = this;
+    this.__oAuth = OAuth2Server({
+      model: {
+        getAccessToken: function( sAccessToken, fCallback ){
+          _Core.getDBModel( 'OAUTH_ACCESS_TOKENS' )
+            .findOne({ where: {
+              access_token: sAccessToken
+            } })
+            .then(function( oToken ){
+              if( oToken ){
+                _Core.debug( 'Successfully get access token: %j', sAccessToken );
+                fCallback( null, {
+                  accessToken: oToken.access_token,
+                  clientId: oToken.client_id,
+                  expires: oToken.expires,
+                  userId: oToken.user_id
+                });
+              } else {
+                _Core.error( 'Unable to find access token "%j": ', sAccessToken );
+                return fCallback();
+              }
+            })
+            .catch(function(error){
+              _Core.error( 'Error %j: Failed to get access token: %j', error, sAccessToken );
+              fCallback( error );
+            })
+          ;
+        },
+        getRefreshToken: function( sRefreshToken, fCallback ){
+          _Core.getDBModel( 'OAUTH_REFRESH_TOKENS' )
+            .findOne({ where: {
+              refresh_token: sRefreshToken
+            } })
+            .then(function( oToken ){
+              if( oToken ){
+                _Core.debug( 'Successfully get refresh token: %j', sRefreshToken );
+                fCallback( null, {
+                  refreshToken: oToken.refresh_token,
+                  clientId: oToken.client_id,
+                  expires: oToken.expires,
+                  userId: oToken.user_id
+                });
+              } else {
+                _Core.error( 'Unable to find refresh token "%j": ', sRefreshToken );
+                return fCallback();
+              }
+            })
+            .catch(function(error){
+              _Core.error( 'Error %j: Failed to get refresh token: %j', error, sRefreshToken );
+              fCallback( error );
+            })
+          ;
+        },
+        revokeRefreshToken: function( sRefreshToken, fCallback) {
+          _Core.getDBModel( 'OAUTH_REFRESH_TOKENS' )
+            .destroy({
+              where: {
+                refresh_token: sRefreshToken
+              }
+            })
+            .then(function(){
+              _Core.debug( 'Successfully revoke refresh token: %j', sRefreshToken );
+              fCallback( null );
+            })
+            .catch(function(error){
+              _Core.error( 'Error %j: Failed to revoke refresh token: %j', error, sRefreshToken );
+              fCallback( error );
+            })
+          ;
+          //dal.doDelete(OAuthRefreshTokenTable, { refreshToken: { S: bearerToken }}, callback);
+        },
+        getClient: function( sClientID, sClientSecret, fCallback ){
+          let _sHashedSecret = crypto.createHash('sha1').update( sClientSecret ).digest('hex');
+          _Core.getDBModel( 'OAUTH_CLIENTS' )
+            .findOne({ where: {
+              client_id: sClientID
+            } })
+            .then(function( oClient ){
+              if( !oClient || ( sClientSecret !== null && oClient.client_secret !== _sHashedSecret ) ){
+                _Core.error( 'Unable to find client with ID "%j": ', sClientID, ( !oClient ? 'client doesn\'t exists' : 'wrong secret used' ) );
+                return fCallback();
+              } else {
+                _Core.debug( 'Successfully get client: "%s"', oClient.client_id );
+                fCallback( null, {
+                  clientId: oClient.client_id,
+                  clientSecret: oClient.client_secret
+                } );
+              }
+            })
+            .catch(function(error){
+              _Core.error( 'Error %j: Failed to get client', error );
+              fCallback( error );
+            })
+          ;
+        },
+        getUser: function( sUsername, sPassword, fCallback ){
+          let _sHashedPassword = crypto.createHash('sha1').update( sPassword ).digest('hex');
+          _Core.getDBModel( 'OAUTH_USERS' )
+            .findOne({ where: {
+              username: sUsername,
+              password: _sHashedPassword
+            } })
+            .then(function( oUser ){
+              if( oUser ){
+                _Core.debug( 'Successfully get user: "%s"', sUsername );
+              } else {
+                _Core.error( 'Unable to find user "%s"', sUsername );
+              }
+              fCallback( null, ( oUser ? oUser.id : false ) );
+            })
+            .catch(function(error){
+              _Core.error( 'Error %j: Failed to get user', error );
+              fCallback( error );
+            })
+          ;
+        },
+        grantTypeAllowed: function( sClientID, sGrantType, fCallback ){
+          _Core.getDBModel( 'OAUTH_CLIENTS' )
+            .findOne({ where: {
+              client_id: sClientID
+            } })
+            .then(function( oClient ){
+                let _aAllowedGrants = JSON.parse( oClient.grant_types ) || [];
+                let _bGrant = ( _aAllowedGrants.indexOf( sGrantType ) !== -1 ? true : false );
+                if( !_bGrant ){
+                  _Core.error( 'Client ID "%s" has no rights to use the following gran type: "%s"; allowded grant types are: "%s"', sClientID, sGrantType, _aAllowedGrants );
+                }
+                fCallback( false, _bGrant );
+            })
+            .catch(function(error){
+              _Core.error( 'Error %j: Failed to get gran type for specific client', error );
+              fCallback( error );
+            })
+          ;
+        },
+        saveAccessToken: function( sAccessToken, sClientID, sExpires, oUser, fCallback ){
+          // Sometime oUser is not an object... don't ask me why!
+          let _iUserID = ( typeof oUser === 'object' ? oUser.id : oUser );
+          _Core.getDBModel( 'OAUTH_ACCESS_TOKENS' )
+            .create({
+              access_token: sAccessToken,
+              client_id: sClientID,
+              user_id: _iUserID,
+              expires: sExpires,
+            })
+            .then(function(){
+              _Core.debug( 'Successfully saved access token "%s" for client ID "%s" and user ID "%s"', sAccessToken, sClientID, _iUserID );
+              fCallback();
+            })
+            .catch(function(error){
+              _Core.error( 'Error %s: failed to save access token', error );
+              fCallback( error );
+            })
+          ;
+        },
+        saveRefreshToken: function( sRefreshToken, sClientID, sExpires, oUser, fCallback ){
+          // Sometime oUser is not an object... don't ask me why!
+          let _iUserID = ( typeof oUser === 'object' ? oUser.id : oUser );
+          _Core.getDBModel( 'OAUTH_REFRESH_TOKENS' )
+            .create({
+              refresh_token: sRefreshToken,
+              client_id: sClientID,
+              user_id: _iUserID,
+              expires: sExpires,
+            })
+            .then(function(){
+              _Core.debug( 'Successfully saved refresh token "%s" for client ID "%s" and user ID "%s"', sRefreshToken, sClientID, _iUserID );
+              fCallback();
+            })
+            .catch(function(error){
+              _Core.error( 'Error %s: failed to save refresh token', error );
+              fCallback( error );
+            })
+          ;
+
+        }
+      },
+      grants: [ 'password', 'refresh_token' ],
+      accessTokenLifetime: 3600,
+      //accessTokenLifetime: 30,
+      //refreshTokenLifetime: 60,
+      refreshTokenLifetime: 1209600,
+      //authCodeLifetime: 30,
+      //debug: function( oError ){ _DB.debug( '[ oAuth ] %j', oError ); }
+      debug: false
+    });
+		_Core.getEndpoint('web').getApp().use( this.__oAuth.errorHandler() );
+		return Bluebird.resolve();
+  }
 
 	/**
 	* Method called to collect the connected socket looking for all the available endpoints

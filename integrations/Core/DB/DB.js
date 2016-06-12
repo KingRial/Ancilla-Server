@@ -19,17 +19,11 @@
 */
 let fs = require('fs');
 let path = require('path');
-let crypto = require('crypto');
 
 let _ = require('lodash');
 let Bluebird = require('bluebird');
-let Cors = require('cors');
 let BreezeSequelize = require('breeze-sequelize');
 let Breeze = BreezeSequelize.breeze;
-let Express = require('express');
-let OAuth2Server = require('oauth2-server');
-let Compress     = require('compression');
-let BodyParser   = require('body-parser');
 
 let Ancilla = require('../../../lib/ancilla.js');
 let DB = Ancilla.DB;
@@ -56,14 +50,14 @@ class DBCore extends DB {
   }
 
   open(){
-    let _DB = this;
+    //let _DB = this;
     return super.open()
       .then(function( aExecutedMigrations ){
-        return _DB.__startBreezeService()
-          .then(function(){
+        //return _DB.__startBreezeService()
+          //.then(function(){
             return Bluebird.resolve( aExecutedMigrations );
-          })
-        ;
+          //})
+        //;
       })
     ;
   }
@@ -121,336 +115,64 @@ class DBCore extends DB {
 		;
   }
 
-  /**
-	* Function used to start breeze's web services on configured port if breeze has been enabled
-	*
-	* @method    __startBreezeService
-	* @private
-	*
-	* @return    {Void}
-	*
-	* @example
-	*   DB.__startBreezeService();
-	*/
-	__startBreezeService(){
+  handleBreezeRequestMetadata( oRequest, oResponse, next ){
     let _DB = this;
-    let _oApp = Express();
-		//_oApp.use(logger('dev'));
-		_oApp.use( Compress() );
-		_oApp.use( BodyParser.urlencoded( { extended: true } ) );
-		_oApp.use( BodyParser.json() );
-		//_oApp.use( Express.static( __dirname + '/../client' ) );
-    _oApp.use( function( error, oRequest, oResponse, fNext ){
-      if( error ){
-        _DB.error( '[ Express ] Error: %j', error );
+    try {
+      let _sMetadata = _DB._oSequelizeManager.metadataStore.exportMetadata();
+      // Clearing metadata from sensible tables
+      let _oMetadata = JSON.parse( _sMetadata );
+      let _aNewStructuralType = [];
+      for( let _iIndex=0; _iIndex < _oMetadata.structuralTypes.length; _iIndex++ ){
+        var _oTable = _oMetadata.structuralTypes[ _iIndex ];
+        if( _DB.__isSensibleTable( _oTable.shortName ) ){
+          // Removing from metadata
+          delete _oMetadata.resourceEntityTypeMap[ _oTable.shortName ];
+        } else {
+          // Allowed table metadata
+          _aNewStructuralType.push( _oTable );
+        }
       }
-      fNext( error );
-    });
-    // Enbale CORS
-    _oApp.use( Cors() );
-    /*
-    _oApp.use( function( oRequest, oResponse, fNext ){
-      oResponse.header('Access-Control-Allow-Origin', '*');
-      //oResponse.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-      oResponse.header( 'Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept' );
-      fNext();
-    });
-    */
-		// oAuth 2.0
-		_oApp.oauth = OAuth2Server({
-		  model: {
-				getAccessToken: function( sAccessToken, fCallback ){
-					_DB.getModel( 'OAUTH_ACCESS_TOKENS' )
-						.findOne({ where: {
-							access_token: sAccessToken
-						} })
-						.then(function( oToken ){
-              if( oToken ){
-                _DB.debug( '[ oAuth2 ] Successfully get access token: %j', sAccessToken );
-  				      fCallback( null, {
-  				        accessToken: oToken.access_token,
-  				        clientId: oToken.client_id,
-  				        expires: oToken.expires,
-  				        userId: oToken.user_id
-  				      });
-              } else {
-                _DB.error( '[ oAuth2 ] Unable to find access token "%j": ', sAccessToken );
-								return fCallback();
-              }
-						})
-						.catch(function(error){
-              _DB.error( '[ oAuth2 ] Error %j: Failed to get access token: %j', error, sAccessToken );
-							fCallback( error );
-						})
-					;
-				},
-				getRefreshToken: function( sRefreshToken, fCallback ){
-					_DB.getModel( 'OAUTH_REFRESH_TOKENS' )
-						.findOne({ where: {
-							refresh_token: sRefreshToken
-						} })
-						.then(function( oToken ){
-              if( oToken ){
-                _DB.debug( '[ oAuth2 ] Successfully get refresh token: %j', sRefreshToken );
-                fCallback( null, {
-                  refreshToken: oToken.refresh_token,
-                  clientId: oToken.client_id,
-                  expires: oToken.expires,
-                  userId: oToken.user_id
-                });
-              } else {
-                _DB.error( '[ oAuth2 ] Unable to find refresh token "%j": ', sRefreshToken );
-                return fCallback();
-              }
-						})
-						.catch(function(error){
-              _DB.error( '[ oAuth2 ] Error %j: Failed to get refresh token: %j', error, sRefreshToken );
-							fCallback( error );
-						})
-					;
-				},
-        revokeRefreshToken: function( sRefreshToken, fCallback) {
-          _DB.getModel( 'OAUTH_REFRESH_TOKENS' )
-            .destroy({
-              where: {
-                refresh_token: sRefreshToken
-              }
-            })
-            .then(function(){
-              _DB.debug( '[ oAuth2 ] Successfully revoke refresh token: %j', sRefreshToken );
-              fCallback( null );
-            })
-            .catch(function(error){
-              _DB.error( '[ oAuth2 ] Error %j: Failed to revoke refresh token: %j', error, sRefreshToken );
-              fCallback( error );
-            })
-          ;
-          //dal.doDelete(OAuthRefreshTokenTable, { refreshToken: { S: bearerToken }}, callback);
-        },
-				getClient: function( sClientID, sClientSecret, fCallback ){
-          let _sHashedSecret = crypto.createHash('sha1').update( sClientSecret ).digest('hex');
-					_DB.getModel( 'OAUTH_CLIENTS' )
-						.findOne({ where: {
-							client_id: sClientID
-						} })
-						.then(function( oClient ){
-      				if( !oClient || ( sClientSecret !== null && oClient.client_secret !== _sHashedSecret ) ){
-                _DB.error( '[ oAuth2 ] Unable to find client with ID "%j": ', sClientID, ( !oClient ? 'client doesn\'t exists' : 'wrong secret used' ) );
-								return fCallback();
-							} else {
-                _DB.debug( '[ oAuth2 ] Successfully get client: "%s"', oClient.client_id );
-								fCallback( null, {
-					        clientId: oClient.client_id,
-					        clientSecret: oClient.client_secret
-					      } );
-							}
-						})
-						.catch(function(error){
-              _DB.error( '[ oAuth2 ] Error %j: Failed to get client', error );
-							fCallback( error );
-						})
-					;
-				},
-        getUser: function( sUsername, sPassword, fCallback ){
-					let _sHashedPassword = crypto.createHash('sha1').update( sPassword ).digest('hex');
-					_DB.getModel( 'OAUTH_USERS' )
-						.findOne({ where: {
-							username: sUsername,
-							password: _sHashedPassword
-						} })
-						.then(function( oUser ){
-              if( oUser ){
-                _DB.debug( '[ oAuth2 ] Successfully get user: "%s"', sUsername );
-              } else {
-                _DB.error( '[ oAuth2 ] Unable to find user "%s"', sUsername );
-              }
-							fCallback( null, ( oUser ? oUser.id : false ) );
-						})
-						.catch(function(error){
-              _DB.error( '[ oAuth2 ] Error %j: Failed to get user', error );
-							fCallback( error );
-						})
-					;
-				},
-				grantTypeAllowed: function( sClientID, sGrantType, fCallback ){
-          _DB.getModel( 'OAUTH_CLIENTS' )
-						.findOne({ where: {
-							client_id: sClientID
-						} })
-						.then(function( oClient ){
-                let _aAllowedGrants = JSON.parse( oClient.grant_types ) || [];
-                let _bGrant = ( _aAllowedGrants.indexOf( sGrantType ) !== -1 ? true : false );
-                if( !_bGrant ){
-                  _DB.error( '[ oAuth2 ] Client ID "%s" has no rights to use the following gran type: "%s"; allowded grant types are: "%s"', sClientID, sGrantType, _aAllowedGrants );
-                }
-                fCallback( false, _bGrant );
-            })
-            .catch(function(error){
-              _DB.error( '[ oAuth2 ] Error %j: Failed to get gran type for specific client', error );
-							fCallback( error );
-						})
-          ;
-				},
-				saveAccessToken: function( sAccessToken, sClientID, sExpires, oUser, fCallback ){
-          // Sometime oUser is not an object... don't ask me why!
-          let _iUserID = ( typeof oUser === 'object' ? oUser.id : oUser );
-					_DB.getModel( 'OAUTH_ACCESS_TOKENS' )
-						.create({
-							access_token: sAccessToken,
-							client_id: sClientID,
-							user_id: _iUserID,
-							expires: sExpires,
-						})
-						.then(function(){
-              _DB.debug( '[ oAuth2 ] Successfully saved access token "%s" for client ID "%s" and user ID "%s"', sAccessToken, sClientID, _iUserID );
-							fCallback();
-						})
-						.catch(function(error){
-              _DB.error( '[ oAuth2 ] Error %s: failed to save access token', error );
-							fCallback( error );
-						})
-					;
-				},
-				saveRefreshToken: function( sRefreshToken, sClientID, sExpires, oUser, fCallback ){
-          // Sometime oUser is not an object... don't ask me why!
-          let _iUserID = ( typeof oUser === 'object' ? oUser.id : oUser );
-					_DB.getModel( 'OAUTH_REFRESH_TOKENS' )
-						.create({
-							refresh_token: sRefreshToken,
-							client_id: sClientID,
-							user_id: _iUserID,
-							expires: sExpires,
-						})
-						.then(function(){
-              _DB.debug( '[ oAuth2 ] Successfully saved refresh token "%s" for client ID "%s" and user ID "%s"', sRefreshToken, sClientID, _iUserID );
-							fCallback();
-						})
-						.catch(function(error){
-              _DB.error( '[ oAuth2 ] Error %s: failed to save refresh token', error );
-							fCallback( error );
-						})
-					;
+      // Setting new filtered structural type
+      _oMetadata.structuralTypes = _aNewStructuralType;
+      // Preparing answer
+      _sMetadata = JSON.stringify( _oMetadata );
+      // Answering
+      _DB.__answerBreezeRequest( oResponse, _sMetadata );
+    } catch( e ){
+      next( e );
+    }
+  }
 
-				}
-			},
-		  grants: [ 'password', 'refresh_token' ],
-      accessTokenLifetime: 3600,
-      //accessTokenLifetime: 30,
-      //refreshTokenLifetime: 60,
-      refreshTokenLifetime: 1209600,
-      //authCodeLifetime: 30,
-		  //debug: function( oError ){ _DB.debug( '[ oAuth ] %j', oError ); }
-      debug: false
-		});
-		_oApp.all( '/oauth/token', _oApp.oauth.grant() );
-		_oApp.use( _oApp.oauth.errorHandler() );
-		// Init Breeze routes
-		_oApp.get( path.posix.join( _DB.__oOptions.sBreezeRequestPath, 'Metadata' ), _oApp.oauth.authorise(), function ( oRequest, oResponse, next ){
-				try {
-          let _sMetadata = _DB._oSequelizeManager.metadataStore.exportMetadata();
-          // Clearing metadata from sensible tables
-          let _oMetadata = JSON.parse( _sMetadata );
-          let _aNewStructuralType = [];
-          for( let _iIndex=0; _iIndex < _oMetadata.structuralTypes.length; _iIndex++ ){
-            var _oTable = _oMetadata.structuralTypes[ _iIndex ];
-            if( _DB.__isSensibleTable( _oTable.shortName ) ){
-              // Removing from metadata
-              delete _oMetadata.resourceEntityTypeMap[ _oTable.shortName ];
-            } else {
-              // Allowed table metadata
-              _aNewStructuralType.push( _oTable );
+  handleBreezeRequestEntity( oRequest, oResponse, next ){
+    let _DB = this;
+    let _sResourceName = oRequest.params.entity;
+    // Filtering request to sensible Data
+    if( _DB.__isSensibleTable( _sResourceName ) ){
+      _DB.error( 'A request is trying to access a sensible table "%s": ', _sResourceName );
+      next();
+    } else {
+      let _sQueryURL = oRequest.originalUrl;
+      // Filtering by DEFAULT behaviour ( You cannot access invisible and protected items )
+      let _oEntityQuery = Breeze.EntityQuery.fromUrl( _sQueryURL, _sResourceName )
+        .where({
+          'or':[
+            { 'isProtected': { '!=': 1 } },
+            {
+              'isProtected': 1,
+              'isVisible': 1
             }
-          }
-          // Setting new filtered structural type
-          _oMetadata.structuralTypes = _aNewStructuralType;
-          // Preparing answer
-          _sMetadata = JSON.stringify( _oMetadata );
-          // Answering
-					_DB.__answerBreezeRequest( oResponse, _sMetadata );
-				} catch( e ){
-					next( e );
-				}
-    });
-		_oApp.get( path.posix.join( _DB.__oOptions.sBreezeRequestPath, ':entity' ), _oApp.oauth.authorise(), function( oRequest, oResponse, next ){
-      let _sResourceName = oRequest.params.entity;
-      // Filtering request to sensible Data
-      if( _DB.__isSensibleTable( _sResourceName ) ){
-        _DB.error( 'A request is trying to access a sensible table "%s": ', _sResourceName );
-        next();
-      } else {
-        let _sQueryURL = oRequest.originalUrl;
-        // Filtering by DEFAULT behaviour ( You cannot access invisible and protected items )
-        let _oEntityQuery = Breeze.EntityQuery.fromUrl( _sQueryURL, _sResourceName )
-          .where({
-            'or':[
-              { 'isProtected': { '!=': 1 } },
-              {
-                'isProtected': 1,
-                'isVisible': 1
-              }
-            ]
-          })
-        ;
+          ]
+        })
+      ;
 console.error( 'TODO: USER Permissions Check on GET query' );
-  			let _oQuery = new BreezeSequelize.SequelizeQuery( _DB._oSequelizeManager, _oEntityQuery );
-  			_oQuery.execute().then( function( results ){
-  					_DB.__answerBreezeRequest( oResponse, results);
-        	})
-  				.catch( next )
-  			;
-      }
-    });
-/*
-    _oApp.post( path.posix.join( _DB.__oOptions.sBreezeRequestPath, 'Save' ).replace(/[\\$'"]/g, "\\$&"), function ( req, res, next ) {
-console.error( 'TODO: save' );
-console.error( 'Checking sensbilbe tables' );
-console.error( 'Checking default where behaviour' );
-console.error( 'Checking user premission' );
-        let saveHandler = new SequelizeSaveHandler(_sequelizeManager, req);
-        saveHandler.save().then(function(r) {
-            returnResults(r, res);
-        }).catch(function(e) {
-            next(e);
-        });
-    });
-    _oApp.post( path.posix.join( _DB.__oOptions.sBreezeRequestPath, 'Purge' ).replace(/[\\$'"]/g, "\\$&"), function( req, res, next ){
-console.error( 'TODO: purge' );
-console.error( 'Checking sensbilbe tables' );
-console.error( 'Checking default where behaviour' );
-console.error( 'Checking user premission' );
-        purge().then(function(){
-           res.send('purged');
-        });
-    });
-    _oApp.post( path.posix.join( _DB.__oOptions.sBreezeRequestPath, 'Reset' ).replace(/[\\$'"]/g, "\\$&"), function( req, res, next ){
-console.error( 'TODO: reset' );
-console.error( 'Checking sensbilbe tables' );
-console.error( 'Checking default where behaviour' );
-console.error( 'Checking user premission' );
-        purge().then(seed).then(function(){
-            res.send('reset');
-        });
-    });
-*/
-    // Adding Ancilla operations by HTTP/HTTPS protocol
-    _oApp.get( '/ancilla/:operation', _oApp.oauth.authorise(), function( oRequest, oResponse ){
-      switch( oRequest.params.operation ){
-        case 'rules':
-          let _oRulesOfEngamenet = {
-            iVersion: Constant._ANCILLA_CORE_VERSION
-          };
-          oResponse.send( JSON.stringify( _oRulesOfEngamenet ) );
-        break;
-        default:
-          oResponse.status(404).end();
-        break;
-      }
-    });
-		// Listening on breeze port
-		_oApp.listen( _DB.__oOptions.iBreezePort );
-    _DB.info( 'Breeze listening on port: %s...', _DB.__oOptions.iBreezePort );
-    return Bluebird.resolve();
-	}
+      let _oQuery = new BreezeSequelize.SequelizeQuery( _DB._oSequelizeManager, _oEntityQuery );
+      _oQuery.execute().then( function( results ){
+          _DB.__answerBreezeRequest( oResponse, results);
+        })
+        .catch( next )
+      ;
+    }
+  }
 
 	__answerBreezeRequest( oResponse, results ){
 		// Answering

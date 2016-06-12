@@ -23,11 +23,13 @@
     "body-parser": "^1.15.0",
     "chalk": "^1.1.1",
     "compression": "^1.6.1",
+    "cors": "^2.7.1",
     "express": "^4.13.4",
     "fs-extra": "^0.26.7",
     "lodash": "^4.6.1",
     "serialport": "^2.0.6",
     "shortid": "^2.2.4",
+    "socket.io": "^1.4.6",
     "sqlite3": "^3.1.1",
     "umzug": "^1.9.1",
     "winston": "^2.2.0"
