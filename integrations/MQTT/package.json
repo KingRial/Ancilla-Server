@@ -1,0 +1,28 @@
+{
+  "name": "ancilla-integration-MQTT",
+  "version": "0.0.1",
+  "description": "Ancilla project - MQTT integration",
+  "keywords": [
+    "Domotique",
+    "Home automation",
+    "Supervisor",
+    "IFTT"
+  ],
+  "homepage": "https://github.com/KingRial/Ancilla-Server",
+  "bugs": {
+    "url": "https://github.com/KingRial/Ancilla-Server/issues"
+  },
+  "license": "MIT",
+  "author": "Riccardo Re <kingrichard1980@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KingRial/Ancilla-Server"
+  },
+  "dependencies": {
+    "body-parser": "^1.15.0",
+    "compression": "^1.6.1",
+    "cors": "^2.7.1",
+    "express": "^4.13.4",
+    "lodash": "^4.8.2"
+  }
+}
