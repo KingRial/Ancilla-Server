@@ -78,8 +78,8 @@ class Core extends Technology {
 				},
 				'ancilla-net': {
 					type: 'server.net',
-					host: Constant._EVENT_CORE_ENDPOINT_NET_HOST,
-					port: Constant._EVENT_CORE_ENDPOINT_NET_PORT,
+					sHost: Constant._EVENT_CORE_ENDPOINT_NET_HOST,
+					iPort: Constant._EVENT_CORE_ENDPOINT_NET_PORT,
 					bIsAncilla: true
 				}/*
 				,

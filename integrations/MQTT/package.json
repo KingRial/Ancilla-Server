@@ -18,11 +18,5 @@
     "type": "git",
     "url": "https://github.com/KingRial/Ancilla-Server"
   },
-  "dependencies": {
-    "body-parser": "^1.15.0",
-    "compression": "^1.6.1",
-    "cors": "^2.7.1",
-    "express": "^4.13.4",
-    "lodash": "^4.8.2"
-  }
+  "dependencies": {}
 }

@@ -35,11 +35,12 @@ console.error( 'TEST USERNAME/PASSWORD', sUsername, sPassword );
 				},
 				'mqtt-client': {
 					type: 'client.mqtt',
-					//sURL: 'mqtt://test.mosquitto.org',
 					//sURL: 'mqtt://79.60.236.79',
 					sURL: 'mqtt://127.0.0.1/api/v1',
-					//sUsername: 'pippo',
-					//sPassword: 'pluto',
+					//sURL: 'mqtt://test.mosquitto.org',
+					sUsername: 'admin',
+					//sUsername: 'Bearer 12c410855d2e1281f90d7d3a551ddedcbedf0497',
+					sPassword: 'dev',
 					oTopics: {
 						'test': ( oBuffer ) => this.onTopic( 'test', oBuffer )
 					}
