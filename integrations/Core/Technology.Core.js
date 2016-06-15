@@ -57,8 +57,25 @@ class Core extends Technology {
 			sDBModelsDir: 'DB/models/breeze',
 			iVersion: Constant._ANCILLA_CORE_VERSION,
 			oEndpoints: {
+				'mqtt-broker': {
+					sType: 'server.mqtt',
+					fAuthenticate: ( oClient, sUsername, sPassword, fCallback ) => this.__mqttAuthenticate( oClient, sUsername, sPassword, fCallback )/*,
+		      fAuthorizeSubscribe: function( oClient, sTopic, fCallback ){
+console.error( 'fAuthenticate: ', sUsername, sPassword );
+		        fCallback( null, true );
+		      },
+		      fAuthorizePublish: function( oClient, sTopic, oBuffer, fCallback ){
+console.error( 'fAuthenticate: ', sUsername, sPassword );
+		        fCallback( null, true );
+		      },
+		      fAuthorizeForward: function( oClient, oBuffer, fCallback ){
+console.error( 'fAuthenticate: ', sUsername, sPassword );
+		        fCallback( null, true );
+		      }
+					*/
+				},
 				'web': {
-					type: 'server.rest',
+					sType: 'server.rest',
 					bUseCors: true,
 					oRoutes: {
 						'all': {
@@ -147,6 +164,32 @@ class Core extends Technology {
 		;
 	}
 
+	__mqttAuthenticate( oClient, sUsername, sPassword, fCallback ){
+		let _Core = this;
+		if( sPassword && sUsername ){ // Grant Type "password"
+			_Core.__authDBGetUser(sUsername, sPassword)
+				.then(function( oUser ){
+					fCallback( null, ( oUser ? true : false ) );
+				})
+				.catch(function(){
+					fCallback( null, false );
+				})
+			;
+		} else if( !sPassword && sUsername ){ // Grant Type "access token"
+			let _sRefreshToken = sUsername.split(' ')[ 0 ];
+			_Core.__authGetAccessToken( _sRefreshToken )
+				.then(function(){
+					fCallback( null, true );
+				})
+				.catch(function(){
+					fCallback( null, false );
+				})
+			;
+		} else {
+			fCallback( null, false );
+		}
+	}
+
 	getAuth(){
 		return this.__oAuth;
 	}
@@ -156,13 +199,9 @@ class Core extends Technology {
     this.__oAuth = OAuth2Server({
       model: {
         getAccessToken: function( sAccessToken, fCallback ){
-          _Core.getDBModel( 'OAUTH_ACCESS_TOKENS' )
-            .findOne({ where: {
-              access_token: sAccessToken
-            } })
+          _Core.__authGetAccessToken( sAccessToken )
             .then(function( oToken ){
               if( oToken ){
-                _Core.debug( 'Successfully get access token: %j', sAccessToken );
                 fCallback( null, {
                   accessToken: oToken.access_token,
                   clientId: oToken.client_id,
@@ -170,24 +209,18 @@ class Core extends Technology {
                   userId: oToken.user_id
                 });
               } else {
-                _Core.error( 'Unable to find access token "%j": ', sAccessToken );
                 return fCallback();
               }
             })
             .catch(function(error){
-              _Core.error( 'Error %j: Failed to get access token: %j', error, sAccessToken );
               fCallback( error );
             })
           ;
         },
         getRefreshToken: function( sRefreshToken, fCallback ){
-          _Core.getDBModel( 'OAUTH_REFRESH_TOKENS' )
-            .findOne({ where: {
-              refresh_token: sRefreshToken
-            } })
+          _Core.__authDBGetRefreshToken( sRefreshToken )
             .then(function( oToken ){
               if( oToken ){
-                _Core.debug( 'Successfully get refresh token: %j', sRefreshToken );
                 fCallback( null, {
                   refreshToken: oToken.refresh_token,
                   clientId: oToken.client_id,
@@ -195,7 +228,6 @@ class Core extends Technology {
                   userId: oToken.user_id
                 });
               } else {
-                _Core.error( 'Unable to find refresh token "%j": ', sRefreshToken );
                 return fCallback();
               }
             })
@@ -206,35 +238,21 @@ class Core extends Technology {
           ;
         },
         revokeRefreshToken: function( sRefreshToken, fCallback) {
-          _Core.getDBModel( 'OAUTH_REFRESH_TOKENS' )
-            .destroy({
-              where: {
-                refresh_token: sRefreshToken
-              }
-            })
+          _Core.__authDBRevokeRefreshToken( sRefreshToken )
             .then(function(){
-              _Core.debug( 'Successfully revoke refresh token: %j', sRefreshToken );
               fCallback( null );
             })
             .catch(function(error){
-              _Core.error( 'Error %j: Failed to revoke refresh token: %j', error, sRefreshToken );
               fCallback( error );
             })
           ;
-          //dal.doDelete(OAuthRefreshTokenTable, { refreshToken: { S: bearerToken }}, callback);
         },
         getClient: function( sClientID, sClientSecret, fCallback ){
-          let _sHashedSecret = crypto.createHash('sha1').update( sClientSecret ).digest('hex');
-          _Core.getDBModel( 'OAUTH_CLIENTS' )
-            .findOne({ where: {
-              client_id: sClientID
-            } })
+          _Core.__authDBGetClient( sClientID, sClientSecret )
             .then(function( oClient ){
-              if( !oClient || ( sClientSecret !== null && oClient.client_secret !== _sHashedSecret ) ){
-                _Core.error( 'Unable to find client with ID "%j": ', sClientID, ( !oClient ? 'client doesn\'t exists' : 'wrong secret used' ) );
+              if( oClient ){
                 return fCallback();
               } else {
-                _Core.debug( 'Successfully get client: "%s"', oClient.client_id );
                 fCallback( null, {
                   clientId: oClient.client_id,
                   clientSecret: oClient.client_secret
@@ -242,91 +260,49 @@ class Core extends Technology {
               }
             })
             .catch(function(error){
-              _Core.error( 'Error %j: Failed to get client', error );
               fCallback( error );
             })
           ;
         },
         getUser: function( sUsername, sPassword, fCallback ){
-          let _sHashedPassword = crypto.createHash('sha1').update( sPassword ).digest('hex');
-          _Core.getDBModel( 'OAUTH_USERS' )
-            .findOne({ where: {
-              username: sUsername,
-              password: _sHashedPassword
-            } })
+          _Core.__authDBGetUser( sUsername, sPassword )
             .then(function( oUser ){
-              if( oUser ){
-                _Core.debug( 'Successfully get user: "%s"', sUsername );
-              } else {
-                _Core.error( 'Unable to find user "%s"', sUsername );
-              }
               fCallback( null, ( oUser ? oUser.id : false ) );
             })
             .catch(function(error){
-              _Core.error( 'Error %j: Failed to get user', error );
               fCallback( error );
             })
           ;
         },
         grantTypeAllowed: function( sClientID, sGrantType, fCallback ){
-          _Core.getDBModel( 'OAUTH_CLIENTS' )
-            .findOne({ where: {
-              client_id: sClientID
-            } })
-            .then(function( oClient ){
-                let _aAllowedGrants = JSON.parse( oClient.grant_types ) || [];
-                let _bGrant = ( _aAllowedGrants.indexOf( sGrantType ) !== -1 ? true : false );
-                if( !_bGrant ){
-                  _Core.error( 'Client ID "%s" has no rights to use the following gran type: "%s"; allowded grant types are: "%s"', sClientID, sGrantType, _aAllowedGrants );
-                }
-                fCallback( false, _bGrant );
+          _Core.__authIsGrantTypeAllowed( sClientID, sGrantType )
+            .then(function( bIsAllowed ){
+                fCallback( false, bIsAllowed );
             })
             .catch(function(error){
-              _Core.error( 'Error %j: Failed to get gran type for specific client', error );
               fCallback( error );
             })
           ;
         },
         saveAccessToken: function( sAccessToken, sClientID, sExpires, oUser, fCallback ){
-          // Sometime oUser is not an object... don't ask me why!
-          let _iUserID = ( typeof oUser === 'object' ? oUser.id : oUser );
-          _Core.getDBModel( 'OAUTH_ACCESS_TOKENS' )
-            .create({
-              access_token: sAccessToken,
-              client_id: sClientID,
-              user_id: _iUserID,
-              expires: sExpires,
-            })
+          _Core.__authDBSetAccessToken( sAccessToken, sClientID, sExpires, oUser )
             .then(function(){
-              _Core.debug( 'Successfully saved access token "%s" for client ID "%s" and user ID "%s"', sAccessToken, sClientID, _iUserID );
               fCallback();
             })
             .catch(function(error){
-              _Core.error( 'Error %s: failed to save access token', error );
               fCallback( error );
             })
           ;
         },
         saveRefreshToken: function( sRefreshToken, sClientID, sExpires, oUser, fCallback ){
-          // Sometime oUser is not an object... don't ask me why!
-          let _iUserID = ( typeof oUser === 'object' ? oUser.id : oUser );
-          _Core.getDBModel( 'OAUTH_REFRESH_TOKENS' )
-            .create({
-              refresh_token: sRefreshToken,
-              client_id: sClientID,
-              user_id: _iUserID,
-              expires: sExpires,
-            })
+          _Core.__authDBSetRefreshToken( sRefreshToken, sClientID, sExpires, oUser )
             .then(function(){
-              _Core.debug( 'Successfully saved refresh token "%s" for client ID "%s" and user ID "%s"', sRefreshToken, sClientID, _iUserID );
               fCallback();
             })
             .catch(function(error){
-              _Core.error( 'Error %s: failed to save refresh token', error );
               fCallback( error );
             })
           ;
-
         }
       },
       grants: [ 'password', 'refresh_token' ],
@@ -341,6 +317,178 @@ class Core extends Technology {
 		_Core.getEndpoint('web').getApp().use( this.__oAuth.errorHandler() );
 		return Bluebird.resolve();
   }
+
+	__authDBGetUser( sUsername, sPassword ){
+		let _Core = this;
+		let _sHashedPassword = crypto.createHash('sha1').update( sPassword ).digest('hex');
+		return _Core.getDBModel( 'OAUTH_USERS' )
+			.findOne({ where: {
+				username: sUsername,
+				password: _sHashedPassword
+			} })
+			.then(function( oUser ){
+				if( oUser ){
+					_Core.debug( 'Successfully get user: "%s"', sUsername );
+					return Promise.resolve( oUser );
+				} else {
+					_Core.error( 'Unable to find user "%s"', sUsername );
+					return Promise.reject();
+				}
+			})
+			.catch(function(error){
+				_Core.error( 'Error %j: Failed to get user', error );
+				return Promise.reject();
+			})
+		;
+	}
+
+	__authDBGetClient( sClientID, sClientSecret ){
+		let _Core = this;
+		let _sHashedSecret = crypto.createHash('sha1').update( sClientSecret ).digest('hex');
+		return _Core.getDBModel( 'OAUTH_CLIENTS' )
+			.findOne({ where: {
+				client_id: sClientID
+			} })
+			.then(function( oClient ){
+				if( !oClient || ( sClientSecret !== null && oClient.client_secret !== _sHashedSecret ) ){
+					_Core.error( 'Unable to find client with ID "%j": ', sClientID, ( !oClient ? 'client doesn\'t exists' : 'wrong secret used' ) );
+					return Promise.reject();
+				} else {
+					_Core.debug( 'Successfully get client: "%s"', oClient.client_id );
+					return Promise.resolve( oClient );
+				}
+			})
+			.catch(function(error){
+				_Core.error( 'Error %j: Failed to get client', error );
+				return Promise.reject();
+			})
+		;
+	}
+
+	__authIsGrantTypeAllowed( sClientID, sGrantType ){
+		let _Core = this;
+		return _Core.getDBModel( 'OAUTH_CLIENTS' )
+			.findOne({ where: {
+				client_id: sClientID
+			} })
+			.then(function( oClient ){
+					let _aAllowedGrants = JSON.parse( oClient.grant_types ) || [];
+					let _bGrant = ( _aAllowedGrants.indexOf( sGrantType ) !== -1 ? true : false );
+					if( !_bGrant ){
+						_Core.error( 'Client ID "%s" has no rights to use the following gran type: "%s"; allowded grant types are: "%s"', sClientID, sGrantType, _aAllowedGrants );
+					}
+					return Promise.resolve( _bGrant );
+			})
+			.catch(function(error){
+				_Core.error( 'Error %j: Failed to get gran type for specific client', error );
+				return Promise.reject();
+			})
+		;
+	}
+
+	__authDBGetAccessToken( sAccessToken ){
+		let _Core = this;
+		return _Core.getDBModel( 'OAUTH_ACCESS_TOKENS' )
+			.findOne({ where: {
+				access_token: sAccessToken
+			} })
+			.then(function( oToken ){
+				if( oToken ){
+					_Core.debug( 'Successfully get access token: %j', sAccessToken );
+					return Promise.resolve( oToken );
+				} else {
+					_Core.error( 'Unable to find access token "%j": ', sAccessToken );
+					return Promise.reject();
+				}
+			})
+			.catch(function(error){
+				_Core.error( 'Error %j: Failed to get access token: %j', error, sAccessToken );
+			})
+		;
+	}
+
+	__authDBSetAccessToken( sAccessToken, sClientID, sExpires, oUser ){
+		let _Core = this;
+		// Sometime oUser is not an object... don't ask me why!
+		let _iUserID = ( typeof oUser === 'object' ? oUser.id : oUser );
+		_Core.getDBModel( 'OAUTH_ACCESS_TOKENS' )
+			.create({
+				access_token: sAccessToken,
+				client_id: sClientID,
+				user_id: _iUserID,
+				expires: sExpires,
+			})
+			.then(function(){
+				_Core.debug( 'Successfully saved access token "%s" for client ID "%s" and user ID "%s"', sAccessToken, sClientID, _iUserID );
+				Promise.resolve();
+			})
+			.catch(function(error){
+				_Core.error( 'Error %s: failed to save access token', error );
+				Promise.reject();
+			})
+		;
+	}
+
+	__authDBGetRefreshToken( sRefreshToken ){
+		let _Core = this;
+		return _Core.getDBModel( 'OAUTH_REFRESH_TOKENS' )
+			.findOne({ where: {
+				refresh_token: sRefreshToken
+			} })
+			.then(function( oToken ){
+				if( oToken ){
+					_Core.debug( 'Successfully get refresh token: %j', sRefreshToken );
+					return Promise.resolve( oToken );
+				} else {
+					_Core.error( 'Unable to find refresh token "%j": ', sRefreshToken );
+					return Promise.reject();
+				}
+			})
+			.catch(function(error){
+				_Core.error( 'Error %j: Failed to get refresh token: %j', error, sRefreshToken );
+			})
+		;
+	}
+
+	__authDBSetRefreshToken( sRefreshToken, sClientID, sExpires, oUser ){
+		let _Core = this;
+		// Sometime oUser is not an object... don't ask me why!
+		let _iUserID = ( typeof oUser === 'object' ? oUser.id : oUser );
+		return _Core.getDBModel( 'OAUTH_REFRESH_TOKENS' )
+			.create({
+				refresh_token: sRefreshToken,
+				client_id: sClientID,
+				user_id: _iUserID,
+				expires: sExpires,
+			})
+			.then(function(){
+				_Core.debug( 'Successfully saved refresh token "%s" for client ID "%s" and user ID "%s"', sRefreshToken, sClientID, _iUserID );
+				return Promise.resolve();
+			})
+			.catch(function(error){
+				_Core.error( 'Error %s: failed to save refresh token', error );
+				return Promise.reject();
+			})
+		;
+	}
+
+	__authDBRevokeRefreshToken( sRefreshToken ){
+		let _Core = this;
+		return _Core.getDBModel( 'OAUTH_REFRESH_TOKENS' )
+			.destroy({
+				where: {
+					refresh_token: sRefreshToken
+				}
+			})
+			.then(function(){
+				return Promise.resolve();
+			})
+			.catch(function(error){
+				_Core.error( 'Error %j: Failed to revoke refresh token: %j', error, sRefreshToken );
+				return Promise.reject();
+			})
+		;
+	}
 
 	/**
 	* Method called to collect the connected socket looking for all the available endpoints
