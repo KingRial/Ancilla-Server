@@ -25,9 +25,21 @@ class TechnologyMQTT extends Technology {
 			sID: 'MQTT-1',
 			sType: 'Technology.MQTT',
       oEndpoints: {
+				'mqtt-broker': {
+					type: 'server.mqtt'/*,
+					authenticate: function( oClient, sUsername, sPassword, fCallback ){
+console.error( 'TEST USERNAME/PASSWORD', sUsername, sPassword );
+						fCallback( null, false );
+					}
+					*/
+				},
 				'mqtt-client': {
 					type: 'client.mqtt',
-					sURL: 'mqtt://test.mosquitto.org',
+					//sURL: 'mqtt://test.mosquitto.org',
+					//sURL: 'mqtt://79.60.236.79',
+					sURL: 'mqtt://127.0.0.1/api/v1',
+					//sUsername: 'pippo',
+					//sPassword: 'pluto',
 					oTopics: {
 						'test': ( oBuffer ) => this.onTopic( 'test', oBuffer )
 					}
@@ -47,8 +59,8 @@ class TechnologyMQTT extends Technology {
 		this.getEndpoint('mqtt-client').write( 'Hello World!' );
 	}
 
-	onData( oBuffer, oEndpoint, sSocketID ){
-		this.debug('Data received: "%s" from Endpoint: "%s" and socket ID "%s"...', oBuffer.toString(), oEndpoint.getID(), sSocketID );
+	onData( oBuffer, oEndpoint, sTopic ){
+		this.debug('Data received: "%s" from Endpoint: "%s" and topic "%s"...', oBuffer.toString(), oEndpoint.getID(), sTopic );
 	}
 
 	onTopic( sTopic, oBuffer ){
