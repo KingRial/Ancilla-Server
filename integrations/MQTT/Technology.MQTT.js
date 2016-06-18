@@ -4,9 +4,9 @@ let _ = require('lodash');
 let Technology = require('../../lib/ancilla.js').Technology;
 
 /**
- * A Technology used to connect to Domino
+ * A Technology used to connect to MQTT
  *
- * @class	TechnologyIFTT
+ * @class	TechnologyMQTT
  * @public
  *
  * @param	{Object[]}		oOptions		A javascript object of options used to configure the technology behaviour

@@ -33,6 +33,7 @@ class DBCore extends DB {
   constructor( oOptions ){
 		//Default DB Options
 		oOptions = _.extend({
+      sModelsDir: 'DB/models/sequelize',
 			sBreezeRequestPath: '/breeze/',
 			iBreezePort: Constant._PORT_HTTP
 		}, oOptions );

@@ -1,12 +1,12 @@
 {
-  "name": "ancilla-integration-MQTT",
+  "name": "ancilla-integration-Z-Wave",
   "version": "0.0.1",
-  "description": "Ancilla project - MQTT integration",
+  "description": "Ancilla project - Z-Wave integration",
   "keywords": [
     "Domotique",
     "Home automation",
     "Supervisor",
-    "MQTT"
+    "Z-Wave"
   ],
   "homepage": "https://github.com/KingRial/Ancilla-Server",
   "bugs": {
@@ -18,5 +18,7 @@
     "type": "git",
     "url": "https://github.com/KingRial/Ancilla-Server"
   },
-  "dependencies": {}
+  "dependencies": {
+    "openzwave-shared": "^1.2.0"
+  }
 }
