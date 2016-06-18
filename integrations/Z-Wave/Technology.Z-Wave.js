@@ -103,9 +103,6 @@ class TechnologyZWave extends Technology {
 		_oController.on('node event', function( sNodeID, oData ) {
 			_Zwave.debug( 'node ID: "%s" -> Fired event:', sNodeID, oData );
 		});
-		_oController.on('value added', function( sNodeID, commandclass, iValueID ){
-			_Zwave.debug( 'node ID: "%s" -> value added:', sNodeID, commandclass, iValueID );
-		});
 		_oController.on('value changed', function( sNodeID, commandclass, iValueID ){
 			_Zwave.debug( 'node ID: "%s" -> value changed:', sNodeID, commandclass, iValueID );
 		});
@@ -124,16 +121,36 @@ class TechnologyZWave extends Technology {
 		// Handling events which are required to trigger the "ready" event
 		let _aPromiseReady =  new Bluebird( function( fResolve ){
 			let _aReadyPromises = [];
+			let _aNodesDiscovered = [];
+			let _aValuesDiscovered = [];
 			// Updating/Inserting node into "DEVICE" table
 			_oController.on('node ready', function( sNodeID, oNodeinfo ){
-				_Zwave.debug( 'node ID: "%s" -> ready with info:', sNodeID, oNodeinfo );
-				_aReadyPromises.push(
-					_Zwave.__nodeReady( sNodeID, oNodeinfo )
-				);
+				oNodeinfo.node_id = sNodeID;
+				if( _Zwave.isReady() ){
+					_Zwave.__nodesDiscovered( oNodeinfo );
+				} else {
+					_aNodesDiscovered.push( oNodeinfo );
+				}
+			});
+			// Updating/Inserting value into "CHANNEL" table
+			_oController.on('value added', function( sNodeID, sClassID, oValue ){
+				if( _Zwave.isReady() ){
+					_Zwave.__valuesDiscovered( oValue );
+				} else {
+					_aValuesDiscovered.push( oValue );
+				}
 			});
 			// Initial scan completed
 			_oController.on('scan complete', function(){
 				_Zwave.debug( 'Initial network scan completed' );
+				if( _aNodesDiscovered.length !== 0 ){
+					_aReadyPromises.push( _Zwave.__nodesDiscovered( _aNodesDiscovered ) );
+					if( _aValuesDiscovered.length !== 0 ){
+						_aReadyPromises.push( _Zwave.__valuesDiscovered( _aValuesDiscovered ) );
+					}
+				} else {
+					_Zwave.info( 'No node found in the network' );
+				}
 				Bluebird.all( _aReadyPromises ).then(function(){
 					fResolve();
 				});
@@ -146,25 +163,72 @@ class TechnologyZWave extends Technology {
 		return _aPromiseReady;
 	}
 
-	__nodeReady( sNodeID, oNodeinfo ){
+	__nodesDiscovered( aNodesInfo ){
+		aNodesInfo = ( Array.isArray( aNodesInfo ) ? aNodesInfo : [ aNodesInfo ] );
 		let _Zwave = this;
-		//_Zwave.debug( 'node ID: "%s" -> Ready with info:', sNodeID, oNodeinfo );
-		return _Zwave.getDBModel( 'DEVICE' ).findOrCreate({
-				defaults: {
-					name: oNodeinfo.name,
-					description: oNodeinfo.type,
-					product: oNodeinfo.product,
-					productType: oNodeinfo.producttype,
-					productID: oNodeinfo.productid,
-					manufacturer: oNodeinfo.manufacturer,
-					manufacturerID: oNodeinfo.manufacturerid
-				},
-				where: {
-					nodeID: sNodeID
-				}
-			})
-		;
+		return _Zwave.DBTransaction(function( oTransaction ) {
+			let _aQueries = [];
+			aNodesInfo.forEach( function( oNodeinfo ){
+				_Zwave.debug( 'Node ID: "%s" -> Discovered with info:', oNodeinfo.node_id, oNodeinfo );
+				_aQueries.push( _Zwave.getDBModel( 'DEVICE' ).findOrCreate({
+						defaults: {
+							name: oNodeinfo.name,
+							description: oNodeinfo.type,
+							product: oNodeinfo.product,
+							productType: oNodeinfo.producttype,
+							productID: oNodeinfo.productid,
+							manufacturer: oNodeinfo.manufacturer,
+							manufacturerID: oNodeinfo.manufacturerid
+						},
+						where: {
+							nodeID: oNodeinfo.node_id
+						},
+						transaction: oTransaction
+					})
+				);
+			});
+			return Bluebird.all( _aQueries );
+	  });
 	}
+
+	__valuesDiscovered( aValues ){
+		aValues = ( Array.isArray( aValues ) ? aValues : [ aValues ] );
+		let _Zwave = this;
+		return _Zwave.DBTransaction(function( oTransaction ) {
+			let _aQueries = [];
+			aValues.forEach( function( oValue ){
+				_Zwave.debug( 'Node ID: "%s" -> Valued discovered with info:', oValue.node_id, oValue );
+				_aQueries.push( _Zwave.getDBModel( 'CHANNEL' ).findOrCreate({
+						defaults: {
+							valueID: oValue.value_id,
+					    name: oValue.label,
+					    description: oValue.help,
+					    value: oValue.value,
+							values: JSON.stringify( oValue.values ),
+					    minValue: oValue.min,
+					    maxValue: oValue.max,
+					    nodeID: oValue.node_id,
+					    classID: oValue.class_id,
+					    type: oValue.type,
+					    genre: oValue.genre,
+					    instance: oValue.instance,
+					    index: oValue.index,
+					    units: oValue.units,
+					    readOnly: oValue.read_only,
+					    writeOnly: oValue.write_only,
+					    isPolled: oValue.is_plled
+						},
+						where: {
+							valueID: oValue.value_id
+						},
+						transaction: oTransaction
+					})
+				);
+			});
+			return Bluebird.all( _aQueries );
+	  });
+	}
+
 
 	setController( oController ){
 		this.__oController = oController;
