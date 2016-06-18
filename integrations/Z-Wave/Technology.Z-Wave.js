@@ -76,7 +76,8 @@ class TechnologyZWave extends Technology {
 	__readyController(){
 		let _oController = new OZW({
 				Logging: false,
-				ConsoleOutput: this.getConfig().sDebug
+				//ConsoleOutput: this.getConfig().sDebug
+				ConsoleOutput: false
 		});
 		this.setController( _oController );
 		let _Zwave = this;
@@ -86,7 +87,7 @@ class TechnologyZWave extends Technology {
 		});
 		_oController.on('node added', function( sNodeID ){
 			_Zwave.debug( 'Added node ID: "%s"', sNodeID );
-		});
+		} );
 		_oController.on('node naming', function( sNodeID, oNodeinfo ){
 			_Zwave.debug( 'node ID: "%s" -> Naming with info:', sNodeID, oNodeinfo );
 		});
@@ -120,22 +121,49 @@ class TechnologyZWave extends Technology {
 		_oController.on('node available', function( sNodeID, oNodeinfo ){
 			_Zwave.debug( 'Node ID: "%s" -> Available with info:', sNodeID, oNodeinfo );
 		});
-		_oController.on('node ready', function( sNodeID, oNodeinfo ){
-			_Zwave.debug( 'node ID: "%s" -> Ready with info:', sNodeID, oNodeinfo );
-		});
 		// Handling events which are required to trigger the "ready" event
-		let _aReadyPromises = [];
-		// Initial scan completed
-		_aReadyPromises.push( new Bluebird(function( fResolve ){
+		let _aPromiseReady =  new Bluebird( function( fResolve ){
+			let _aReadyPromises = [];
+			// Updating/Inserting node into "DEVICE" table
+			_oController.on('node ready', function( sNodeID, oNodeinfo ){
+				_Zwave.debug( 'node ID: "%s" -> ready with info:', sNodeID, oNodeinfo );
+				_aReadyPromises.push(
+					_Zwave.__nodeReady( sNodeID, oNodeinfo )
+				);
+			});
+			// Initial scan completed
 			_oController.on('scan complete', function(){
 				_Zwave.debug( 'Initial network scan completed' );
-				fResolve();
+				Bluebird.all( _aReadyPromises ).then(function(){
+					fResolve();
+				});
 			});
 			_Zwave.debug( 'connecting to USB ZWave controller: "%s"', _Zwave.getConfig().sUSBController );
-    }) );
-		// Startiing connection
+    });
+		// Starting connection
 		_oController.connect( _Zwave.getConfig().sUSBController );
-		return Bluebird.all( _aReadyPromises );
+		//
+		return _aPromiseReady;
+	}
+
+	__nodeReady( sNodeID, oNodeinfo ){
+		let _Zwave = this;
+		//_Zwave.debug( 'node ID: "%s" -> Ready with info:', sNodeID, oNodeinfo );
+		return _Zwave.getDBModel( 'DEVICE' ).findOrCreate({
+				defaults: {
+					name: oNodeinfo.name,
+					description: oNodeinfo.type,
+					product: oNodeinfo.product,
+					productType: oNodeinfo.producttype,
+					productID: oNodeinfo.productid,
+					manufacturer: oNodeinfo.manufacturer,
+					manufacturerID: oNodeinfo.manufacturerid
+				},
+				where: {
+					nodeID: sNodeID
+				}
+			})
+		;
 	}
 
 	setController( oController ){
