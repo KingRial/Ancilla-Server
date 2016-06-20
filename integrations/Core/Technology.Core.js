@@ -59,7 +59,8 @@ class Core extends Technology {
 			oEndpoints: {
 				'mqtt-broker': {
 					sType: 'server.mqtt',
-					fAuthenticate: ( oClient, sUsername, sPassword, fCallback ) => this.__mqttAuthenticate( oClient, sUsername, sPassword, fCallback )/*,
+					fAuthenticate: ( oClient, sUsername, sPassword, fCallback ) => this.__mqttAuthenticate( oClient, sUsername, sPassword, fCallback ),
+					/*
 		      fAuthorizeSubscribe: function( oClient, sTopic, fCallback ){
 console.error( 'fAuthenticate: ', sUsername, sPassword );
 		        fCallback( null, true );
@@ -73,6 +74,7 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 		        fCallback( null, true );
 		      }
 					*/
+					bIsAncilla: true
 				},
 				'web': {
 					sType: 'server.rest',
@@ -93,12 +95,15 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 						}
 					}
 				},
+				/*
 				'ancilla-net': {
 					type: 'server.net',
 					sHost: Constant._EVENT_CORE_ENDPOINT_NET_HOST,
 					iPort: Constant._EVENT_CORE_ENDPOINT_NET_PORT,
 					bIsAncilla: true
-				}/*
+				}
+				*/
+				/*
 				,
 				'ancilla-websocket': {
 					id: 'ancilla-websocket',
@@ -166,7 +171,11 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 
 	__mqttAuthenticate( oClient, sUsername, sPassword, fCallback ){
 		let _Core = this;
-		if( sPassword && sUsername ){ // Grant Type "password"
+		let _oAddress = oClient.connection.stream.address();
+		if( _oAddress && _oAddress.address === '::ffff:127.0.0.1' ){
+			_Core.debug( 'MQTT client "%s" is local; ignoring authentication check...', oClient.id );
+			fCallback( null, true );
+		} else if( sPassword && sUsername ){ // Grant Type "password"
 			_Core.__authDBGetUser(sUsername, sPassword)
 				.then(function( oUser ){
 					fCallback( null, ( oUser ? true : false ) );

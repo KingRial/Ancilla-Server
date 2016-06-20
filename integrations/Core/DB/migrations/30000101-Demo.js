@@ -86,7 +86,7 @@ module.exports = {
   down: function( migration ) {
     return migration.sequelize.models.OBJECT.destroy({
       where: {
-        id: [ 20, 21, 22, 23, 24, 30]
+        id: [ 20, 21, 22, 23, 24, 30 ]
       }
     })
     .then(
