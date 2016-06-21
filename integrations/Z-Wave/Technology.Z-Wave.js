@@ -397,7 +397,8 @@ class TechnologyZWave extends Technology {
 		})
 			.then( function( sNodeID ){
 				_oController.removeListener('node added', _fHandler);
-				return Bluebird.resolve( sNodeID );
+				let _oNode = _Zwave.getNode( sNodeID );
+				return Bluebird.resolve( _oNode );
 			})
 		;
 	}
@@ -417,8 +418,9 @@ class TechnologyZWave extends Technology {
 		})
 			.then( function( sNodeID ){
 				_oController.removeListener('node removed', _fHandler);
+				let _oNode = _Zwave.getNode( sNodeID );
 				_Zwave.removeNode( sNodeID );
-				return Bluebird.resolve( sNodeID );
+				return Bluebird.resolve( _oNode );
 			})
 		;
 	}
