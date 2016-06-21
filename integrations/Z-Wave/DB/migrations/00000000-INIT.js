@@ -48,7 +48,7 @@ module.exports = {
           transaction: oTransaction
         })
       .then(
-        migration.createTable( 'CHANNEL', {
+        migration.createTable( 'VALUE', {
           id: {
             type: DataTypes.INTEGER,
             primaryKey: true,

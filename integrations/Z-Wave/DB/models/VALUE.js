@@ -1,7 +1,7 @@
 "use strict";
 
 module.exports = function(sequelize, DataTypes) {
- var Table = sequelize.define( 'CHANNEL', {
+ var Table = sequelize.define( 'VALUE', {
    id: {
      type: DataTypes.INTEGER,
      primaryKey: true,

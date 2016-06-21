@@ -34,6 +34,7 @@ class TechnologyZWave extends Technology {
       //sUSBController: '\\\\.\\COM4',
 			//sUSBController: 'COM4',
 //TODO: security key for pair security
+//TODO: re-enable DB
 			//bUseDB: true
 		}, oOptions );
 		// Calling inherited constructor
@@ -73,16 +74,13 @@ class TechnologyZWave extends Technology {
 					_Zwave.getController().setValue(3,37,1,0,false);
 				break;
 				case 'pair\n':
-					console.error('Pair node');
-					_Zwave.getController().addNode( false );
+					_Zwave.pair();
 				break;
 				case 'pair security\n':
-					console.error('Pair node security');
-					_Zwave.getController().addNode( true );
+					_Zwave.pair( true );
 				break;
 				case 'unpair\n':
-					console.error('unpair node');
-					_Zwave.getController().removeNode();
+					_Zwave.unpair();
 				break;
 				case 'hard reset\n':
 					console.error('hard reset');
@@ -91,6 +89,9 @@ class TechnologyZWave extends Technology {
 				case 'soft reset\n':
 					console.error('soft reset');
 					_Zwave.getController().softReset();
+				break;
+				case 'map\n':
+					console.error( 'Map: ', _Zwave.getNodes() );
 				break;
 			}
 	  });
@@ -122,6 +123,8 @@ class TechnologyZWave extends Technology {
 				Logging: false,
 				//ConsoleOutput: this.getConfig().sDebug
 				ConsoleOutput: false
+				// TODO: security
+				//NetworkKey: "0xCA,0xFE,0xBA,0xBE,.... " // <16 bytes total>
 		});
 		this.setController( _oController );
 		let _Zwave = this;
@@ -147,6 +150,9 @@ class TechnologyZWave extends Technology {
 		});
 		_oController.on('node added', function( sNodeID ){
 			_Zwave.debug( 'Node ID: "%s" -> Added', sNodeID );
+		} );
+		_oController.on('node removed', function( sNodeID ){
+			_Zwave.debug( 'Node ID: "%s" -> Removed', sNodeID );
 		} );
 		_oController.on('node naming', function( sNodeID, oNodeInfo ){
 			_Zwave.debug( 'Node ID: "%s" -> Naming with info:', sNodeID, oNodeInfo );
@@ -251,6 +257,10 @@ class TechnologyZWave extends Technology {
 		*/
 	}
 
+	removeNode( iNodeID ){
+		delete this.__oNodes[ iNodeID ];
+	}
+
 	getNode( iID ){
 		return this.__oNodes[ iID ];
 	}
@@ -261,7 +271,15 @@ class TechnologyZWave extends Technology {
 
 	addNodeValue( oValue ){
 		let _Zwave = this;
-		_Zwave.getNode( oValue.node_id ).addValue({
+		let _iNodeID = oValue.node_id;
+		let _oNode = _Zwave.getNode( _iNodeID );
+		if( !_oNode ){
+			_Zwave.addNode({
+				node_id: _iNodeID
+			});
+			_oNode = _Zwave.getNode( _iNodeID );
+		}
+		_oNode.addValue({
       sValueID: oValue.value_id,
       iNodeID: oValue.node_id,
       iClassID: oValue.class_id,
@@ -317,8 +335,8 @@ class TechnologyZWave extends Technology {
 				);
 				let aNodeValues = _.values( _Zwave.getNodeValues( oNodeInfo.node_id ) );
 				aNodeValues.forEach( function( oValue ){
-					// Updating/Inserting value into "CHANNEL" table
-					_aQueries.push( _Zwave.getDBModel( 'CHANNEL' ).findOrCreate({
+					// Updating/Inserting value into "VALUE" table
+					_aQueries.push( _Zwave.getDBModel( 'VALUE' ).findOrCreate({
 							defaults: {
 								valueID: oValue.value_id,
 								name: oValue.label,
@@ -366,28 +384,45 @@ class TechnologyZWave extends Technology {
 	pair( bSecure ){
 		bSecure = bSecure || false;
 		let _Zwave = this;
+		let _oController = _Zwave.getController();
+		let _fHandler = null;
 		return new Bluebird(function( fResolve ){
-			_Zwave.info( 'Pairing...' );
-			_Zwave.getController().addNode( bSecure );
-			_Zwave.getController().once('node added', function( sNodeID ){
+			_fHandler = function( sNodeID ){
 				_Zwave.info( 'Paired Node ID: "%s"', sNodeID );
-				fResolve();
-			} );
-		});
+				fResolve( sNodeID );
+			};
+			_Zwave.info( 'Pairing %s network security...', ( bSecure ? 'WITH' : 'WITHOUT' ) );
+			_oController.on('node added', _fHandler );
+			_oController.addNode( bSecure );
+		})
+			.then( function( sNodeID ){
+				_oController.removeListener('node added', _fHandler);
+				return Bluebird.resolve( sNodeID );
+			})
+		;
 	}
-/*
+
 	unpair(){
 		let _Zwave = this;
+		let _oController = _Zwave.getController();
+		let _fHandler = null;
 		return new Bluebird(function( fResolve ){
-			_Zwave.info( 'Unpairing...' );
-			_Zwave.getController().removeNode();
-			_Zwave.getController().once('node XXXXXTODOXXXX', function( sNodeID ){
+			_fHandler = function( sNodeID ){
 				_Zwave.info( 'Unpaired Node ID: "%s"', sNodeID );
-				fResolve();
-			} );
-		});
+				fResolve( sNodeID );
+			};
+			_Zwave.info( 'Unpairing...' );
+			_oController.on('node removed', _fHandler );
+			_oController.removeNode();
+		})
+			.then( function( sNodeID ){
+				_oController.removeListener('node removed', _fHandler);
+				_Zwave.removeNode( sNodeID );
+				return Bluebird.resolve( sNodeID );
+			})
+		;
 	}
-	*/
+
 }
 
 module.exports = new TechnologyZWave().export( module );
