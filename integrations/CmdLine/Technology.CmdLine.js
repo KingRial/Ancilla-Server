@@ -47,6 +47,7 @@ class TechnologyCmdLine extends Technology {
 			oEndpoints: {
 				'mqtt-client': {
 					sType: 'client.mqtt',
+					//sURL: 'mqtt://192.168.0.81',
 					oTopics: {
 					}
 				}

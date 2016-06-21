@@ -178,23 +178,36 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 		} else if( sPassword && sUsername ){ // Grant Type "password"
 			_Core.__authDBGetUser(sUsername, sPassword)
 				.then(function( oUser ){
+					if( oUser ){
+						_Core.debug( 'MQTT client "%s"( %s ) is authorized using "password" grant type...', oClient.id, _oAddress.address );
+					} else {
+						_Core.error( 'MQTT client "%s"( %s ) is NOT authorized using "password" grant type...', oClient.id, _oAddress.address );
+					}
 					fCallback( null, ( oUser ? true : false ) );
 				})
 				.catch(function(){
+					_Core.error( 'on authorizing MQTT client "%s"( %s ) using "password" grant type', oClient.id, _oAddress.address );
 					fCallback( null, false );
 				})
 			;
 		} else if( !sPassword && sUsername ){ // Grant Type "access token"
-			let _sRefreshToken = sUsername.split(' ')[ 0 ];
-			_Core.__authGetAccessToken( _sRefreshToken )
-				.then(function(){
-					fCallback( null, true );
+			let _sAccessToken = sUsername.split(' ')[ 0 ];
+			_Core.__authGetAccessToken( _sAccessToken )
+				.then(function( oToken ){
+					if( oToken ){
+						_Core.debug( 'MQTT client "%s"( %s ) is authorized using "access token" grant type...', oClient.id, _oAddress.address );
+					} else {
+						_Core.error( 'MQTT client "%s"( %s ) is NOT authorized using "accss token" grant type...', oClient.id, _oAddress.address );
+					}
+					fCallback( null, ( _sAccessToken ? true : false ) );
 				})
 				.catch(function(){
+					_Core.error( 'on authorizing MQTT client "%s"( %s ) using "access token" grant type', oClient.id, _oAddress.address );
 					fCallback( null, false );
 				})
 			;
 		} else {
+			_Core.error( 'MQTT client "%s"( %s ) is NOT authorized: missing credentials...', oClient.id, _oAddress.address );
 			fCallback( null, false );
 		}
 	}

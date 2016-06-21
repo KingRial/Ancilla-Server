@@ -25,18 +25,14 @@ class TechnologyMQTT extends Technology {
 			sID: 'MQTT-1',
 			sType: 'Technology.MQTT',
       oEndpoints: {
-				/*
 				'mqtt-broker': {
 					type: 'server.mqtt'
 				},
-				*/
 				'mqtt-client': {
 					sType: 'client.mqtt',
-					//sURL: 'mqtt://79.60.236.79',
-					//sURL: 'mqtt://127.0.0.1/api/v1',
 					//sURL: 'mqtt://test.mosquitto.org',
-					sURL: 'mqtt://79.60.236.79',
-					sUsername: 'Bearer 033a2b2fcbda8647220d11e237c2d5433b2dccc3',
+					//sURL: 'mqtt://79.60.236.79',
+					//sUsername: 'Bearer 033a2b2fcbda8647220d11e237c2d5433b2dccc3',
 					//sUsername: 'admin',
 					//sPassword: 'dev',
 					oTopics: {

@@ -7,6 +7,8 @@ let Bluebird = require('bluebird');
 
 let Technology = require('../../lib/ancilla.js').Technology;
 
+let Node = require('./lib/Node.js');
+
 /**
  * A Technology used to connect to Z-Wave
  *
@@ -31,7 +33,8 @@ class TechnologyZWave extends Technology {
 			sUSBController: '/dev/ttyACM0',
       //sUSBController: '\\\\.\\COM4',
 			//sUSBController: 'COM4',
-			bUseDB: true
+//TODO: security key for pair security
+			//bUseDB: true
 		}, oOptions );
 		// Calling inherited constructor
 		super( oOptions );
@@ -55,7 +58,6 @@ class TechnologyZWave extends Technology {
 		this.info( 'Z-Wave Technology is ready to process...');
 
 // Testing things
-/*
 	//TODO: https://github.com/OpenZWave/node-openzwave-shared/blob/master/README-api.md
 		let _Zwave = this;
 		process.stdin.resume();
@@ -92,7 +94,7 @@ class TechnologyZWave extends Technology {
 				break;
 			}
 	  });
-*/
+
 	}
 
 	onData( oBuffer, oEndpoint, sTopic ){
@@ -212,7 +214,7 @@ class TechnologyZWave extends Technology {
 			// Initial scan completed
 			_oController.on('scan complete', function(){
 				_Zwave.debug( 'Initial network scan completed' );
-				_aReadyPromises.push( _Zwave.__updateStructureToDB() );
+				//_aReadyPromises.push( _Zwave.__updateStructureToDB() );
 				Bluebird.all( _aReadyPromises ).then(function(){
 					fResolve();
 				});
@@ -227,13 +229,26 @@ class TechnologyZWave extends Technology {
 
 	addNode( oNodeInfo ){
 		let _Zwave = this;
-		_Zwave.debug( 'Node ID: "%s" -> Discovered with info:', oNodeInfo.node_id, oNodeInfo );
-		oNodeInfo = oNodeInfo || {};
-		oNodeInfo.oValues = {};
-		_Zwave.__oNodes[ oNodeInfo.node_id ] = oNodeInfo;
+		let _oNode = this.getNode( oNodeInfo.node_id );
+		_oNode = ( _oNode ? _oNode : new Node() );
+		_oNode.update({
+			iID: oNodeInfo.node_id,
+			sName: oNodeInfo.name,
+      iProductID: oNodeInfo.productid,
+      sProduct: oNodeInfo.product,
+      iProductType: oNodeInfo.producttype,
+      sManufacturer: oNodeInfo.manufacturer,
+      iManufacturerID: oNodeInfo.manufacturerid,
+			sLocality: oNodeInfo.loc
+		});
+		_Zwave.__oNodes[ oNodeInfo.node_id ] = _oNode;
+		_Zwave.debug( 'Node ID: "%s" -> Discovered:', _oNode.getID(), _oNode );
+		/*
 		if( _Zwave.isReady() ){
+			// TODO: viene scatenato anche quando si "risveglia" il device; quindi bisogna lanciare questa operazione solo se si sta facendo pair
 			_Zwave.__updateStructureToDB( oNodeInfo );
 		}
+		*/
 	}
 
 	getNode( iID ){
@@ -246,8 +261,26 @@ class TechnologyZWave extends Technology {
 
 	addNodeValue( oValue ){
 		let _Zwave = this;
-		_Zwave.debug( 'Node ID: "%s" -> Valued discovered with info:', oValue.node_id, oValue );
-		_Zwave.__oNodes[ oValue.node_id ].oValues[ oValue.value_id ] = oValue;
+		_Zwave.getNode( oValue.node_id ).addValue({
+      sValueID: oValue.value_id,
+      iNodeID: oValue.node_id,
+      iClassID: oValue.class_id,
+      sType: oValue.type,
+      sGenre: oValue.genre,
+      iInstance: oValue.instance,
+      iIndex: oValue.index,
+      sLabel: oValue.label,
+      sUnits: oValue.unit,
+      sHelp: oValue.help,
+      bReadOnly: oValue.read_only,
+      bWriteOnly: oValue.write_only,
+      bIsPolled: oValue.is_pollet,
+      fMin: oValue.min,
+      fMax: oValue.max,
+      value: oValue.value
+		});
+		let _oValue = _Zwave.getNode( oValue.node_id ).getValue( oValue.value_id );
+		_Zwave.debug( 'Node ID: "%s" -> Valued discovered:', _oValue.getID(), _oValue );
 	}
 
 	getNodeValue( iNodeID, iValueID ){
@@ -329,6 +362,32 @@ class TechnologyZWave extends Technology {
 		this.debug( 'Using Home ID: "%s"...', sHomeID );
 		this.__sHomeID = sHomeID;
 	}
+
+	pair( bSecure ){
+		bSecure = bSecure || false;
+		let _Zwave = this;
+		return new Bluebird(function( fResolve ){
+			_Zwave.info( 'Pairing...' );
+			_Zwave.getController().addNode( bSecure );
+			_Zwave.getController().once('node added', function( sNodeID ){
+				_Zwave.info( 'Paired Node ID: "%s"', sNodeID );
+				fResolve();
+			} );
+		});
+	}
+/*
+	unpair(){
+		let _Zwave = this;
+		return new Bluebird(function( fResolve ){
+			_Zwave.info( 'Unpairing...' );
+			_Zwave.getController().removeNode();
+			_Zwave.getController().once('node XXXXXTODOXXXX', function( sNodeID ){
+				_Zwave.info( 'Unpaired Node ID: "%s"', sNodeID );
+				fResolve();
+			} );
+		});
+	}
+	*/
 }
 
 module.exports = new TechnologyZWave().export( module );
