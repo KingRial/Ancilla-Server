@@ -387,16 +387,16 @@ class TechnologyZWave extends Technology {
 		let _oController = _Zwave.getController();
 		let _fHandler = null;
 		return new Bluebird(function( fResolve ){
-			_fHandler = function( sNodeID ){
-				_Zwave.info( 'Paired Node ID: "%s"', sNodeID );
-				fResolve( sNodeID );
+			_fHandler = function( iNodeID ){
+				_Zwave.info( 'Paired Node ID: "%s"', iNodeID );
+				fResolve( iNodeID );
 			};
 			_Zwave.info( 'Pairing %s network security...', ( bSecure ? 'WITH' : 'WITHOUT' ) );
-			_oController.on('node added', _fHandler );
+			_oController.on('node ready', _fHandler );
 			_oController.addNode( bSecure );
 		})
 			.then( function( sNodeID ){
-				_oController.removeListener('node added', _fHandler);
+				_oController.removeListener('node ready', _fHandler);
 				let _oNode = _Zwave.getNode( sNodeID );
 				return Bluebird.resolve( _oNode );
 			})
@@ -408,9 +408,9 @@ class TechnologyZWave extends Technology {
 		let _oController = _Zwave.getController();
 		let _fHandler = null;
 		return new Bluebird(function( fResolve ){
-			_fHandler = function( sNodeID ){
-				_Zwave.info( 'Unpaired Node ID: "%s"', sNodeID );
-				fResolve( sNodeID );
+			_fHandler = function( iNodeID ){
+				_Zwave.info( 'Unpaired Node ID: "%s"', iNodeID );
+				fResolve( iNodeID );
 			};
 			_Zwave.info( 'Unpairing...' );
 			_oController.on('node removed', _fHandler );
