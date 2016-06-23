@@ -245,6 +245,7 @@ class TechnologyZWave extends Technology {
       iProductType: oNodeInfo.producttype,
       sManufacturer: oNodeInfo.manufacturer,
       iManufacturerID: oNodeInfo.manufacturerid,
+			sType: oNodeInfo.type,
 			sLocality: oNodeInfo.loc
 		});
 		_Zwave.__oNodes[ oNodeInfo.node_id ] = _oNode;

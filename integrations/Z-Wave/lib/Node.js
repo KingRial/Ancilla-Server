@@ -46,6 +46,7 @@ class Node extends Object {
       iProductType: null,
       sManufacturer: 'unknown',
       iManufacturerID: null,
+			sType: '',
       sLocality: ''
 		}, oOptions );
 		// Initializing Event
