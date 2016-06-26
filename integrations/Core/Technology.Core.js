@@ -49,7 +49,7 @@ class Core extends Technology {
 	constructor( oCoreOptions ){
 		// Calling inherited constructor
 		super();
-		this.configDefault({
+		this.config({
 			sID: 'Core',
 			sType: 'Core',
 			bUseDB: true,
