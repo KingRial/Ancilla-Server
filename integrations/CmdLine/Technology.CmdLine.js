@@ -18,6 +18,7 @@
  *  along with "Ancilla Libary".  If not, see <http://www.gnu.org/licenses/>.
 */
 let Technology = require('../../lib/ancilla.js').Technology;
+let Event = require('../../lib/ancilla.js').Event;
 
 let _ = require( 'lodash' );
 
@@ -77,14 +78,32 @@ class TechnologyCmdLine extends Technology {
 			switch( _sAction ){
 				case 'subscribe':
 					_sTopic = _aText.slice( 1 ).join(' ');
-					_CmdLine.info( 'Subscribing to: "%s"...', _sTopic );
+					_CmdLine.debug( 'Subscribing to: "%s"...', _sTopic, function( oError ){
+						if( !oError ){
+							_CmdLine.info( 'Subscribed to "%s"', _sTopic );
+						} else {
+							_CmdLine.error( 'Error on subscribing to "%s"', _sTopic, oError );
+						}
+					} );
 					_oEndpoint.subscribe( _sTopic );
 				break;
 				case 'publish':
 					_sTopic = _aText[ 1 ];
 					_sValue = _aText.slice( 2 ).join(' ');
-					_CmdLine.info( 'Publishing to: "%s": %s... ', _sTopic, _sValue );
-					_oEndpoint.publish( _sTopic, _sValue );
+					_CmdLine.debug( 'Publishing on topic "%s": ""%s"... ', _sTopic, _sValue );
+					_oEndpoint.publish( _sTopic, _sValue/*, function(){
+						_CmdLine.info( 'Published to: "%s": %s... ', _sTopic, _sValue );
+					}*/ );
+				break;
+				case 'tech':
+					_sTopic = 'integrations/Core';
+					let _oEvent = new Event( {
+						sFromID: _CmdLine.getID(),
+						sType: 'technology',
+						sAction: _aText[ 1 ],
+						sTechnology: _aText[ 2 ],
+					} );
+					_oEndpoint.publish( _sTopic, _oEvent.toString() );
 				break;
 			}
 		});

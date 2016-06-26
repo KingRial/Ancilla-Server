@@ -74,6 +74,12 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 		        fCallback( null, true );
 		      }
 					*/
+				},
+				'mqtt-client': {
+					sType: 'client.mqtt',
+					oTopics: {
+						'integrations/Core': null
+					},
 					bIsAncilla: true
 				},
 				'web': {
@@ -1054,79 +1060,6 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 		Core.super_.prototype.onAncilla.apply( this, [ oEvent, oGateway, oGatewayEndpoint, iSocketIndex, _aPromisesToHandle ] );
 	}
 	*/
-
-	onAncilla( oEvent ){
-		this.debug( 'Received Ancilla Event: "%j".', oEvent );
-		let _oGateway = arguments[1];
-		let _oGatewayEndpoint = arguments[2];
-		let _iSocketIndex = arguments[3];
-		let _sTechnologyID = oEvent.getFrom();
-		let _sEventType = oEvent.getType();
-		//let _bCheckIfLogged = true;
-		// Handling Ancilla Event Requests sent to the core and preparing answer if needed
-		if( oEvent.isRequest() && ( oEvent.getTo() === this.getID() ) ){
-			let _Core = this;
-			// Technology is Logged Promise
-			let _oIsLoggedPromise = new Bluebird( function( fResolve, fReject ){
-				let _oPromiseToReturn = null;
-				switch( _sEventType ){
-					// login check can be ignored on the following cases
-					case Constant._EVENT_TYPE_INTRODUCE:
-					case Constant._EVENT_TYPE_LOGIN:
-					case Constant._EVENT_TYPE_LOGOUT:
-						_Core.debug( 'Ancilla event "%s" not requires a login check...', _sEventType );
-						_oPromiseToReturn = fResolve();
-						break;
-					default: // Login check must be done
-						_oPromiseToReturn = _Core.__technologyIsLogged( _sTechnologyID )
-							.then( function( bIsLogged ){
-								if( bIsLogged ){
-									_Core.debug( 'Technology "%s" is logged...', _sTechnologyID );
-									fResolve();
-								} else {
-									_Core.debug( 'Technology "%s" is NOT logged...', _sTechnologyID );
-									fReject( Constant._ERROR_TECHNOLOGY_NOT_LOGGED );
-								}
-							})
-							.catch( function ( oError ){
-								_Core.error( '[ Error "%j" ] on checking it technology "%s" is logged', oError, _sTechnologyID );
-							})
-						;
-					break;
-				}
-				return _oPromiseToReturn;
-			});
-			// Main promise
-			let _oAncillaEventPromise = new Bluebird( function( fResolve, fReject ){
-				// Choosing the ancilla event type handler
-				let _fAncillaEvent = _Core.getAncillaEvent( _sEventType );
-				if( typeof _fAncillaEvent === 'function' ){
-					return _fAncillaEvent( _Core );
-				} else {
-					_Core.error( 'Unknown Ancilla Event: "%s" [ %j ]...', oEvent.getType(), oEvent );
-					fReject( Constant._ERROR_EVENT_UNKNOWN );
-				}
-			});
-			// Main Promises handler
-			Bluebird.all( [ _oAncillaEventPromise, _oIsLoggedPromise ] )
-				.then( function( aArguments ){ // the "All" will return an array of arguments; since the Main promise is the first promise, the first argument of the array will be the returned Event
-					let _oEvent = aArguments[ 0 ];
-					//_Core.__onAncillaDispatch( oEvent );
-					_Core.__onAncillaDispatch( _oEvent );
-				})
-				.catch( function( iError ){
-					_Core.error( '[ Error "%s" ] on Ancilla Event: "%s" [ %j ]; closing socket without answering...', iError, oEvent.getType(), oEvent );
-					_Core.getGateway( _oGateway.getID() )
-						.getEndpoints( _oGatewayEndpoint.getID() )
-							.getConnectedSockets( _iSocketIndex )
-								.close()
-					;
-				})
-			;
-		} else {
-			this.__onAncillaDispatch( oEvent );
-		}
-	}
 
 	/**
 	 * Method called to load object's surrounding from DB by ID
