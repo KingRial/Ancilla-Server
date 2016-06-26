@@ -614,109 +614,112 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 	* @method    startTechnology
 	* @public
 	*
-	* @param	{Object}	technology							The Technology's ID or An object describing the technology; if not used the method will seek datas on DB
+	* @param	{String|Object}	technology				The Technology's ID or An object describing the technology; if using the simple ID the method will seek datas on DB
 	* @param	{Object}	[ oTechnologyType ]			An object describing the technology type; if not used the method will seek datas on DB
 	*
 	* @return    {Object}	this method will return a promise
 	*
 	* @example
-	*   Core.startTechnology( 'Bridge-1' );
-	*   Core.startTechnology( { technology: 'Bridge', path: 'integrations/Bridge/Technology.Bridge.node.js', language:'nodejs', options: { oEndpoints: {"Endpoint-1":{"type":"client.net","host":"192.168.0.110","port":10001},"Endpoint-2":{"type":"server.net","host":"localhost","port":10002}} } );
+	*   Core.startTechnology( 'Example-1' );
+	*   Core.startTechnology( { technology: 'Example', path: 'integrations/Example/Technology.Example.node.js', language:'nodejs', options: { oEndpoints: {"Endpoint-1":{"type":"client.net","host":"192.168.0.110","port":10001},"Endpoint-2":{"type":"server.net","host":"localhost","port":10002}} } );
 	*/
 	startTechnology( technology, oTechnologyType ){
 		let _Core = this;
 		let _oTechnology = null;
 		// Collecting technology data if needed
 		return ( ( !technology || _.isString( technology ) ) ? _Core.getTechnology( technology ) : Bluebird.resolve( technology ) )
-		.then( function( oTechnologyResult ){
-			_oTechnology = oTechnologyResult;
-			// Collecting technology type data if needed
-			return ( !oTechnologyType ? _Core.getTechnologyType({
-				where: {
-					type: _oTechnology.technology
+			.then( function( oTechnologyResult ){
+				if( _.isEmpty( oTechnologyResult ) ){
+					return Bluebird.reject( 'Unknown technology: "' + technology + '"' );
+				} else {
+					_oTechnology = oTechnologyResult;
+					// Collecting technology type data if needed
+					return ( !oTechnologyType ? _Core.getTechnologyType({ where: { type: _oTechnology.technology } }) : Bluebird.resolve( oTechnologyType ) );
 				}
-			}) : Bluebird.resolve( oTechnologyType ) );
-		} )
-		.then( function( oTechnology ){
-			let _sTechonlogyPathFile = Path.basename( oTechnologyType.path );
-			let _sTechonlogyPathDir = Path.dirname( oTechnologyType.path );
-			let _aAdditionalArgs = JSON.parse( oTechnology.options );
-			// Building Args to start process
-			let _oArgs = {
-			  sID: oTechnology.name,
-			  sCwd: _sTechonlogyPathDir
-			};
-			if( !_Core.__oProcesses[ _oArgs.sID ] ){
-				for( let _sArg of _aAdditionalArgs ){
-				  switch( _sArg ){
-				    case 'oEndpoints':
-				      let _oCoreEndpoint = _Core.getEndpoints( 'Core' );
-							let _sCoreEndpointID = _oCoreEndpoint.getID();
-				      let _oEndpoints = _aAdditionalArgs.oEndpoints || {};
-							if( _oEndpoints[ _sCoreEndpointID ] ){
-								_Core.warn( 'Endpoint to "Ancilla Core" has already been configured on technology "%s"...',_oArgs.sID );
-							} else {
-					      _oEndpoints[ _sCoreEndpointID ] = {
-					        id: _sCoreEndpointID,
-					        type: 'client.net',
-					        host: _oCoreEndpoint.getHost(),
-					        port: _oCoreEndpoint.getPort(),
-					        bIsAncilla: true
-					      };
-				      _oArgs[ _sArg ] = JSON.stringify( _oEndpoints );
+			} )
+			.then( function( oTechnologyType ){
+				if( _.isEmpty( oTechnologyType ) ){
+					 _Core.error( 'Unknown technology type: "%s"', technology );
+				} else {
+					let _sTechonlogyPathFile = Path.basename( oTechnologyType.path );
+					let _sTechonlogyPathDir = Path.dirname( oTechnologyType.path );
+					let _aAdditionalArgs = JSON.parse( _oTechnology.options );
+					// Building Args to start process
+					let _oArgs = {
+					  sID: _oTechnology.name,
+					  sCwd: _sTechonlogyPathDir
+					};
+					if( !_Core.__oProcesses[ _oArgs.sID ] ){
+						for( let _sArg of _aAdditionalArgs ){
+						  switch( _sArg ){
+						    case 'oEndpoints':
+						      let _oCoreEndpoint = _Core.getEndpoints( 'Core' );
+									let _sCoreEndpointID = _oCoreEndpoint.getID();
+						      let _oEndpoints = _aAdditionalArgs.oEndpoints || {};
+									if( _oEndpoints[ _sCoreEndpointID ] ){
+										_Core.warn( 'Endpoint to "Ancilla Core" has already been configured on technology "%s"...',_oArgs.sID );
+									} else {
+							      _oEndpoints[ _sCoreEndpointID ] = {
+							        id: _sCoreEndpointID,
+							        type: 'client.net',
+							        host: _oCoreEndpoint.getHost(),
+							        port: _oCoreEndpoint.getPort(),
+							        bIsAncilla: true
+							      };
+						      _oArgs[ _sArg ] = JSON.stringify( _oEndpoints );
+								}
+						    break;
+						    default:
+						      _oArgs[ _sArg ] = _aAdditionalArgs[ _sArg ];
+						    break;
+						  }
 						}
-				    break;
-				    default:
-				      _oArgs[ _sArg ] = _aAdditionalArgs[ _sArg ];
-				    break;
-				  }
+						// Checking supported technology script type
+						switch( oTechnologyType.language ){
+						  case 'nodejs':
+						    _Core.info( 'Starting technology "%s" type: "%s"\n\tArguments: "%j"', _oTechnology.name, _oTechnology.technology, _oArgs );
+						  break;
+						  default:
+						    _Core.error( 'Unable to start technology "%s" ( type: "%s", File: "%s", cwd: "%s" ). Script type "%s" is not supported by Core.', _oTechnology.name, _oTechnology.technology, _sTechonlogyPathFile, _sTechonlogyPathDir, oTechnologyType.language );
+						  break;
+						}
+						// Creating new Process by technology ( if the current script type is supported )
+						switch( oTechnologyType.language ){
+						  case 'nodejs':
+						    // Init Args for spawning child process
+						    let _aArgs = [ oTechnologyType.path ];
+								for( let _sField in _oArgs ){
+									if( _oArgs.hasOwnProperty( _sField ) ){
+										let _value = _oArgs[ _sField ];
+										if( _value ){
+							        _aArgs.push( '--' + _sField );
+							        if( _value !== true ){
+							          _aArgs.push( _value );
+							        }
+							      }
+									}
+						    }
+						    // Spawning process
+						    let _oProcess = ChildProcess.spawn( 'node', _aArgs );
+						    // Pi@ping process stdout/stderror to Core stdout/stderror
+						    _oProcess.stdout.pipe( process.stdout );
+						    _oProcess.stderr.pipe( process.stderr );
+								// Remembering child process
+								_Core.__oProcesses[ _oArgs.sID ] = _oProcess.pid;
+						  break;
+						  default:
+						    _Core.error( 'Unknown technology script type: "%s"; unable to start technology.', oTechnologyType.language );
+						  break;
+						}
+					} else {
+						_Core.error( 'Technology already spawned: "%s"', _oArgs.sID );
+					}
 				}
-				// Checking supported technology script type
-				switch( oTechnologyType.language ){
-				  case 'nodejs':
-				    _Core.info( 'Starting technology "%s" type: "%s"\n\tArguments: "%j"', oTechnology.name, oTechnology.technology, _oArgs );
-				  break;
-				  default:
-				    _Core.error( 'Unable to start technology "%s" ( type: "%s", File: "%s", cwd: "%s" ). Script type "%s" is not supported by Core.', oTechnology.name, oTechnology.technology, _sTechonlogyPathFile, _sTechonlogyPathDir, oTechnologyType.language );
-				  break;
-				}
-				// Creating new Process by technology ( if the current script type is supported )
-				switch( oTechnologyType.language ){
-				  case 'nodejs':
-				    // Init Args for spawning child process
-				    let _aArgs = [ oTechnologyType.path ];
-						//for( let [ _sField, _value ] of Object.entries( _oArgs ) ){
-						for( let _sField in _oArgs ){
-							if( _oArgs.hasOwnProperty( _sField ) ){
-								let _value = _oArgs[ _sField ];
-								if( _value ){
-					        _aArgs.push( '--' + _sField );
-					        if( _value !== true ){
-					          _aArgs.push( _value );
-					        }
-					      }
-							}
-				    }
-				    // Spawning process
-				    let _oProcess = ChildProcess.spawn( 'node', _aArgs );
-				    // Pi@ping process stdout/stderror to Core stdout/stderror
-				    _oProcess.stdout.pipe( process.stdout );
-				    _oProcess.stderr.pipe( process.stderr );
-						// Remembering child process
-						_Core.__oProcesses[ _oArgs.sID ] = _oProcess.pid;
-				  break;
-				  default:
-				    _Core.error( 'Unknown technology script type: "%s"; unable to start technology.', oTechnologyType.language );
-				  break;
-				}
-			} else {
-				_Core.error( 'Technology already spawned: "%s"', _oArgs.sID );
-			}
-		})
-		.catch( function( oError ){
-			_Core.error( '[ Error: %s ] Unable to get technology.', oError );
-			return this;
-		})
+			})
+			.catch( function( oError ){
+				_Core.error( '[ Error: %s ] Unable to get technology.', oError );
+				return this;
+			})
 		;
 	}
 

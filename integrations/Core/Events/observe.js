@@ -1,3 +1,5 @@
+"use strict";
+
 var Ancilla = require('../../../lib/ancilla.js');
 var Constant = Ancilla.Constant;
 
@@ -19,4 +21,4 @@ module.exports = {
 // TODO:
     console.error( 'TODO: _EVENT_TYPE_OBSERVE_OBJECTS: %j ', oEvent );
   }
-}
+};

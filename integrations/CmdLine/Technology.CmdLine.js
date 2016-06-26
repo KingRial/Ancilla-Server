@@ -101,7 +101,7 @@ class TechnologyCmdLine extends Technology {
 						sFromID: _CmdLine.getID(),
 						sType: 'technology',
 						sAction: _aText[ 1 ],
-						sTechnology: _aText[ 2 ],
+						sTechnologyID: _aText[ 2 ],
 					} );
 					_oEndpoint.publish( _sTopic, _oEvent.toString() );
 				break;

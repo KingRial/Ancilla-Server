@@ -1,3 +1,5 @@
+"use strict";
+
 var Ancilla = require('../../../lib/ancilla.js');
 var Constant = Ancilla.Constant;
 
@@ -19,7 +21,7 @@ module.exports = {
   name: Constant._EVENT_TYPE_UPDATE,
   event: function( oCore, oEvent ) {
   }
-}
+};
 /*
       case Constant._EVENT_TYPE_UPDATE:
 //TODO: handle events linked to obj or relation!
