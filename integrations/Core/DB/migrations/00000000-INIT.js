@@ -32,13 +32,15 @@ module.exports = {
               path: './integrations/Core/Technology.Core.node.js'
             }, {
               transaction: oTransaction
-            })
+            }
+          )
           // Adding Web Technology Type
           .then( migration.sequelize.models.TECHNOLOGY_TYPE.create({
-            type: 'Web'
-          }, {
-            transaction: oTransaction
-          }) )
+              type: 'Web'
+            }, {
+              transaction: oTransaction
+            })
+          )
           // Adding Bridge Technology Type
           .then( migration.sequelize.models.TECHNOLOGY_TYPE.create(  {
               type: 'Bridge',
@@ -46,7 +48,17 @@ module.exports = {
               path: './integrations/Bridge/Technology.Bridge.node.js'
             }, {
               transaction: oTransaction
-            }) )
+            })
+          )
+          // Adding Bridge Technology Type
+          .then( migration.sequelize.models.TECHNOLOGY_TYPE.create(  {
+              type: 'Z-Wave',
+              language: 'nodejs',
+              path: './integrations/Z-Wave/Technology.Z-Wave.node.js'
+            }, {
+              transaction: oTransaction
+            })
+          )
         )
   //Creating OBJECT table
         .then(
@@ -124,7 +136,17 @@ module.exports = {
               type: 'TECHNOLOGY',
               technology: 'Core',
               isProtected: true,
-              options: ''
+              options: '{"sID":"Core"}'
+            }, {
+              transaction: oTransaction
+            })
+          )
+          .then(  migration.sequelize.models.OBJECT.create({
+              name: '_LANG_TECHNOLOGY_ZWAVE',
+              type: 'TECHNOLOGY',
+              technology: 'Z-Wave',
+              isEnabled: false,
+              options: '{"sID":"Z-Wave"}'
             }, {
               transaction: oTransaction
             })

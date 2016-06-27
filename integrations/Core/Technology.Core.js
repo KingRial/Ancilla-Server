@@ -57,7 +57,7 @@ class Core extends Technology {
 			sDBModelsDir: 'DB/models/breeze',
 			iVersion: Constant._ANCILLA_CORE_VERSION,
 			oEndpoints: {
-				'mqtt-broker': {
+				'Core': {
 					sType: 'server.mqtt',
 					fAuthenticate: ( oClient, sUsername, sPassword, fCallback ) => this.__mqttAuthenticate( oClient, sUsername, sPassword, fCallback ),
 					/*
@@ -119,7 +119,7 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 			}
 		});
 		this.config( oCoreOptions );
-		this.__oProcesses = {};
+		this.__oProcessePIDs = {};
 	}
 
 	/**
@@ -591,12 +591,12 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 				type: Constant._OBJECT_TYPE_TECHNOLOGY
 			}
 		};
-		// Extending where clause if technology's ID is set as parameter
-		_oWhere = _.extend(_oWhere, ( options ?
+		// Extending where clause if technology's ID is set as parameter ( Lookins a name or a JSON field in the option column )
+		_oWhere = _.extend( _oWhere, ( options ?
 			( _.isString( options ) ?
 				{
 					where: {
-						name: options
+						$or: [{ name: options }, {options: { $like: '%"sID":"' + options + '"%' } }]
 					}
 				} : options
 			) : {} )
@@ -606,6 +606,18 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 
 	getTechnologyType( oWhere ){
 		return this.getDBModel( 'TECHNOLOGY_TYPE' ).findAll( oWhere );
+	}
+
+	__getTechnologyPID( sTechnologyID ){
+		return this.__oProcessePIDs[ sTechnologyID ];
+	}
+
+	__setTechnologyPID( sTechnologyID, iPID ){
+		this.__oProcessePIDs[ sTechnologyID ] = iPID;
+	}
+
+	__deleteTechnologyPID( sTechnologyID ){
+		delete this.__oProcessePIDs[ sTechnologyID ];
 	}
 
 	/**
@@ -628,87 +640,85 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 		let _oTechnology = null;
 		// Collecting technology data if needed
 		return ( ( !technology || _.isString( technology ) ) ? _Core.getTechnology( technology ) : Bluebird.resolve( technology ) )
-			.then( function( oTechnologyResult ){
-				if( _.isEmpty( oTechnologyResult ) ){
+			.then( function( aTechnologyResults ){
+				if( _.isEmpty( aTechnologyResults ) ){
 					return Bluebird.reject( 'Unknown technology: "' + technology + '"' );
-				} else {
-					_oTechnology = oTechnologyResult;
-					// Collecting technology type data if needed
-					return ( !oTechnologyType ? _Core.getTechnologyType({ where: { type: _oTechnology.technology } }) : Bluebird.resolve( oTechnologyType ) );
+				} else if( aTechnologyResults.length > 1 ){
+					return Bluebird.reject( 'Too many technologies: "' + technology + '"' );
 				}
+				_oTechnology = aTechnologyResults[ 0 ];
+				// Collecting technology type data if needed
+				return ( !oTechnologyType ? _Core.getTechnologyType({ where: { type: _oTechnology.technology } }) : Bluebird.resolve( oTechnologyType ) );
 			} )
-			.then( function( oTechnologyType ){
-				if( _.isEmpty( oTechnologyType ) ){
+			.then( function( aTechnologyTypes ){
+				if( _.isEmpty( aTechnologyTypes ) ){
+					_Core.error( 'Unknown technology type: "%s"', _oTechnology.technology );
+					return Bluebird.reject( 'Unknown technology type: "%s"', _oTechnology.technology );
+				} else if( aTechnologyTypes.length > 1 ){
+					return Bluebird.reject( 'Too many technology types: "' + _oTechnology.technology + '"' );
+				}
+				let _oTechnologyType = aTechnologyTypes[ 0 ];
+				if( _.isEmpty( _oTechnologyType ) ){
 					 _Core.error( 'Unknown technology type: "%s"', technology );
 				} else {
-					let _sTechonlogyPathFile = Path.basename( oTechnologyType.path );
-					let _sTechonlogyPathDir = Path.dirname( oTechnologyType.path );
-					let _aAdditionalArgs = JSON.parse( _oTechnology.options );
+					let _sTechonlogyPathFile = Path.basename( _oTechnologyType.path );
+					let _sTechonlogyPathDir = Path.dirname( _oTechnologyType.path );
+					let _oArgs = _.extend( {
+						sID: _oTechnology.name,
+					  sCwd: _sTechonlogyPathDir,
+						oEndpoints: {}
+					}, JSON.parse( _oTechnology.options ) );
 					// Building Args to start process
-					let _oArgs = {
-					  sID: _oTechnology.name,
-					  sCwd: _sTechonlogyPathDir
-					};
-					if( !_Core.__oProcesses[ _oArgs.sID ] ){
-						for( let _sArg of _aAdditionalArgs ){
-						  switch( _sArg ){
-						    case 'oEndpoints':
-						      let _oCoreEndpoint = _Core.getEndpoints( 'Core' );
-									let _sCoreEndpointID = _oCoreEndpoint.getID();
-						      let _oEndpoints = _aAdditionalArgs.oEndpoints || {};
-									if( _oEndpoints[ _sCoreEndpointID ] ){
-										_Core.warn( 'Endpoint to "Ancilla Core" has already been configured on technology "%s"...',_oArgs.sID );
-									} else {
-							      _oEndpoints[ _sCoreEndpointID ] = {
-							        id: _sCoreEndpointID,
-							        type: 'client.net',
-							        host: _oCoreEndpoint.getHost(),
-							        port: _oCoreEndpoint.getPort(),
-							        bIsAncilla: true
-							      };
-						      _oArgs[ _sArg ] = JSON.stringify( _oEndpoints );
-								}
-						    break;
-						    default:
-						      _oArgs[ _sArg ] = _aAdditionalArgs[ _sArg ];
-						    break;
-						  }
+					if( !_Core.__getTechnologyPID( _oArgs.sID ) ){
+			      let _oCoreEndpoint = _Core.getEndpoints( 'Core' );
+						let _sCoreEndpointID = _oCoreEndpoint.getID();
+						if( _oArgs.oEndpoints[ _sCoreEndpointID ] ){
+							_Core.warn( 'Endpoint to "Ancilla Core" has already been configured on technology "%s"...',_oArgs.sID );
+						} else {
+				      _oArgs.oEndpoints[ _sCoreEndpointID ] = {
+				        sID: _sCoreEndpointID,
+				        sType: 'client.mqtt',
+				        sHost: _oCoreEndpoint.getHost(),
+				        iPort: _oCoreEndpoint.getPort(),
+				        bIsAncilla: true
+				      };
 						}
 						// Checking supported technology script type
-						switch( oTechnologyType.language ){
+						switch( _oTechnologyType.language ){
 						  case 'nodejs':
-						    _Core.info( 'Starting technology "%s" type: "%s"\n\tArguments: "%j"', _oTechnology.name, _oTechnology.technology, _oArgs );
+						    _Core.info( 'Starting technology "%s" type: "%s"\n\tArguments: ', _oTechnology.name, _oTechnology.technology, _oArgs );
 						  break;
 						  default:
-						    _Core.error( 'Unable to start technology "%s" ( type: "%s", File: "%s", cwd: "%s" ). Script type "%s" is not supported by Core.', _oTechnology.name, _oTechnology.technology, _sTechonlogyPathFile, _sTechonlogyPathDir, oTechnologyType.language );
+						    _Core.error( 'Unable to start technology "%s" ( type: "%s", File: "%s", cwd: "%s" ). Script type "%s" is not supported by Core.', _oTechnology.name, _oTechnology.technology, _sTechonlogyPathFile, _sTechonlogyPathDir, _oTechnologyType.language );
 						  break;
 						}
 						// Creating new Process by technology ( if the current script type is supported )
-						switch( oTechnologyType.language ){
+						switch( _oTechnologyType.language ){
 						  case 'nodejs':
 						    // Init Args for spawning child process
-						    let _aArgs = [ oTechnologyType.path ];
+						    let _aArgs = [ '--harmony', _oTechnologyType.path ];
 								for( let _sField in _oArgs ){
 									if( _oArgs.hasOwnProperty( _sField ) ){
 										let _value = _oArgs[ _sField ];
 										if( _value ){
 							        _aArgs.push( '--' + _sField );
 							        if( _value !== true ){
-							          _aArgs.push( _value );
+							          _aArgs.push( ( typeof _value === 'string' ? _value : JSON.stringify( _value ) ) );
 							        }
 							      }
 									}
 						    }
 						    // Spawning process
+								_Core.debug( 'Launching node process with following arguments: ', _aArgs );
 						    let _oProcess = ChildProcess.spawn( 'node', _aArgs );
 						    // Pi@ping process stdout/stderror to Core stdout/stderror
 						    _oProcess.stdout.pipe( process.stdout );
 						    _oProcess.stderr.pipe( process.stderr );
 								// Remembering child process
-								_Core.__oProcesses[ _oArgs.sID ] = _oProcess.pid;
+								_Core.__setTechnologyPID( _oArgs.sID, _oProcess.pid );
 						  break;
 						  default:
-						    _Core.error( 'Unknown technology script type: "%s"; unable to start technology.', oTechnologyType.language );
+						    _Core.error( 'Unknown technology script type: "%s"; unable to start technology.', _oTechnologyType.language );
 						  break;
 						}
 					} else {
@@ -732,12 +742,13 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 	* @param	{Object}	sTechnologyID							Technology's ID
 	*
 	* @example
-	*   Core.stopTechnology( 'Brdige-1' );
+	*   Core.stopTechnology( 'Example-1' );
 	*/
 	stopTechnology( sTechnologyID ){
-		if( this.__oProcesses[ sTechnologyID ] ){
-			process.kill( this.__oProcesses[ sTechnologyID ] );
-			delete this.__oProcesses[ sTechnologyID ];
+		let _iPID = this.__getTechnologyPID( sTechnologyID );
+		if( _iPID ){
+			process.kill( _iPID );
+			this.__deleteTechnologyPID( sTechnologyID );
 		} else {
 			this.error( 'Unable to stop technology "%s".', sTechnologyID );
 		}
