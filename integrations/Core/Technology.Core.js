@@ -78,7 +78,7 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 				'mqtt-client': {
 					sType: 'client.mqtt',
 					oTopics: {
-						'integrations/Core': null
+						'api/v1/integrations/Core': null
 					},
 					bIsAncilla: true
 				},
@@ -87,14 +87,14 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 					bUseCors: true,
 					oRoutes: {
 						'all': {
-							'/oauth/token': ( oRequest, oResponse, next ) => this.getAuth().grant()( oRequest, oResponse, next )
+							'api/v1/oauth/token': ( oRequest, oResponse, next ) => this.getAuth().grant()( oRequest, oResponse, next )
 						},
 						'get': {
-							'/breeze/:Metadata': [
+							'api/v1/breeze/:Metadata': [
 								( oRequest, oResponse, next ) => this.getAuth().authorise()( oRequest, oResponse, next ),
 								( oRequest, oResponse, next ) => this.getDB().handleBreezeRequestMetadata( oRequest, oResponse, next )
 							],
-							'/breeze/:entity': [
+							'api/v1/breeze/:entity': [
 								( oRequest, oResponse, next ) => this.getAuth().authorise()( oRequest, oResponse, next ),
 								( oRequest, oResponse, next ) => this.getDB().handleBreezeRequestEntity( oRequest, oResponse, next )
 							]

@@ -27,7 +27,7 @@ let Node = require('./lib/Node.js');
 class TechnologyZWave extends Technology {
 	constructor( oOptions ){
 		//Default Technology Options
-		oOptions = _.extend({
+		oOptions = _.merge({
 			sID: 'ZWave-1',
 			sType: 'Technology.Z-Wave',
 			sUSBController: '/dev/ttyACM0',
@@ -57,7 +57,7 @@ class TechnologyZWave extends Technology {
 		super.onReady();
 		// Current method
 		this.info( 'Z-Wave Technology is ready to process...');
-
+/*
 // Testing things
 	//TODO: https://github.com/OpenZWave/node-openzwave-shared/blob/master/README-api.md
 		let _Zwave = this;
@@ -95,7 +95,7 @@ class TechnologyZWave extends Technology {
 				break;
 			}
 	  });
-
+*/
 	}
 
 	onData( oBuffer, oEndpoint, sTopic ){
@@ -112,7 +112,10 @@ class TechnologyZWave extends Technology {
 		let _Zwave = this;
 		return super.onDestroy()
 			.then( function(){
-				_Zwave.getController().disconnect( _Zwave.getConfig().sUSBController );
+				let _oController = _Zwave.getController();
+				if( _oController ){ // Checking if controller has benn already declared
+					_oController.disconnect( _Zwave.getConfig().sUSBController );
+				}
 				return this;
 			})
 		;

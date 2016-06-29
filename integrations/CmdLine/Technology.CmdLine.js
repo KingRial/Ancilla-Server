@@ -96,7 +96,7 @@ class TechnologyCmdLine extends Technology {
 					}*/ );
 				break;
 				case 'tech':
-					_sTopic = 'integrations/Core';
+					_sTopic = 'api/v1/integrations/Core';
 					let _oEvent = new Event( {
 						sFromID: _CmdLine.getID(),
 						sType: 'technology',
