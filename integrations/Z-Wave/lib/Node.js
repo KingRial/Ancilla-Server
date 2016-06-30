@@ -47,7 +47,8 @@ class Node extends Object {
       sManufacturer: 'unknown',
       iManufacturerID: null,
 			sType: '',
-      sLocality: ''
+      sLocality: '',
+			iStatus: 1 // Status Byte ( 0 is all fine )( by default is Dead / Timeout / Not Ready )
 		}, oOptions );
 		// Initializing Event
 		super( oOptions );
@@ -57,6 +58,42 @@ class Node extends Object {
   getID(){
     return this.iID;
   }
+
+	getStatus(){
+		return this.iStatus;
+	}
+
+	setAlive(){
+		this.iStatus = 0;
+	}
+
+	isAlive(){
+		return ( !this.isDead() ); // Mask: 100
+	}
+
+	setDead(){
+		this.iStatus = this.iStatus ^ 4; // Mask: 100
+	}
+
+	isDead(){
+		return ( this.iStatus & 4 ? true : false ); // Mask: 100
+	}
+
+	setTimeout(){
+		this.iStatus = this.iStatus ^ 2; // Mask: 010
+	}
+
+	isTimedOut(){
+		return ( this.iStatus & 2 ? true : false ); // Mask: 010
+	}
+
+	setReady(){
+		this.setAlive();
+	}
+
+	isReady(){
+		return ( this.iStatus & 1 ? false : true ); // Mask: 001
+	}
 
   update( oOptions ){
     this.__fillByOptions( oOptions );

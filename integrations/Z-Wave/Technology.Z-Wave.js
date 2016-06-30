@@ -67,11 +67,11 @@ class TechnologyZWave extends Technology {
 			switch( text ){
 				case 'on\n':
 				 console.error('ON');
-					_Zwave.getController().setValue(3,37,1,0,true);
+					_Zwave.getController().setValue(2,37,1,0,true);
 				break;
 				case 'off\n':
 				console.error('OFF');
-					_Zwave.getController().setValue(3,37,1,0,false);
+					_Zwave.getController().setValue(2,37,1,0,false);
 				break;
 				case 'pair\n':
 					_Zwave.pair();
@@ -150,6 +150,7 @@ class TechnologyZWave extends Technology {
 			_Zwave.debug( 'Node ID: "%s" -> Ready', sNodeID );
 			oNodeInfo.node_id = sNodeID;
 			_Zwave.addNode( oNodeInfo ); // All correct Infos
+			_Zwave.onNodeReady( sNodeID );
 		});
 		_oController.on('node added', function( sNodeID ){
 			_Zwave.debug( 'Node ID: "%s" -> Added', sNodeID );
@@ -199,9 +200,11 @@ class TechnologyZWave extends Technology {
         break;
 		    case 1:
 		        _Zwave.debug('Node ID: "%s" -> timeout', sNodeID );
+						_Zwave.onNodeTimeout( sNodeID );
         break;
 		    case 2:
 	        _Zwave.debug('Node ID: "%s" -> nop', sNodeID );
+					_Zwave.onNodeNop( sNodeID );
         break;
 		    case 3:
 	        _Zwave.debug('Node ID: "%s" -> node awake', sNodeID );
@@ -211,9 +214,11 @@ class TechnologyZWave extends Technology {
         break;
 		    case 5:
 	        _Zwave.debug('Node ID: "%s" -> node dead', sNodeID );
+					_Zwave.onNodeDead( sNodeID );
         break;
 		    case 6:
 	        _Zwave.debug('Node ID: "%s" -> node alive', sNodeID );
+					_Zwave.onNodeAlive( sNodeID );
         break;
     	}
 		});
@@ -235,6 +240,27 @@ class TechnologyZWave extends Technology {
 		//
 		return _aPromiseReady;
 	}
+
+	onNodeTimeout( iNodeID ){
+		this.getNode( iNodeID ).setTimeout();
+	}
+
+	onNodeNop( iNodeID ){
+		this.getNode( iNodeID ).setTimeout();
+	}
+
+	onNodeDead( iNodeID ){
+		this.getNode( iNodeID ).setDead();
+	}
+
+	onNodeAlive( iNodeID ){
+		this.getNode( iNodeID ).setAlive();
+	}
+
+	onNodeReady( iNodeID ){
+		this.getNode( iNodeID ).setReady();
+	}
+
 
 	addNode( oNodeInfo ){
 		let _Zwave = this;
@@ -427,6 +453,19 @@ class TechnologyZWave extends Technology {
 				return Bluebird.resolve( _oNode );
 			})
 		;
+	}
+
+	reset( bHardReset ){
+		let _Zwave = this;
+		let _oController = _Zwave.getController();
+		if( bHardReset ){
+			_Zwave.info( 'Configuration hard reset' );
+			_oController.hardReset();
+		} else {
+			_Zwave.info( 'Configuration soft reset' );
+			_oController.softReset();
+		}
+		return Promise.resolve();
 	}
 
 }

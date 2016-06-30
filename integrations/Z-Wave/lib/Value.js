@@ -41,10 +41,10 @@ class Value extends Object {
       sValueID: '',
       iNodeID: null,
       iClassID: null,
+			iInstance: null,
+      iIndex: null,
       sType: '',
       sGenre: '',
-      iInstance: null,
-      iIndex: null,
       sLabel: '',
       sUnits: '',
       sHelp: '',
@@ -65,6 +65,10 @@ class Value extends Object {
   getClassID(){
     return this.sClassID;
   }
+
+	setValue(value){
+		this.value = value;
+	}
 }
 
 module.exports = Value;

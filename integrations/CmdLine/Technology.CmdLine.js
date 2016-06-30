@@ -75,6 +75,7 @@ class TechnologyCmdLine extends Technology {
 			let _sAction = _aText[ 0 ];
 			let _sTopic;
 			let _sValue;
+			let _oEvent;
 			switch( _sAction ){
 				case 'subscribe':
 					_sTopic = _aText.slice( 1 ).join(' ');
@@ -97,11 +98,30 @@ class TechnologyCmdLine extends Technology {
 				break;
 				case 'tech':
 					_sTopic = 'api/v1/integrations/Core';
-					let _oEvent = new Event( {
+					_oEvent = new Event( {
 						sFromID: _CmdLine.getID(),
 						sType: 'technology',
 						sAction: _aText[ 1 ],
 						sTechnologyID: _aText[ 2 ],
+					} );
+					_oEndpoint.publish( _sTopic, _oEvent.toString() );
+				break;
+				case 'set':
+					_sTopic = 'api/v1/integrations/Core';
+					_oEvent = new Event( {
+						sFromID: _CmdLine.getID(),
+						sType: 'set',
+						iObjID: _aText[ 1 ],
+						value: _aText[ 2 ]
+					} );
+					_oEndpoint.publish( _sTopic, _oEvent.toString() );
+				break;
+				case 'pair':
+				case 'unpair':
+					_sTopic = 'api/v1/integrations/Core';
+					_oEvent = new Event( {
+						sFromID: _CmdLine.getID(),
+						sType: _sAction
 					} );
 					_oEndpoint.publish( _sTopic, _oEvent.toString() );
 				break;
