@@ -19,7 +19,7 @@
 */
 let _ = require('lodash');
 
-let Object = require('../../../lib/ancilla.js').Object;
+let AncillaObject = require('../../../lib/ancilla.js').Object;
 let Value = require('./Value.js');
 
 /**
@@ -35,7 +35,7 @@ let Value = require('./Value.js');
  * @example
  *		new Node();
  */
-class Node extends Object {
+class Node extends AncillaObject {
 	constructor( oOptions ){
 		// Default Options
 		oOptions = _.extend({

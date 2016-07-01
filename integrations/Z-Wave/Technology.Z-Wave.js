@@ -1,13 +1,9 @@
 "use strict";
 
-let OZW = require('openzwave-shared');
-
 let _ = require('lodash');
 let Bluebird = require('bluebird');
 
 let Technology = require('../../lib/ancilla.js').Technology;
-
-let ZWaveNode = require('./lib/Node.js');
 
 /**
  * A Technology used to connect to Z-Wave
@@ -36,349 +32,86 @@ class TechnologyZWave extends Technology {
 //TODO: security key for pair security
 //TODO: re-enable DB
 			//bUseDB: true
+			oEndpoints: {
+				'openzwave': {
+					module: require( './lib/Endpoint.openzwave.js' )
+				}
+			}
 		}, oOptions );
 		// Calling inherited constructor
 		super( oOptions );
-		this.__oNodes = {};
-		this.__oNodesValues = {};
 	}
-
-	ready(){
-		let _Zwave = this;
-		return super.ready()
-			.then( function(){
-				return _Zwave.__readyController();
-			})
-		;
+/*
+//TODO: should handle such method differently in the future ( should be configurable on Endpoint's options )
+	__initEndpoint( oEndpoint ){
+		let _ZWave = this;
+		switch( oEndpoint.getID() ){
+			case 'openzwave':
+				oEndpoint.on( 'node available', ( oNodeInfo ) => _ZWave.onNodeAvailable( oNodeInfo ) );
+				oEndpoint.on( 'node ready', ( oNodeInfo ) => _ZWave.onNodeReady( oNodeInfo ) );
+				oEndpoint.on( 'node nop', ( iNodeID ) => _ZWave.onNodeNop( iNodeID ) );
+				oEndpoint.on( 'node timeout', ( iNodeID ) => _ZWave.onNodeTimeout( iNodeID ) );
+				oEndpoint.on( 'node dead', ( iNodeID ) => _ZWave.onNodeDead( iNodeID ) );
+				oEndpoint.on( 'node alive', ( iNodeID ) => _ZWave.onNodeAlive( iNodeID ) );
+				//oEndpoint.on( 'value added', ( oValue ) => _ZWave.onValueAdded( oValue ) );
+			break;
+		}
+		super.__initEndpoint( oEndpoint );
 	}
-
+*/
 	onReady(){
 		// Calling inherited method
 		super.onReady();
 		// Current method
 		this.info( 'Z-Wave Technology is ready to process...');
+	}
+
+	onData( oBuffer, oEndpoint, sSocketID ){
+		switch( oEndpoint.getID() ){
+			case 'openzwave':
+				this.debug('Data received: "%s" from node ID "%s"...', oBuffer.toString(), sSocketID );
+			break;
+		}
+	}
+
 /*
-// Testing things
-	//TODO: https://github.com/OpenZWave/node-openzwave-shared/blob/master/README-api.md
-		let _Zwave = this;
-		process.stdin.resume();
-	  process.stdin.setEncoding('utf8');
-	  process.stdin.on('data', function( text ){
-			switch( text ){
-				case 'on\n':
-				 console.error('ON');
-					_Zwave.getController().setValue(2,37,1,0,true);
-				break;
-				case 'off\n':
-				console.error('OFF');
-					_Zwave.getController().setValue(2,37,1,0,false);
-				break;
-				case 'pair\n':
-					_Zwave.pair();
-				break;
-				case 'pair security\n':
-					_Zwave.pair( true );
-				break;
-				case 'unpair\n':
-					_Zwave.unpair();
-				break;
-				case 'hard reset\n':
-					console.error('hard reset');
-					_Zwave.getController().hardReset();
-				break;
-				case 'soft reset\n':
-					console.error('soft reset');
-					_Zwave.getController().softReset();
-				break;
-				case 'map\n':
-					console.error( 'Map: ', _Zwave.getNodes() );
-				break;
-			}
-	  });
-*/
-	}
-
-	onData( oBuffer, oEndpoint, sTopic ){
-		this.debug('Data received: "%s" from Endpoint: "%s" and topic "%s"...', oBuffer.toString(), oEndpoint.getID(), sTopic );
-	}
-
-	/*
-		onDatagram( oDatagram, oParsedBuffer, oBuffer, oEndpoint, sSocketID ){
-			this.debug('Datagram received: "%s" from Endpoint: "%s" and socket ID "%s": "%s" parsed to...', oDatagram.getID(), oEndpoint.getID(), sSocketID, oBuffer.toString( 'hex' ), oParsedBuffer );
+	onDatagram( oDatagram, oParsedBuffer, oBuffer, oEndpoint, sSocketID ){
+		switch( oEndpoint.getID() ){ // Useless when you have only one "listening" endpoint
+			case 'openzwave':
+				this.debug('Datagram received: "%s" from Endpoint: "%s" and socket ID "%s": "%s" parsed to...', oDatagram.getID(), oEndpoint.getID(), sSocketID, oBuffer.toString( 'hex' ), oParsedBuffer );
+			break;
+			default:
+				// Calling inherited method
+				super.onDatagram( oDatagram, oParsedBuffer, oBuffer, oEndpoint, sSocketID );
+			break;
 		}
+	}
 	*/
-
-	onDestroy(){
-		let _Zwave = this;
-		return super.onDestroy()
-			.then( function(){
-				let _oController = _Zwave.getController();
-				if( _oController ){ // Checking if controller has benn already declared
-					_oController.disconnect( _Zwave.getConfig().sUSBController );
-				}
-				return this;
-			})
-		;
+/*
+	onNodeAvailable( oNode ){
+this.error( '------------>Node Available', oNode );
 	}
 
-	__readyController(){
-		let _oController = new OZW({
-				Logging: false,
-				//ConsoleOutput: this.getConfig().sDebug
-				ConsoleOutput: false
-				// TODO: security
-				//NetworkKey: "0xCA,0xFE,0xBA,0xBE,.... " // <16 bytes total>
-		});
-		this.setController( _oController );
-		let _Zwave = this;
-		// Driver events
-		_oController.on('driver ready', function( sHomeID ){
-			_Zwave.setHomeID( sHomeID );
-			_Zwave.debug( 'Starting network scan...' );
-		});
-		_oController.on('driver failed', function( sHomeID ){
-			_Zwave.setHomeID( sHomeID );
-			_Zwave.error( 'Failed to start controller driver...' );
-		});
-		// Node events
-		_oController.on('node available', function( sNodeID, oNodeInfo ){
-			_Zwave.debug( 'Node ID: "%s" -> Available', sNodeID );
-			oNodeInfo.node_id = sNodeID;
-			_Zwave.addNode( oNodeInfo ); // Partial Infos
-		});
-		_oController.on('node ready', function( sNodeID, oNodeInfo ){
-			_Zwave.debug( 'Node ID: "%s" -> Ready', sNodeID );
-			oNodeInfo.node_id = sNodeID;
-			_Zwave.addNode( oNodeInfo ); // All correct Infos
-			_Zwave.onNodeReady( sNodeID );
-		});
-		_oController.on('node added', function( sNodeID ){
-			_Zwave.debug( 'Node ID: "%s" -> Added', sNodeID );
-		} );
-		_oController.on('node removed', function( sNodeID ){
-			_Zwave.debug( 'Node ID: "%s" -> Removed', sNodeID );
-		} );
-		_oController.on('node naming', function( sNodeID, oNodeInfo ){
-			_Zwave.debug( 'Node ID: "%s" -> Naming with info:', sNodeID, oNodeInfo );
-		});
-		_oController.on('node event', function( sNodeID, oData ) {
-			_Zwave.debug( 'Node ID: "%s" -> Fired event:', sNodeID, oData );
-		});
-		// Value events
-		_oController.on('value added', function( sNodeID, sClassID, oValue ){
-			_Zwave.addNodeValue( oValue );
-		});
-		_oController.on('value changed', function( sNodeID, commandclass, iValueID ){
-			_Zwave.debug( 'node ID: "%s" -> value changed:', sNodeID, commandclass, iValueID );
-		});
-		_oController.on('value refresh', function( sNodeID, commandclass, iValueID ){
-			_Zwave.debug( 'node ID: "%s" -> value refresh:', sNodeID, commandclass, iValueID );
-		});
-		_oController.on('value removed', function( sNodeID, commandclass, iValueID ){
-			_Zwave.debug( 'node ID: "%s" -> value removed:', sNodeID, commandclass, iValueID );
-		});
-		// Polling events
-		_oController.on('polling enabled', function( sNodeID ){
-			_Zwave.debug( 'node ID: "%s" -> Polling enabled', sNodeID );
-		});
-		_oController.on('polling disabled', function( sNodeID ){
-			_Zwave.debug( 'node ID: "%s" -> Polling disabled:', sNodeID );
-		});
-		// Scene events
-		_oController.on('scene event', function( sNodeID, iSceneID ){
-			_Zwave.debug( 'node ID: "%s" -> Fired scene ID: "%s"', sNodeID, iSceneID );
-		});
-		// Controller events
-		_oController.on('controller command', function(sNodeID, iCtrlState, iCtrlError, sHelpMsg ){
-			_Zwave.debug( 'node ID: "%s" -> controller command:', sNodeID, iCtrlState, iCtrlError, sHelpMsg );
-		});
-		// Notification event
-		_oController.on('notification', function( sNodeID, iNotify ) {
-	    switch( iNotify ){
-		    case 0:
-		        _Zwave.debug('Node ID: "%s" -> message complete', sNodeID );
-        break;
-		    case 1:
-		        _Zwave.debug('Node ID: "%s" -> timeout', sNodeID );
-						_Zwave.onNodeTimeout( sNodeID );
-        break;
-		    case 2:
-	        _Zwave.debug('Node ID: "%s" -> nop', sNodeID );
-					_Zwave.onNodeNop( sNodeID );
-        break;
-		    case 3:
-	        _Zwave.debug('Node ID: "%s" -> node awake', sNodeID );
-        break;
-		    case 4:
-	        _Zwave.debug('Node ID: "%s" -> node sleep', sNodeID );
-        break;
-		    case 5:
-	        _Zwave.debug('Node ID: "%s" -> node dead', sNodeID );
-					_Zwave.onNodeDead( sNodeID );
-        break;
-		    case 6:
-	        _Zwave.debug('Node ID: "%s" -> node alive', sNodeID );
-					_Zwave.onNodeAlive( sNodeID );
-        break;
-    	}
-		});
-		// Handling events which are required to trigger the "ready" event
-		let _aPromiseReady =  new Bluebird( function( fResolve ){
-			let _aReadyPromises = [];
-			// Initial scan completed
-			_oController.on('scan complete', function(){
-				_Zwave.debug( 'Initial network scan completed' );
-				//_aReadyPromises.push( _Zwave.__updateStructureToDB() );
-				Bluebird.all( _aReadyPromises ).then(function(){
-					fResolve();
-				});
-			});
-			_Zwave.debug( 'connecting to USB ZWave controller: "%s"', _Zwave.getConfig().sUSBController );
-    });
-		// Starting connection
-		_oController.connect( _Zwave.getConfig().sUSBController );
-		//
-		return _aPromiseReady;
+	onNodeReady( oNode ){
+console.error( '------------>Node Ready', oNode );
 	}
 
-	onNodeTimeout( iNodeID ){
-		this.getNode( iNodeID ).setTimeout();
+	onNodeTimeout( oNode ){
+console.error( '------------>Node timeout', oNode );
 	}
 
-	onNodeNop( iNodeID ){
-		this.getNode( iNodeID ).setTimeout();
+	onNodeNop( oNode ){
+console.error( '------------>Node Nop', oNode );
 	}
 
-	onNodeDead( iNodeID ){
-		this.getNode( iNodeID ).setDead();
+	onNodeDead( oNode ){
+console.error( '------------>Node Dead', oNode );
 	}
 
-	onNodeAlive( iNodeID ){
-		this.getNode( iNodeID ).setAlive();
+	onNodeAlive( oNode ){
+console.error( '------------>Node Alive', oNode );
 	}
-
-	onNodeReady( iNodeID ){
-		this.getNode( iNodeID ).setReady();
-	}
-
-
-	addNode( oNodeInfo ){
-		let _Zwave = this;
-		let _oNode = this.getNode( oNodeInfo.node_id );
-		_oNode = ( _oNode ? _oNode : new ZWaveNode() );
-		_oNode.update({
-			iID: oNodeInfo.node_id,
-			sName: oNodeInfo.name,
-      iProductID: oNodeInfo.productid,
-      sProduct: oNodeInfo.product,
-      iProductType: oNodeInfo.producttype,
-      sManufacturer: oNodeInfo.manufacturer,
-      iManufacturerID: oNodeInfo.manufacturerid,
-			sType: oNodeInfo.type,
-			sLocality: oNodeInfo.loc
-		});
-		_Zwave.__oNodes[ oNodeInfo.node_id ] = _oNode;
-		_Zwave.debug( 'Node ID: "%s" -> Discovered:', _oNode.getID(), _oNode );
-		/*
-		if( _Zwave.isReady() ){
-			// TODO: viene scatenato anche quando si "risveglia" il device; quindi bisogna lanciare questa operazione solo se si sta facendo pair
-			_Zwave.__updateStructureToDB( oNodeInfo );
-		}
-		*/
-	}
-
-	removeNode( iNodeID ){
-		delete this.__oNodes[ iNodeID ];
-	}
-
-	getNode( iID ){
-		return this.__oNodes[ iID ];
-	}
-
-	getNodes(){
-		return this.__oNodes;
-	}
-
-	/**
-	 * Method used to add a new node's value
-	 *
-	 * @method    addNodeValue
-	 * @public
-	 *
-	 * @param	{Number}	oValue	The node's value object
-	 *
-	 * @return	{Void}
-	 *
-	 * @example
-	 *   Zwave.addNodeValue( oFooValueObject );
-	 */
-	addNodeValue( oValue ){
-		let _Zwave = this;
-		let _iNodeID = oValue.node_id;
-		let _oNode = _Zwave.getNode( _iNodeID );
-		if( !_oNode ){
-			_Zwave.addNode({
-				node_id: _iNodeID
-			});
-			_oNode = _Zwave.getNode( _iNodeID );
-		}
-		_oNode.addValue({
-      sValueID: oValue.value_id,
-      iNodeID: oValue.node_id,
-      iClassID: oValue.class_id,
-      sType: oValue.type,
-      sGenre: oValue.genre,
-      iInstance: oValue.instance,
-      iIndex: oValue.index,
-      sLabel: oValue.label,
-      sUnits: oValue.unit,
-      sHelp: oValue.help,
-      bReadOnly: oValue.read_only,
-      bWriteOnly: oValue.write_only,
-      bIsPolled: oValue.is_pollet,
-      fMin: oValue.min,
-      fMax: oValue.max,
-      value: oValue.value
-		});
-		let _oValue = _Zwave.getNode( oValue.node_id ).getValue( oValue.value_id );
-		_Zwave.debug( 'Node ID: "%s" -> Valued discovered:', _oValue.getID(), _oValue );
-	}
-
-	/**
-	 * Method used to get a specific values related to a specific node
-	 *
-	 * @method    getNodeValue
-	 * @public
-	 *
-	 * @param	{Number}	iNodeID	The node ID
-	 * @param	{String}	sValueID	The value ID
-	 *
-	 * @return	{Object}	The object which represents the value
-	 *
-	 * @example
-	 *   Zwave.getNodeValue( 1, '1-34-1-1' );
-	 */
-	getNodeValue( iNodeID, sValueID ){
-		return ( this.__oNodes[ iNodeID ] ? this.__oNodes[ iNodeID ].oValues[ sValueID ] : null );
-	}
-
-	/**
-	 * Method used to get all the values related to a specific node
-	 *
-	 * @method    getNodeValues
-	 * @public
-	 *
-	 * @param	{Number}	iNodeID	The node ID
-	 *
-	 * @return	{Object}	A matrix which allow the access to all the value's objects
-	 *
-	 * @example
-	 *   Zwave.getNodeValues( 1 );
-	 */
-	getNodeValues( iNodeID ){
-		return ( this.__oNodes[ iNodeID ] ? this.__oNodes[ iNodeID ].oValues : null );
-	}
-
+*/
 	__updateStructureToDB( aNodesInfo ){
 		aNodesInfo = ( aNodesInfo ? aNodesInfo : _.values( this.getNodes() ) );
 		aNodesInfo = ( Array.isArray( aNodesInfo ) ? aNodesInfo : [ aNodesInfo ] );
@@ -437,24 +170,7 @@ class TechnologyZWave extends Technology {
 			return Bluebird.all( _aQueries );
 	  });
 	}
-
-	/**
-	 * Method used to set the current OpenZWave controller ( https://github.com/OpenZWave/node-openzwave-shared )
-	 *
-	 * @method    setController
-	 * @public
-	 *
-	 * @param	{Object}	oController	The controller to be used by the techology
-	 *
-	 * @return	{Void}
-	 *
-	 * @example
-	 *   Zwave.setController( oFooController );
-	 */
-	setController( oController ){
-		this.__oController = oController;
-	}
-
+// TODO: remove the following methods
 	/**
 	 * Method used to obtain the OpenZWave controller ( https://github.com/OpenZWave/node-openzwave-shared )
 	 *
@@ -467,26 +183,14 @@ class TechnologyZWave extends Technology {
 	 *   Zwave.getController();
 	 */
 	getController(){
-		return this.__oController;
+		return this.getEndpoint('openzwave').getController();
 	}
 
-	/**
-	 * Method used to remember the current HomeID obtained by the controller
-	 *
-	 * @method    setHomeID
-	 * @public
-	 *
-	 * @param     {String}		sHomeID			The Home ID which has to be remembered
-	 *
-	 * @return	{Void}
-	 *
-	 * @example
-	 *   Zwave.setHomeID( 'foo' );
-	 */
-	setHomeID( sHomeID ){
-		this.debug( 'Using Home ID: "%s"...', sHomeID );
-		this.__sHomeID = sHomeID;
+	/*
+	getNode( iNodeID ){
+		return this.getEndpoint('openzwave').getNode( iNodeID );
 	}
+	*/
 
 	/**
 	 * Method used to pair a Node
