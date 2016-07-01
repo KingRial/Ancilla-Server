@@ -1,6 +1,8 @@
 "use strict";
 
 let _ = require('lodash');
+let Bluebird = require('bluebird');
+
 let Technology = require('../../lib/ancilla.js').Technology;
 
 /**
@@ -26,7 +28,7 @@ class TechnologyMQTT extends Technology {
 			sType: 'Technology.MQTT',
       oEndpoints: {
 				'mqtt-broker': {
-					type: 'server.mqtt'
+					sType: 'server.mqtt'
 				},
 				'mqtt-client': {
 					sType: 'client.mqtt',
@@ -35,10 +37,7 @@ class TechnologyMQTT extends Technology {
 					//sUsername: 'Bearer 033a2b2fcbda8647220d11e237c2d5433b2dccc3',
 					//sUsername: 'admin',
 					//sPassword: 'dev',
-					oTopics: {
-						'test': ( oBuffer ) => this.onTopic( 'test', oBuffer ),
-						'EVENT/MACHINE/SYNCH': ( oBuffer ) => this.onTopic( 'EVENT/MACHINE/SYNCH', oBuffer )
-					}
+					//oTopics: {}
 				}
       }
 		}, oOptions );
@@ -73,10 +72,6 @@ class TechnologyMQTT extends Technology {
 
 	onData( oBuffer, oEndpoint, sTopic ){
 		this.debug('Data received: "%s" from Endpoint: "%s" and topic "%s"...', oBuffer.toString(), oEndpoint.getID(), sTopic );
-	}
-
-	onTopic( sTopic, oBuffer ){
-		this.debug('Topic "%s" received: "%s"', sTopic, oBuffer.toString() );
 	}
 /*
 	onDatagram( oDatagram, oParsedBuffer, oBuffer, oEndpoint, sSocketID ){

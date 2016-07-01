@@ -14,7 +14,7 @@
 module.exports = {
   name: 'pair',
   event: function( oTechnology, oEvent ) {
-    oTechnology.pair()
+    oTechnology.getEndpoint('openzwave').pair()
       .then( function(){
 // TODO: could trigger an answer when the action is completed
         console.error( '---------->TODO Done PAIR!' );

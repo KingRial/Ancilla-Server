@@ -48,7 +48,7 @@ class TechnologyCmdLine extends Technology {
 			oEndpoints: {
 				'mqtt-client': {
 					sType: 'client.mqtt',
-					//sURL: 'mqtt://192.168.0.81',
+          //sURL: 'mqtt://test.mosquitto.org',
 					oTopics: {
 					}
 				}
@@ -69,83 +69,83 @@ class TechnologyCmdLine extends Technology {
 	  process.stdin.setEncoding('utf8');
 	  process.stdin.on('data', function( sText ){
 			sText = sText.replace(/(\r\n|\n|\r)/gm,'');
-			_CmdLine.debug( 'Read line: "%s"', sText );
-			let _oEndpoint = _CmdLine.getEndpoint('mqtt-client');
-			let _aText = sText.split(' ');
-			let _sAction = _aText[ 0 ];
-			let _sTopic = 'api/v1/integration/Core';
-			let _sValue;
-			let _oEvent;
-			switch( _sAction ){
-				case 'subscribe':
-					_sTopic = _aText.slice( 1 ).join(' ');
-					_CmdLine.debug( 'Subscribing to: "%s"...', _sTopic, function( oError ){
-						if( !oError ){
-							_CmdLine.info( 'Subscribed to "%s"', _sTopic );
-						} else {
-							_CmdLine.error( 'Error on subscribing to "%s"', _sTopic, oError );
-						}
-					} );
-					_oEndpoint.subscribe( _sTopic );
-				break;
-				case 'publish':
-					_sTopic = _aText[ 1 ];
-					_sValue = _aText.slice( 2 ).join(' ');
-					_CmdLine.debug( 'Publishing on topic "%s": ""%s"... ', _sTopic, _sValue );
-					_oEndpoint.publish( _sTopic, _sValue/*, function(){
-						_CmdLine.info( 'Published to: "%s": %s... ', _sTopic, _sValue );
-					}*/ );
-				break;
-        // Generic event
-        case 'event':
-        let _sDescribedEvent = _aText.slice( 1 ).join(' ') ;
-        try{
-          let _oDescribedEvent = JSON.parse( _sDescribedEvent );
-          _oDescribedEvent = _.extend({
-            sFromID: _CmdLine.getID()
-          }, _oDescribedEvent);
-          _oEvent = new AncillaEvent( _oDescribedEvent );
-          _oEndpoint.publish( _sTopic, _oEvent.toString() );
-        } catch( oError ){
-          _CmdLine.error( 'Unable to fire generic event; "%s" is not a JSON: %s', _sDescribedEvent, oError );
-        }
-        break;
-        // Specific events
-				case 'tech':
-					_oEvent = new AncillaEvent( {
-						sFromID: _CmdLine.getID(),
-						sType: 'technology',
-						sAction: _aText[ 1 ],
-						sTechnologyID: _aText[ 2 ],
-					} );
-					_oEndpoint.publish( _sTopic, _oEvent.toString() );
-				break;
-				case 'set':
-					_oEvent = new AncillaEvent( {
-						sFromID: _CmdLine.getID(),
-						sType: 'set',
-						iObjID: _aText[ 1 ],
-						value: _aText[ 2 ]
-					} );
-					_oEndpoint.publish( _sTopic, _oEvent.toString() );
-				break;
-        case 'reset':
-					_oEvent = new AncillaEvent( {
-						sFromID: _CmdLine.getID(),
-						sType: _sAction,
-            bHardReset: true
-					} );
-					_oEndpoint.publish( _sTopic, _oEvent.toString() );
-				break;
-        case 'pair':
-				case 'unpair':
-          _oEvent = new AncillaEvent( {
-            sFromID: _CmdLine.getID(),
-            sType: _sAction
-          } );
-          _oEndpoint.publish( _sTopic, _oEvent.toString() );
-        break;
-			}
+      if( sText ){
+  			_CmdLine.debug( 'Read line: "%s"', sText );
+  			let _oEndpoint = _CmdLine.getEndpoint('mqtt-client');
+  			let _aText = sText.split(' ');
+  			let _sAction = _aText[ 0 ];
+  			let _sTopic = 'api/v1/integration/Core';
+  			let _sValue;
+  			let _oEvent;
+  			switch( _sAction ){
+  				case 'subscribe':
+  					_sTopic = _aText.slice( 1 ).join(' ');
+  					_CmdLine.debug( 'Subscribing: "%s"...', _sTopic, function( oError ){
+  						if( !oError ){
+  							_CmdLine.info( 'Subscribed "%s"', _sTopic );
+  						} else {
+  							_CmdLine.error( 'Error on subscribing to "%s"', _sTopic, oError );
+  						}
+  					} );
+  					_oEndpoint.subscribe( _sTopic );
+  				break;
+  				case 'publish':
+  					_sTopic = _aText[ 1 ];
+  					_sValue = _aText.slice( 2 ).join(' ');
+  					_CmdLine.debug( 'Publishing on topic "%s": ""%s"... ', _sTopic, _sValue );
+  					_oEndpoint.publish( _sTopic, _sValue );
+  				break;
+          // Generic event
+          case 'event':
+          let _sDescribedEvent = _aText.slice( 1 ).join(' ') ;
+          try{
+            let _oDescribedEvent = JSON.parse( _sDescribedEvent );
+            _oDescribedEvent = _.extend({
+              sFromID: _CmdLine.getID()
+            }, _oDescribedEvent);
+            _oEvent = new AncillaEvent( _oDescribedEvent );
+            _oEndpoint.publish( _sTopic, _oEvent.toString() );
+          } catch( oError ){
+            _CmdLine.error( 'Unable to fire generic event; "%s" is not a JSON: %s', _sDescribedEvent, oError );
+          }
+          break;
+          // Specific events
+  				case 'tech':
+  					_oEvent = new AncillaEvent( {
+  						sFromID: _CmdLine.getID(),
+  						sType: 'technology',
+  						sAction: _aText[ 1 ],
+  						sTechnologyID: _aText[ 2 ],
+  					} );
+  					_oEndpoint.publish( _sTopic, _oEvent.toString() );
+  				break;
+  				case 'set':
+  					_oEvent = new AncillaEvent( {
+  						sFromID: _CmdLine.getID(),
+  						sType: 'set',
+  						iObjID: _aText[ 1 ],
+  						value: _aText[ 2 ]
+  					} );
+  					_oEndpoint.publish( _sTopic, _oEvent.toString() );
+  				break;
+          case 'reset':
+  					_oEvent = new AncillaEvent( {
+  						sFromID: _CmdLine.getID(),
+  						sType: _sAction,
+              bHardReset: true
+  					} );
+  					_oEndpoint.publish( _sTopic, _oEvent.toString() );
+  				break;
+          case 'pair':
+  				case 'unpair':
+            _oEvent = new AncillaEvent( {
+              sFromID: _CmdLine.getID(),
+              sType: _sAction
+            } );
+            _oEndpoint.publish( _sTopic, _oEvent.toString() );
+          break;
+  			}
+      }
 		});
 	}
 

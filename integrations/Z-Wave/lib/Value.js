@@ -66,7 +66,7 @@ class Value extends AncillaObject {
     return this.sClassID;
   }
 
-	setValue(value){
+	set(value){
 		this.value = value;
 	}
 }

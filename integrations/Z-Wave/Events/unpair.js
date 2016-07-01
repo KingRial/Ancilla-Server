@@ -14,7 +14,7 @@
 module.exports = {
   name: 'unpair',
   event: function( oTechnology, oEvent ) {
-    oTechnology.unpair()
+    oTechnology.getEndpoint('openzwave').unpair()
       .then( function(){
 // TODO: could trigger an answer when the action is completed
         console.error( '---------->TODO Done UNPAIR!' );

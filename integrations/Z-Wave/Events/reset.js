@@ -15,7 +15,7 @@
 module.exports = {
   name: 'reset',
   event: function( oTechnology, oEvent ) {
-    oTechnology.reset( oEvent.bHardReset )
+    oTechnology.getEndpoint('openzwave').reset( oEvent.bHardReset )
       .then( function(){
 // TODO: could trigger an answer when the action is completed
         console.error( '---------->TODO Done RESET!' );
