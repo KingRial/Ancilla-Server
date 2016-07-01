@@ -18,7 +18,7 @@
  *  along with "Ancilla Libary".  If not, see <http://www.gnu.org/licenses/>.
 */
 let Technology = require('../../lib/ancilla.js').Technology;
-let Event = require('../../lib/ancilla.js').Event;
+let AncillaEvent = require('../../lib/ancilla.js').Event;
 
 let _ = require( 'lodash' );
 
@@ -73,7 +73,7 @@ class TechnologyCmdLine extends Technology {
 			let _oEndpoint = _CmdLine.getEndpoint('mqtt-client');
 			let _aText = sText.split(' ');
 			let _sAction = _aText[ 0 ];
-			let _sTopic;
+			let _sTopic = 'api/v1/integration/Core';
 			let _sValue;
 			let _oEvent;
 			switch( _sAction ){
@@ -96,9 +96,23 @@ class TechnologyCmdLine extends Technology {
 						_CmdLine.info( 'Published to: "%s": %s... ', _sTopic, _sValue );
 					}*/ );
 				break;
+        // Generic event
+        case 'event':
+        let _sDescribedEvent = _aText.slice( 1 ).join(' ') ;
+        try{
+          let _oDescribedEvent = JSON.parse( _sDescribedEvent );
+          _oDescribedEvent = _.extend({
+            sFromID: _CmdLine.getID()
+          }, _oDescribedEvent);
+          _oEvent = new AncillaEvent( _oDescribedEvent );
+          _oEndpoint.publish( _sTopic, _oEvent.toString() );
+        } catch( oError ){
+          _CmdLine.error( 'Unable to fire generic event; "%s" is not a JSON: %s', _sDescribedEvent, oError );
+        }
+        break;
+        // Specific events
 				case 'tech':
-					_sTopic = 'api/v1/integrations/Core';
-					_oEvent = new Event( {
+					_oEvent = new AncillaEvent( {
 						sFromID: _CmdLine.getID(),
 						sType: 'technology',
 						sAction: _aText[ 1 ],
@@ -107,8 +121,7 @@ class TechnologyCmdLine extends Technology {
 					_oEndpoint.publish( _sTopic, _oEvent.toString() );
 				break;
 				case 'set':
-					_sTopic = 'api/v1/integrations/Core';
-					_oEvent = new Event( {
+					_oEvent = new AncillaEvent( {
 						sFromID: _CmdLine.getID(),
 						sType: 'set',
 						iObjID: _aText[ 1 ],
@@ -116,15 +129,22 @@ class TechnologyCmdLine extends Technology {
 					} );
 					_oEndpoint.publish( _sTopic, _oEvent.toString() );
 				break;
-				case 'pair':
-				case 'unpair':
-					_sTopic = 'api/v1/integrations/Core';
-					_oEvent = new Event( {
+        case 'reset':
+					_oEvent = new AncillaEvent( {
 						sFromID: _CmdLine.getID(),
-						sType: _sAction
+						sType: _sAction,
+            bHardReset: true
 					} );
 					_oEndpoint.publish( _sTopic, _oEvent.toString() );
 				break;
+        case 'pair':
+				case 'unpair':
+          _oEvent = new AncillaEvent( {
+            sFromID: _CmdLine.getID(),
+            sType: _sAction
+          } );
+          _oEndpoint.publish( _sTopic, _oEvent.toString() );
+        break;
 			}
 		});
 	}

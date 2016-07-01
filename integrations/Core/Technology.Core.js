@@ -78,7 +78,7 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 				'mqtt-client': {
 					sType: 'client.mqtt',
 					oTopics: {
-						'api/v1/integrations/Core': null
+						'api/v1/integration/Core': null
 					},
 					bIsAncilla: true
 				},
