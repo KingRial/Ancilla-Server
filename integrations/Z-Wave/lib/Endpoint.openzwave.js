@@ -93,7 +93,9 @@ class OpenZWaveEndpoint extends Endpoint {
    });
    _oController.on('value changed', function( sNodeID, iClassID, oValue ){
      _Endpoint.debug( 'node ID: "%s" -> value ID: "%s" changed value to:', sNodeID, oValue.value_id, oValue.value );
-     _Endpoint.emit( 'data', _Endpoint.getNode( oValue.node_id ).getValue( oValue.value_id ), sNodeID );
+     let _oValue = _Endpoint.getNode( oValue.node_id ).getValue( oValue.value_id );
+     _oValue.set( oValue.value );
+     _Endpoint.emit( 'data', _oValue, sNodeID );
    });
    _oController.on('value refresh', function( sNodeID, commandclass, iValueID ){
      _Endpoint.debug( 'node ID: "%s" -> value refresh:', sNodeID, commandclass, iValueID );
@@ -356,13 +358,13 @@ class OpenZWaveEndpoint extends Endpoint {
  }
 
  /**
-  * Method used to set a value on an open Z-Wave value
+  * Method used to set a value on an open Z-Wave node's value
   *
-  * @method    write
+  * @method    set
   * @public
   *
   * @param     {String/Number}		iNodeIDOrValueID			The node ID or the Value ID
-  * @param     {Number}		iClassIDOrValue			The node value class ID or the value to set
+  * @param     {String/Number}		iClassIDOrValue			The node value class ID or the value to set
   * @param     {Number}		[iInstance]			The node value instance ID
   * @param     {Number}		[iIndex]			The node value index ID
   * @param     {String/Number}		[value]			The value to set
@@ -370,10 +372,10 @@ class OpenZWaveEndpoint extends Endpoint {
   * @return	{Object} returna a Promise
   *
   * @example
-  *   Zwave.write( '2-37-1-0', true );
-  *   Zwave.write( 2, 37, 1, 0, true );
+  *   Zwave.set( '2-37-1-0', true );
+  *   Zwave.set( 2, 37, 1, 0, true );
   */
- write( iNodeIDOrValueID, iClassIDOrValue, iInstance, iIndex, value ){
+ set( iNodeIDOrValueID, iClassIDOrValue, iInstance, iIndex, value ){
    let _Endpoint = this;
    let _oController = _Endpoint.getController();
    if( typeof iNodeIDOrValueID ==='string' && !iInstance && !iIndex && !value){
@@ -384,6 +386,7 @@ class OpenZWaveEndpoint extends Endpoint {
      iInstance = parseInt( _aArguments[ 2 ] );
      iIndex = parseInt( _aArguments[ 3 ] );
    }
+// TODO: sanitize value from node's value's type ( if it's numeric/boolean it must be converted from string to number/ boolean )
    this.debug( 'setting value "%s" on "%s-%s-%s-%s"', value, iNodeIDOrValueID, iClassIDOrValue, iInstance, iIndex );
    _oController.setValue( iNodeIDOrValueID, iClassIDOrValue, iInstance, iIndex, value );
    return Promise.resolve();
