@@ -97,6 +97,7 @@ class TechnologyCmdLine extends Technology {
   				break;
           // Generic event
           case 'event':
+          // Example: event {"sType":"set","msp":"2-37-1-0","value":0}
           let _sDescribedEvent = _aText.slice( 1 ).join(' ') ;
           try{
             let _oDescribedEvent = JSON.parse( _sDescribedEvent );
