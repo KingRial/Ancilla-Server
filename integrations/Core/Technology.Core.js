@@ -57,7 +57,7 @@ class Core extends Technology {
 			sDBModelsDir: 'DB/models/breeze',
 			iVersion: Constant._ANCILLA_CORE_VERSION,
 			oEndpoints: {
-				'Core': {
+				'MQTT-broker': {
 					sType: 'server.mqtt',
 					fAuthenticate: ( oClient, sUsername, sPassword, fCallback ) => this.__mqttAuthenticate( oClient, sUsername, sPassword, fCallback ),
 					/*
@@ -75,10 +75,10 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 		      }
 					*/
 				},
-				'mqtt-client': {
+				'Core': {
 					sType: 'client.mqtt',
 					oTopics: {
-						'api/v1/integration/Core': null
+						'api/v1/integration/Core': null  // TODO: should use constants when using an Ancilla's Endpoints with Topics ( will create a method to handle this feature automatically )
 					},
 					bIsAncilla: true
 				},
@@ -728,7 +728,7 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 			})
 			.catch( function( oError ){
 				_Core.error( '[ Error: %s ] Unable to get technology.', oError );
-				return this;
+				return Bluebird.reject( oError );
 			})
 		;
 	}
@@ -1018,60 +1018,6 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 				})
 			;
 		});
-	}
-	*/
-	/**
-	* Method called when event "Ancilla" is fired, to handle it
-	*
-	* @method    onAncilla
-	* @public
-	*
-	* @param	{Object}	oEvent		The Ancilla event
-	*
-	* @example
-	*   Core.onAncilla( oEvent );
-	*/
-	/*
-	// Overwriting default onAncilla event
-	onAncilla( oEvent, oOptions ){
-		let _oIsLoggedPromise = null;
-		let _aPromisesToHandle = ( Array.isArray( aPromisesToHandle ) ? aPromisesToHandle : [] );
-		// Handling Ancilla Event Requests sent to the core and preparing answer if needed
-		if( oEvent.isRequest() && ( oEvent.getTo() == this.getID() ) ){
-			let _Core = this;
-			// Technology is Logged Promise
-			_oIsLoggedPromise = new Promise( function( fResolve, fReject ){
-				switch( _sEventType ){
-					// login check can be ignored on the following cases
-					case Constant._EVENT_TYPE_INTRODUCE:
-					case Constant._EVENT_TYPE_LOGIN:
-					case Constant._EVENT_TYPE_LOGOUT:
-						_Core.debug( 'Ancilla event "%s" not requires a login check...', _sEventType );
-						fResolve();
-						break;
-					default: // Login check must be done
-						return _Core.__technologyIsLogged( _sTechnologyID )
-							.then( function( bIsLogged ){
-								if( bIsLogged ){
-									_Core.debug( 'Technology "%s" is logged...', _sTechnologyID );
-									fResolve();
-								} else {
-									_Core.debug( 'Technology "%s" is NOT logged...', _sTechnologyID );
-									fReject( Constant._ERROR_TECHNOLOGY_NOT_LOGGED );
-								}
-							})
-							.catch( function ( oError ){
-								_Core.error( '[ Error "%j" ] on checking it technology "%s" is logged', oError, _sTechnologyID );
-							})
-						;
-					break;
-				}
-			});
-			// Adding promise to handle to onAncilla event
-			_aPromisesToHandle.push( _oIsLoggedPromise );
-		}
-		// Calling super method
-		Core.super_.prototype.onAncilla.apply( this, [ oEvent, oGateway, oGatewayEndpoint, iSocketIndex, _aPromisesToHandle ] );
 	}
 	*/
 

@@ -18,7 +18,7 @@
  *  along with "Ancilla Libary".  If not, see <http://www.gnu.org/licenses/>.
 */
 let Technology = require('../../lib/ancilla.js').Technology;
-let AncillaEvent = require('../../lib/ancilla.js').Event;
+let Constant = require('../../lib/ancilla.js').Constant;
 
 let _ = require( 'lodash' );
 
@@ -46,11 +46,13 @@ class TechnologyCmdLine extends Technology {
 			bUseDB: false,
 			bUseLog: false,
 			oEndpoints: {
-				'mqtt-client': {
+				'Core': {
 					sType: 'client.mqtt',
           //sURL: 'mqtt://test.mosquitto.org',
 					oTopics: {
-					}
+						'api/v1/integration/Core': null  // TODO: should use constants when using an Ancilla's Endpoints with Topics ( will create a method to handle this feature automatically )
+					},
+					bIsAncilla: true
 				}
 			}
 		}, oOptions );
@@ -74,9 +76,8 @@ class TechnologyCmdLine extends Technology {
   			let _oEndpoint = _CmdLine.getEndpoint('mqtt-client');
   			let _aText = sText.split(' ');
   			let _sAction = _aText[ 0 ];
-  			let _sTopic = 'api/v1/integration/Core';
+  			let _sTopic = Constant._API_CORE_TOPIC;
   			let _sValue;
-  			let _oEvent;
   			switch( _sAction ){
   				case 'subscribe':
   					_sTopic = _aText.slice( 1 ).join(' ');
@@ -101,49 +102,44 @@ class TechnologyCmdLine extends Technology {
           let _sDescribedEvent = _aText.slice( 1 ).join(' ') ;
           try{
             let _oDescribedEvent = JSON.parse( _sDescribedEvent );
-            _oDescribedEvent = _.extend({
-              sFromID: _CmdLine.getID()
-            }, _oDescribedEvent);
-            _oEvent = new AncillaEvent( _oDescribedEvent );
-            _oEndpoint.publish( _sTopic, _oEvent.toString() );
+						_CmdLine.trigger( _oDescribedEvent );
           } catch( oError ){
             _CmdLine.error( 'Unable to fire generic event; "%s" is not a JSON: %s', _sDescribedEvent, oError );
           }
           break;
           // Specific events
   				case 'tech':
-  					_oEvent = new AncillaEvent( {
-  						sFromID: _CmdLine.getID(),
+						_CmdLine.trigger({
   						sType: 'technology',
   						sAction: _aText[ 1 ],
   						sTechnologyID: _aText[ 2 ],
-  					} );
-  					_oEndpoint.publish( _sTopic, _oEvent.toString() );
+  					})
+							.then( function(){
+								_CmdLine.info( 'technology "%s" started', _aText[ 2 ] );
+							})
+							.catch( function( iResult ){
+								_CmdLine.error( 'Failed to start technology "%s" with error: %s', _aText[ 2 ], iResult );
+							})
+						;
   				break;
   				case 'set':
-  					_oEvent = new AncillaEvent( {
-  						sFromID: _CmdLine.getID(),
+						_CmdLine.trigger({
   						sType: 'set',
   						iObjID: _aText[ 1 ],
   						value: _aText[ 2 ]
-  					} );
-  					_oEndpoint.publish( _sTopic, _oEvent.toString() );
+  					});
   				break;
           case 'reset':
-  					_oEvent = new AncillaEvent( {
-  						sFromID: _CmdLine.getID(),
-  						sType: _sAction,
-              bHardReset: true
-  					} );
-  					_oEndpoint.publish( _sTopic, _oEvent.toString() );
+						_CmdLine.trigger({
+							sType: _sAction,
+							bHardReset: true
+						});
   				break;
           case 'pair':
   				case 'unpair':
-            _oEvent = new AncillaEvent( {
-              sFromID: _CmdLine.getID(),
-              sType: _sAction
-            } );
-            _oEndpoint.publish( _sTopic, _oEvent.toString() );
+						_CmdLine.trigger({
+							sType: _sAction
+						});
           break;
   			}
       }
