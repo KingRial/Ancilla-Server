@@ -24,13 +24,11 @@ module.exports = {
       case 'start':
         oCore.startTechnology( _sTechnologyID )
           .then( function(){
-            oEvent.setToAnswer( Constant._NO_ERROR );
-            oCore.trigger( oEvent );
+            oCore.trigger( oEvent.toAnswer( Constant._NO_ERROR ) );
           })
           .catch( function(){
 //TODO return an error from startTechnology
-            oEvent.setToAnswer( Constant._ERROR_TECHNOLOGY_UNKNOWN );
-            oCore.trigger( oEvent );
+            oCore.trigger( oEvent.toAnswer( Constant._ERROR_TECHNOLOGY_UNKNOWN ) );
           })
         ;
       break;

@@ -46,7 +46,7 @@ module.exports = {
         }
         Promise.all( _aUpdatePromises )
           .then( function( oRows ){
-            oEvent.setToAnswer( { oRows: oRows } );
+            oEvent.toAnswer( { oRows: oRows } );
             // Resolving Main Promise
             fResolve( oEvent );
           })
