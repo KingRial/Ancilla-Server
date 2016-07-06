@@ -642,9 +642,13 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 		return ( ( !technology || _.isString( technology ) ) ? _Core.getTechnology( technology ) : Bluebird.resolve( technology ) )
 			.then( function( aTechnologyResults ){
 				if( _.isEmpty( aTechnologyResults ) ){
-					return Bluebird.reject( 'Unknown technology: "' + technology + '"' );
+					_Core.error( 'Unknown technology: "%s"', technology );
+					//return Bluebird.reject( 'Unknown technology: "' + technology + '"' );
+					return Bluebird.reject( Constant._ERROR_TECHNOLOGY_UNKNOWN );
 				} else if( aTechnologyResults.length > 1 ){
-					return Bluebird.reject( 'Too many technologies: "' + technology + '"' );
+					_Core.error( 'Too many technology: "%s"', technology );
+					//return Bluebird.reject( 'Too many technologies: "' + technology + '"' );
+					return Bluebird.reject( Constant._ERROR_TECHNOLOGY_TOO_MANY );
 				}
 				_oTechnology = aTechnologyResults[ 0 ];
 				// Collecting technology type data if needed
@@ -653,9 +657,12 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 			.then( function( aTechnologyTypes ){
 				if( _.isEmpty( aTechnologyTypes ) ){
 					_Core.error( 'Unknown technology type: "%s"', _oTechnology.technology );
-					return Bluebird.reject( 'Unknown technology type: "%s"', _oTechnology.technology );
+					//return Bluebird.reject( 'Unknown technology type: "%s"', _oTechnology.technology );
+					return Bluebird.reject( Constant._ERROR_TECHNOLOGY_TYPE_UNKNOWN );
 				} else if( aTechnologyTypes.length > 1 ){
-					return Bluebird.reject( 'Too many technology types: "' + _oTechnology.technology + '"' );
+					_Core.error( 'Too many technology type: "%s"', _oTechnology.technology );
+					//return Bluebird.reject( 'Too many technology types: "' + _oTechnology.technology + '"' );
+					return Bluebird.reject( Constant._ERROR_TECHNOLOGY_TYPE_TOO_MANY );
 				}
 				let _oTechnologyType = aTechnologyTypes[ 0 ];
 				if( _.isEmpty( _oTechnologyType ) ){

@@ -17,32 +17,31 @@ let Constant = require('../../../lib/ancilla.js').Constant;
 module.exports = {
   name: 'technology',
   event: function( oCore, oEvent ) {
-// TODO:
+    let _oPromiseDone = null;
     let _sTechnologyID = oEvent.sTechnologyID;
     let _sAction = oEvent.sAction;
     switch( _sAction ){
       case 'start':
-        oCore.startTechnology( _sTechnologyID )
-          .then( function(){
-            oCore.trigger( oEvent.toAnswer( Constant._NO_ERROR ) );
-          })
-          .catch( function(){
-//TODO return an error from startTechnology
-            oCore.trigger( oEvent.toAnswer( Constant._ERROR_TECHNOLOGY_UNKNOWN ) );
-          })
-        ;
+        _oPromiseDone = oCore.startTechnology( _sTechnologyID );
       break;
       /*
 //TODO stop
       case 'stop':
-        oCore.startTechnology( oEvent.sTechnology );
+        _oPromiseDone = oCore.stopTechnology( oEvent.sTechnology );
       break;
 //TODO restart
+      case 'restart':
+        _oPromiseDone = oCore.stopTechnology( oEvent.sTechnology )
+          .then( function(){
+            return  oCore.startTechnology( _sTechnologyID );
+          })
+        ;
+      break;
       */
       default:
         oCore.error( 'Unknown operation "%s" over technology "%s" for Ancilla technology event', _sAction, _sTechnologyID );
       break;
     }
-// TODO: could trigger an answer when the action is completed
+    return _oPromiseDone;
   }
 };
