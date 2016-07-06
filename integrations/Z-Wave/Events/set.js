@@ -14,12 +14,6 @@
 module.exports = {
   name: 'set',
   event: function( oTechnology, oEvent ) {
-//TODO: event should be able to handle parameters differently!
-    oTechnology.getEndpoint('openzwave').set( oEvent.msp, oEvent.value )
-      .then( function(){
-// TODO: could trigger an answer when the action is completed
-        console.error( '---------->TODO Done SET!' );
-      })
-    ;
+    return oTechnology.getEndpoint('openzwave').set( oEvent.msp, oEvent.value );
   }
 };

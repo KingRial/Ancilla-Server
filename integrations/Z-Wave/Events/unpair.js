@@ -13,12 +13,7 @@
 */
 module.exports = {
   name: 'unpair',
-  event: function( oTechnology, oEvent ) {
-    oTechnology.getEndpoint('openzwave').unpair()
-      .then( function(){
-// TODO: could trigger an answer when the action is completed
-        console.error( '---------->TODO Done UNPAIR!' );
-      })
-    ;
+  event: function( oTechnology ) {
+    return oTechnology.getEndpoint('openzwave').unpair();
   }
 };

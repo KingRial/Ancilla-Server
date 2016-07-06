@@ -9,16 +9,12 @@
 * @return    {Void}
 *
 * @example
-*   Technology.pair();
+*   Technology.trigger( {sType: 'pair', bSecure: true } );
+*   Technology.trigger( {sType: 'pair', bSecure: false } );
 */
 module.exports = {
   name: 'pair',
   event: function( oTechnology, oEvent ) {
-    oTechnology.getEndpoint('openzwave').pair()
-      .then( function(){
-// TODO: could trigger an answer when the action is completed
-        console.error( '---------->TODO Done PAIR!' );
-      })
-    ;
+    return oTechnology.getEndpoint('openzwave').pair( oEvent.bSecure );
   }
 };

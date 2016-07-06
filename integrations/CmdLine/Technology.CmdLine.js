@@ -50,7 +50,7 @@ class TechnologyCmdLine extends Technology {
 					sType: 'client.mqtt',
           //sURL: 'mqtt://test.mosquitto.org',
 					oTopics: {
-						'api/v1/integration/Core': null  // TODO: should use constants when using an Ancilla's Endpoints with Topics ( will create a method to handle this feature automatically )
+						'api/v1': null  // TODO: should use constants when using an Ancilla's Endpoints with Topics ( will create a method to handle this feature automatically )
 					},
 					bIsAncilla: true
 				}
