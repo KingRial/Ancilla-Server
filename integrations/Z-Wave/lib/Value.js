@@ -62,6 +62,10 @@ class Value extends AncillaObject {
     return this.sValueID;
   }
 
+	getNodeID(){
+		return this.iNodeID;
+	}
+
   getClassID(){
     return this.sClassID;
   }

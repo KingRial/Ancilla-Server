@@ -163,14 +163,14 @@ class OpenZWaveEndpoint extends Endpoint {
    _oController.connect( _Endpoint.getConfig().sUSBController );
    //
    return new Bluebird( function( fResolve ){
-     let _aReadyPromises = [];
+     //let _aReadyPromises = [];
      // Initial scan completed
      _oController.on('scan complete', function(){
-       _Endpoint.debug( 'Initial network scan completed' );
+       _Endpoint.info( 'Initial network scan completed' );
        //_aReadyPromises.push( _Endpoint.__updateStructureToDB() );
-       Bluebird.all( _aReadyPromises ).then(function(){
+       //Bluebird.all( _aReadyPromises ).then(function(){
          fResolve();
-       });
+       //});
      });
      _Endpoint.debug( 'connecting to USB ZWave controller: "%s"', _Endpoint.getConfig().sUSBController );
    });
@@ -261,7 +261,7 @@ class OpenZWaveEndpoint extends Endpoint {
       value: oValue.value
 		});
 		let _oValue = _Endpoint.getNode( oValue.node_id ).getValue( oValue.value_id );
-		_Endpoint.debug( 'Node ID: "%s" -> Valued discovered:', _oValue.getID(), _oValue );
+		_Endpoint.debug( 'Node ID: "%s" -> Value discovered:', _oValue.getNodeID(), _oValue.getID(), _oValue );
 	}
 
  /**
