@@ -118,6 +118,24 @@ class TechnologyZWave extends Technology {
     return this.getEndpoint( 'openzwave' ).reset( bHardReset );
   }
 
+	/**
+   * Method used to heal a node or the network
+   *
+   * @method    heal
+   * @public
+   *
+   * @param     {Number}		[iNodeID]			The node ID to heal; if missing the network will be healed
+   *
+   * @return	{Object} returna a Promise
+   *
+   * @example
+   *   ZWave.heal();
+   *   ZWave.heal( 1 );
+   */
+	heal( iNodeID ){
+    return this.getEndpoint( 'openzwave' ).reset( iNodeID );
+  }
+
 	/*
 	__updateStructureToDB( aNodesInfo ){
 		aNodesInfo = ( aNodesInfo ? aNodesInfo : _.values( this.getNodes() ) );

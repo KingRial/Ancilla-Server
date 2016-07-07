@@ -444,6 +444,31 @@ class OpenZWaveEndpoint extends Endpoint {
    return Promise.resolve();
  }
 
+ /**
+  * Method used to heal a node or the network
+  *
+  * @method    heal
+  * @public
+  *
+  * @param     {Number}		[iNodeID]			The node ID to heal; if missing the network will be healed
+  *
+  * @return	{Object} returna a Promise
+  *
+  * @example
+  *   Endpoint.heal();
+  *   Endpoint.heal( 1 );
+  */
+ heal( iNodeID ){
+  if( iNodeID ){
+    this.info('Healing node "%s"...', iNodeID);
+    this.getController().healNetworkNode( iNodeID ); // TODO: doReturnRoutes parameter ? ( https://github.com/OpenZWave/node-openzwave-shared/blob/master/README-api.md )
+  } else {
+    this.info('Healing network...');
+    this.healNetwork().healNetworkNode();
+  }
+  return Bluebird.promise();
+ }
+
  disconnect( sUSBController ){
    sUSBController = sUSBController || this.getConfig().sUSBController;
    this.info( 'Disconnecting from controller "%s"...', sUSBController );
