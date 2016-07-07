@@ -1,7 +1,7 @@
 "use strict";
 
 let _ = require('lodash');
-let Bluebird = require('bluebird');
+//let Bluebird = require('bluebird');
 
 let Technology = require('../../lib/ancilla.js').Technology;
 

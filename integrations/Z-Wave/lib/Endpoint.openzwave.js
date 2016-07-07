@@ -83,7 +83,8 @@ class OpenZWaveEndpoint extends Endpoint {
      _Endpoint.debug( 'Node ID: "%s" -> Removed', sNodeID );
    } );
    _oController.on('node naming', function( sNodeID, oNodeInfo ){
-     _Endpoint.debug( 'Node ID: "%s" -> Naming with info:', sNodeID, oNodeInfo );
+     _Endpoint.debug( 'Node ID: "%s" -> Naming', sNodeID );
+     _Endpoint.silly( 'Detailed node just named:', oNodeInfo );
    });
    _oController.on('node event', function( sNodeID, oData ) {
      _Endpoint.debug( 'Node ID: "%s" -> Fired event:', sNodeID, oData );
@@ -124,16 +125,16 @@ class OpenZWaveEndpoint extends Endpoint {
    _oController.on('notification', function( sNodeID, iNotify ) {
      switch( iNotify ){
        case 0:
-         _Endpoint.debug('Node ID: "%s" -> message complete', sNodeID );
+         _Endpoint.debug('Node ID: "%s" -> Message complete', sNodeID );
        break;
        case 1:
-         _Endpoint.debug('Node ID: "%s" -> timeout', sNodeID );
+         _Endpoint.debug('Node ID: "%s" -> Timeout', sNodeID );
          _oNode = _Endpoint.getNode( sNodeID );
          _oNode.setTimeout();
          _Endpoint.emit( 'node timeout', _oNode );
        break;
        case 2:
-         _Endpoint.debug('Node ID: "%s" -> nop', sNodeID );
+         _Endpoint.debug('Node ID: "%s" -> Nop', sNodeID );
          _oNode = _Endpoint.getNode( sNodeID );
          if( _oNode ){
           _oNode.setTimeout();
@@ -141,19 +142,19 @@ class OpenZWaveEndpoint extends Endpoint {
          _Endpoint.emit( 'node nop', _oNode );
        break;
        case 3:
-         _Endpoint.debug('Node ID: "%s" -> node awake', sNodeID );
+         _Endpoint.debug('Node ID: "%s" -> Awake', sNodeID );
        break;
        case 4:
-         _Endpoint.debug('Node ID: "%s" -> node sleep', sNodeID );
+         _Endpoint.debug('Node ID: "%s" -> Sleep', sNodeID );
        break;
        case 5:
-         _Endpoint.debug('Node ID: "%s" -> node dead', sNodeID );
+         _Endpoint.debug('Node ID: "%s" -> Dead', sNodeID );
          _oNode = _Endpoint.getNode( sNodeID );
          _oNode.setDead();
          _Endpoint.emit( 'node dead', _oNode );
        break;
        case 6:
-         _Endpoint.debug('Node ID: "%s" -> node alive', sNodeID );
+         _Endpoint.debug('Node ID: "%s" -> Alive', sNodeID );
          _oNode = _Endpoint.getNode( sNodeID );
          _oNode.setAlive();
          _Endpoint.emit( 'node alive', _oNode );
@@ -224,7 +225,8 @@ class OpenZWaveEndpoint extends Endpoint {
 			sLocality: oNodeInfo.loc
 		});
 		_Endpoint.__oNodes[ oNodeInfo.node_id ] = _oNode;
-		_Endpoint.debug( 'Node ID: "%s" -> Discovered:', _oNode.getID(), _oNode );
+		_Endpoint.debug( 'Node ID: "%s" -> Discovered', _oNode.getID() );
+    _Endpoint.silly( 'Detailed node just discovered:', _oNode );
 		/*
 		if( _Endpoint.isReady() ){
 			// TODO: viene scatenato anche quando si "risveglia" il device; quindi bisogna lanciare questa operazione solo se si sta facendo pair
@@ -262,7 +264,8 @@ class OpenZWaveEndpoint extends Endpoint {
       value: oValue.value
 		});
 		let _oValue = _Endpoint.getNode( oValue.node_id ).getValue( oValue.value_id );
-		_Endpoint.debug( 'Node ID: "%s" -> Value discovered:', _oValue.getNodeID(), _oValue.getID(), _oValue );
+		_Endpoint.debug( 'Node ID: "%s" -> Discovered value: "%s"', _oValue.getNodeID(), _oValue.getID() );
+    _Endpoint.silly( 'Detailed value just discovered:', _oValue );
 	}
 
   __setCurrentCommand( fReject ){
@@ -441,15 +444,30 @@ class OpenZWaveEndpoint extends Endpoint {
    return Promise.resolve();
  }
 
+ disconnect( sUSBController ){
+   sUSBController = sUSBController || this.getConfig().sUSBController;
+   this.info( 'Disconnecting from controller "%s"...', sUSBController );
+   this.getController().disconnect( sUSBController );
+   return Bluebird.resolve();
+ }
+
  onDestroy(){
    let _Endpoint = this;
+   let _oController = _Endpoint.getController();
    return super.onDestroy()
      .then( function(){
-       let _oController = _Endpoint.getController();
+      if( _oController ){ // Checking if controller has been already declared
+        return _Endpoint.cancel(); // This way we are sure we leave the controller into the correct state
+      } else {
+        return Bluebird.resolve();
+      }
+    })
+     .then( function(){
        if( _oController ){ // Checking if controller has been already declared
-         _oController.disconnect( _Endpoint.getConfig().sUSBController );
-       }
-       return this;
+         return _Endpoint.disconnect();
+       } else {
+         return Bluebird.resolve();
+      }
      })
    ;
  }
