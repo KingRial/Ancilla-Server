@@ -34,6 +34,7 @@ class OpenZWaveEndpoint extends Endpoint {
     super( oOptions );
     this.__oNodes = {};
     this.__oPromiseReady = this.__readyController();
+    this.__fRejectCurrentCommand = null;
  }
 
  setController( oController ){
@@ -264,36 +265,57 @@ class OpenZWaveEndpoint extends Endpoint {
 		_Endpoint.debug( 'Node ID: "%s" -> Value discovered:', _oValue.getNodeID(), _oValue.getID(), _oValue );
 	}
 
+  __setCurrentCommand( fReject ){
+    if( this.__fRejectCurrentCommand ){
+      this.warn( 'Previous controller command already in progress; stopping it...' );
+      this.__fRejectCurrentCommand();
+    }
+    this.__fRejectCurrentCommand = fReject;
+  }
+
+  __clearCurrentCommand(){
+    this.__fRejectCurrentCommand = null;
+  }
+
  /**
   * Method used to pair a Node
   *
   * @method    pair
   * @public
   *
+  * @param     {Boolean}		bSecure		If true, the pair procedure will use the secure connection
+  *
   * @return	{Object} returna a Promise
   *
   * @example
-  *   Zwave.pair();
+  *   Endpoint.pair();
   */
  pair( bSecure ){
    bSecure = bSecure || false;
    let _Endpoint = this;
    let _oController = _Endpoint.getController();
    let _fHandler = null;
-   return new Bluebird(function( fResolve ){
-     _fHandler = function( iNodeID ){
-       _Endpoint.info( 'Paired Node ID: "%s"', iNodeID );
-       fResolve( iNodeID );
-     };
-     _Endpoint.info( 'Pairing %s network security...', ( bSecure ? 'WITH' : 'WITHOUT' ) );
-     _oController.on('node ready', _fHandler );
-     _oController.addNode( bSecure );
-   })
-     .then( function( sNodeID ){
-       _oController.removeListener('node ready', _fHandler);
-       let _oNode = _Endpoint.getNode( sNodeID );
-       return Bluebird.resolve( _oNode );
-     })
+   return this.cancel()
+    .then( function(){
+      return new Bluebird(function( fResolve, fReject ){
+        _Endpoint.__setCurrentCommand( fReject );
+        _fHandler = function( iNodeID ){
+          _Endpoint.info( 'Paired Node ID: "%s"', iNodeID );
+          fResolve( iNodeID );
+        };
+        _Endpoint.info( 'Pairing %s network security...', ( bSecure ? 'WITH' : 'WITHOUT' ) );
+      //TODO: should use "once" but the controller's library doesn't offer such method...
+        _oController.on('node ready', _fHandler );
+        _oController.addNode( bSecure );
+      })
+        .then( function( sNodeID ){
+          _Endpoint.__clearCurrentCommand();
+          _oController.removeListener('node ready', _fHandler);
+          let _oNode = _Endpoint.getNode( sNodeID );
+          return Bluebird.resolve( _oNode );
+        })
+      ;
+    })
    ;
  }
 
@@ -306,28 +328,55 @@ class OpenZWaveEndpoint extends Endpoint {
   * @return	{Object} returna a Promise
   *
   * @example
-  *   Zwave.unpair();
+  *   Endpoint.unpair();
   */
  unpair(){
    let _Endpoint = this;
    let _oController = _Endpoint.getController();
    let _fHandler = null;
-   return new Bluebird(function( fResolve ){
-     _fHandler = function( iNodeID ){
-       _Endpoint.info( 'Unpaired Node ID: "%s"', iNodeID );
-       fResolve( iNodeID );
-     };
-     _Endpoint.info( 'Unpairing...' );
-     _oController.on('node removed', _fHandler );
-     _oController.removeNode();
-   })
-     .then( function( sNodeID ){
-       _oController.removeListener('node removed', _fHandler);
-       let _oNode = _Endpoint.getNode( sNodeID );
-       _Endpoint.removeNode( sNodeID );
-       return Bluebird.resolve( _oNode );
+   return this.cancel()
+    .then( function(){
+       return new Bluebird(function( fResolve, fReject ){
+         _Endpoint.__setCurrentCommand( fReject );
+         _fHandler = function( iNodeID ){
+           _Endpoint.info( 'Unpaired Node ID: "%s"', iNodeID );
+           fResolve( iNodeID );
+         };
+         _Endpoint.info( 'Unpairing...' );
+    //TODO: should use "once" but the controller's library doesn't offer such method...
+         _oController.on('node removed', _fHandler );
+         _oController.removeNode();
+       })
+         .then( function( sNodeID ){
+           _oController.removeListener('node removed', _fHandler);
+           _Endpoint.__clearCurrentCommand();
+           let _oNode = _Endpoint.getNode( sNodeID );
+           _Endpoint.removeNode( sNodeID );
+           return Bluebird.resolve( _oNode );
+         })
+       ;
      })
    ;
+ }
+
+ /**
+  * Method used to cancel a Z-Wave controller command in progress
+  *
+  * @method    cancel
+  * @public
+  *
+  * @return	{Object} returna a Promise
+  *
+  * @example
+  *   Endpoint.cancel();
+  */
+ cancel(){
+   let _Endpoint = this;
+   let _oController = _Endpoint.getController();
+   _Endpoint.__setCurrentCommand( null );
+   _oController.cancelControllerCommand();
+   _Endpoint.info( 'Cleared any controller command in progress...' );
+   return Promise.resolve();
  }
 
  /**
@@ -336,13 +385,13 @@ class OpenZWaveEndpoint extends Endpoint {
   * @method    reset
   * @public
   *
-  * @param     {Boolean}		bHardReset			A flag which tells the controller to do an hard reset instead of a soft reset
+  * @param     {Boolean}		bHardReset		If true, will start a destructive reset clearing all configuration; otherwise will justs reset the chip
   *
   * @return	{Object} returna a Promise
   *
   * @example
-  *   Zwave.reset();
-  *   Zwave.reset( true );
+  *   Endpoint.reset();
+  *   Endpoint.reset( true );
   */
  reset( bHardReset ){
    let _Endpoint = this;
@@ -372,8 +421,8 @@ class OpenZWaveEndpoint extends Endpoint {
   * @return	{Object} returna a Promise
   *
   * @example
-  *   Zwave.set( '2-37-1-0', true );
-  *   Zwave.set( 2, 37, 1, 0, true );
+  *   Endpoint.set( '2-37-1-0', true );
+  *   Endpoint.set( 2, 37, 1, 0, true );
   */
  set( iNodeIDOrValueID, iClassIDOrValue, iInstance, iIndex, value ){
    let _Endpoint = this;

@@ -29,11 +29,12 @@ class TechnologyZWave extends Technology {
 			sUSBController: '/dev/ttyACM0',
       //sUSBController: '\\\\.\\COM4',
 			//sUSBController: 'COM4',
-//TODO: security key for pair security
 //TODO: re-enable DB
 			//bUseDB: true
 			oEndpoints: {
 				'openzwave': {
+//TODO: security key for pair security
+					//sNetworkKey: '',
 					module: require( './lib/Endpoint.openzwave.js' )
 				}
 			}
@@ -41,24 +42,7 @@ class TechnologyZWave extends Technology {
 		// Calling inherited constructor
 		super( oOptions );
 	}
-/*
-//TODO: should handle such method differently in the future ( should be configurable on Endpoint's options )
-	__initEndpoint( oEndpoint ){
-		let _ZWave = this;
-		switch( oEndpoint.getID() ){
-			case 'openzwave':
-				oEndpoint.on( 'node available', ( oNodeInfo ) => _ZWave.onNodeAvailable( oNodeInfo ) );
-				oEndpoint.on( 'node ready', ( oNodeInfo ) => _ZWave.onNodeReady( oNodeInfo ) );
-				oEndpoint.on( 'node nop', ( iNodeID ) => _ZWave.onNodeNop( iNodeID ) );
-				oEndpoint.on( 'node timeout', ( iNodeID ) => _ZWave.onNodeTimeout( iNodeID ) );
-				oEndpoint.on( 'node dead', ( iNodeID ) => _ZWave.onNodeDead( iNodeID ) );
-				oEndpoint.on( 'node alive', ( iNodeID ) => _ZWave.onNodeAlive( iNodeID ) );
-				//oEndpoint.on( 'value added', ( oValue ) => _ZWave.onValueAdded( oValue ) );
-			break;
-		}
-		super.__initEndpoint( oEndpoint );
-	}
-*/
+
 	onReady(){
 		// Calling inherited method
 		super.onReady();
@@ -66,6 +50,75 @@ class TechnologyZWave extends Technology {
 		this.info( 'Z-Wave Technology is ready to process...');
 	}
 
+	/**
+	* Method used to pair a Z-Wave device with Z-Wave endpoint's controller
+	* This method will start the learning mode on the controller
+	*
+	* @method    pair
+	* @public
+	*
+	* @param     {Boolean}		bSecure		If true, the pair procedure will use the secure connection
+	*
+	* @return    {Object}		returns a Promise
+	*
+	* @example
+	*   ZWave.pair();
+	*   ZWave.pair( true );
+	*/
+	pair( bSecure ){
+    return this.getEndpoint( 'openzwave' ).pair( bSecure );
+  }
+
+	/**
+	* Method used to unpair a Z-Wave device from Z-Wave endpoint's controller
+	* This method will start the learning mode on the controller
+	*
+	* @method    unpair
+	* @public
+	*
+	* @return    {Object}		returns a Promise
+	*
+	* @example
+	*   ZWave.unpair();
+	*/
+	unpair(){
+    return this.getEndpoint( 'openzwave' ).unpair();
+  }
+
+	/**
+	* Method used to cancel a Z-Wave controller command in progress
+	*
+	* @method    cancel
+	* @public
+	*
+	* @return    {Object}		returns a Promise
+	*
+	* @example
+	*   ZWave.cancel();
+	*/
+	cancel(){
+		return this.getEndpoint( 'openzwave' ).cancel();
+	}
+
+	/**
+	* Method used to reset Z-Wave endpoint's controller's memory
+	*
+	* @method    reset
+	* @public
+	*
+	* @param     {Boolean}		bHardReset		If true, will start a destructive reset clearing all configuration; otherwise will justs reset the chip
+	*
+	* @return    {Object}		returns a Promise
+	*
+	* @example
+	*   ZWave.reset();
+	*   ZWave.reset( true );
+	*/
+	reset( bHardReset ){
+    return this.getEndpoint( 'openzwave' ).reset( bHardReset );
+  }
+
+	/*
 	__updateStructureToDB( aNodesInfo ){
 		aNodesInfo = ( aNodesInfo ? aNodesInfo : _.values( this.getNodes() ) );
 		aNodesInfo = ( Array.isArray( aNodesInfo ) ? aNodesInfo : [ aNodesInfo ] );
@@ -124,6 +177,7 @@ class TechnologyZWave extends Technology {
 			return Bluebird.all( _aQueries );
 	  });
 	}
+	*/
 }
 
 module.exports = new TechnologyZWave().export( module );
