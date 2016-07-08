@@ -130,7 +130,9 @@ class OpenZWaveEndpoint extends Endpoint {
        case 1:
          _Endpoint.debug('Node ID: "%s" -> Timeout', sNodeID );
          _oNode = _Endpoint.getNode( sNodeID );
-         _oNode.setTimeout();
+         if( _oNode ){
+           _oNode.setTimeout();
+         }
          _Endpoint.emit( 'node timeout', _oNode );
        break;
        case 2:
