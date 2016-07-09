@@ -22,9 +22,13 @@ let AncillaEventHandler = Ancilla.EventHandler;
 
 /**
  * A class to describe an Ancilla Event Handler for event "set"
+ * This event is used to set a specific value on "Z-Wave"
  *
  * @class	EventSet
  * @public
+ *
+ * @param {String/Number} iObjID   The string describing the Z-Wave value ID or the Ancilla Object's ID obtained from a previous "offer/request" event
+ * @param {String/Number} value   The value to set
  *
  * @return	{Void}
  *
@@ -33,8 +37,8 @@ let AncillaEventHandler = Ancilla.EventHandler;
  */
 class EventSet extends AncillaEventHandler {
   handle( oTechnology, oEvent ) {
-// TODO: this is not the correct way to set the object! should be changed ASAP
-    return oTechnology.getEndpoint('openzwave').set( oEvent.msp, oEvent.value );
+// TODO: delete MSP!
+    return oTechnology.getEndpoint('openzwave').set( ( oEvent.iObjID || oEvent.msp ), oEvent.value );
   }
 }
 

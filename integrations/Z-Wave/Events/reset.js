@@ -22,9 +22,12 @@ let AncillaEventHandler = Ancilla.EventHandler;
 
 /**
  * A class to describe an Ancilla Event Handler for event "reset"
+ * This event is used to start the "reset" procedure on Z-Wave
  *
  * @class	EventReset
  * @public
+ *
+ * @param {Boolean} bHardReset when true will reset the entire configuration in the controller ( otherwise will just restart the controller )
  *
  * @return	{Void}
  *

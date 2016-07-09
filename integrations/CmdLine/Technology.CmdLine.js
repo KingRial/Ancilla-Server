@@ -135,6 +135,7 @@ class TechnologyCmdLine extends Technology {
 							bHardReset: true
 						});
   				break;
+					case 'request':
           case 'pair':
   				case 'unpair':
 						_CmdLine.trigger({

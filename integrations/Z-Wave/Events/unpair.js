@@ -22,6 +22,7 @@ let AncillaEventHandler = Ancilla.EventHandler;
 
 /**
  * A class to describe an Ancilla Event Handler for event "unpair"
+ * This event is used to start the "pair" procedure on Z-Wave
  *
  * @class	EventUnpair
  * @public
