@@ -752,13 +752,12 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 	*   Core.stopTechnology( 'Example-1' );
 	*/
 	stopTechnology( sTechnologyID ){
-		let _iPID = this.__getTechnologyPID( sTechnologyID );
-		if( _iPID ){
-			process.kill( _iPID );
-			this.__deleteTechnologyPID( sTechnologyID );
-		} else {
-			this.error( 'Unable to stop technology "%s".', sTechnologyID );
-		}
+	  let _Technology = this;
+	  return this.getTechnology( sTechnologyID ).stop()
+	    .then( function(){
+	      _Technology.__deleteTechnologyPID( sTechnologyID );
+	    })
+	  ;
 	}
 
 	/**
