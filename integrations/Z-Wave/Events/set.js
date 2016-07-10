@@ -38,6 +38,7 @@ let AncillaEventHandler = Ancilla.EventHandler;
 class EventSet extends AncillaEventHandler {
   handle( oTechnology, oEvent ) {
 // TODO: delete MSP!
+// TODO: add the concept of "unit" to know if the received value must be converted somehow for the current technology ( for example a percentage which must be converted into 1 byte )
     return oTechnology.getEndpoint('openzwave').set( ( oEvent.iObjID || oEvent.msp ), oEvent.value );
   }
 }

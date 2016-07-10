@@ -71,6 +71,9 @@ module.exports = {
             name: {
               type: DataTypes.STRING
             },
+            description: {
+              type: DataTypes.STRING
+            },
             type: {
               type: DataTypes.STRING
             },
@@ -93,8 +96,8 @@ module.exports = {
               defaultValue: 'Core'
             },
             technologyID: {
-              type: DataTypes.INTEGER,
-              defaultValue: -1
+              type: DataTypes.STRING,
+              defaultValue: ''
             },
             isEnabled: {
               type: DataTypes.BOOLEAN,

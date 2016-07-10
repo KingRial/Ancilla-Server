@@ -18,6 +18,10 @@ module.exports = function( breeze, oMetadataStore ) {
         dataType: breeze.DataType.String
       }) )
       .addProperty( new breeze.DataProperty({
+        name: 'description',
+        dataType: breeze.DataType.String
+      }) )
+      .addProperty( new breeze.DataProperty({
         name: 'type',
         dataType: breeze.DataType.String
       }) )
@@ -46,8 +50,8 @@ module.exports = function( breeze, oMetadataStore ) {
       }) )
       .addProperty( new breeze.DataProperty({
         name: 'technologyID',
-        dataType: breeze.DataType.Int32,
-        defaultValue: -1
+        dataType: breeze.DataType.String,
+        defaultValue: ''
       }) )
       .addProperty( new breeze.DataProperty({
         name: 'isEnabled',

@@ -59,6 +59,10 @@ class Node extends AncillaObject {
     return this.iID;
   }
 
+	getName(){
+		return this.sName;
+	}
+
 	getStatus(){
 		return this.iStatus;
 	}
@@ -105,6 +109,10 @@ class Node extends AncillaObject {
 
   getValue( sID ){
     return this.__oValues[ sID ];
+  }
+
+	getValues(){
+    return this.__oValues;
   }
 }
 

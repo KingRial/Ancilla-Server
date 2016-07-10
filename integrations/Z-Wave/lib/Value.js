@@ -62,6 +62,14 @@ class Value extends AncillaObject {
     return this.sValueID;
   }
 
+	getLabel(){
+		return this.sLabel;
+	}
+
+	getHelp(){
+		return this.sHelp;
+	}
+
 	getNodeID(){
 		return this.iNodeID;
 	}
@@ -72,6 +80,10 @@ class Value extends AncillaObject {
 
 	set(value){
 		this.value = value;
+	}
+
+	get(){
+		return this.value;
 	}
 }
 

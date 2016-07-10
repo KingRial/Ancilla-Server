@@ -10,6 +10,9 @@ module.exports = function(sequelize, DataTypes) {
     name: {
       type: DataTypes.STRING
     },
+    description: {
+      type: DataTypes.STRING
+    },
     type: {
       type: DataTypes.STRING
     },
@@ -32,8 +35,8 @@ module.exports = function(sequelize, DataTypes) {
       defaultValue: 'Core'
     },
     technologyID: {
-      type: DataTypes.INTEGER,
-      defaultValue: -1
+      type: DataTypes.STRING,
+      defaultValue: ''
     },
     isEnabled: {
       type: DataTypes.BOOLEAN,

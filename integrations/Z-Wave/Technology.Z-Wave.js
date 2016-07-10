@@ -1,9 +1,9 @@
 "use strict";
 
 let _ = require('lodash');
-//let Bluebird = require('bluebird');
+let Bluebird = require('bluebird');
 
-let Technology = require('../../lib/ancilla.js').Technology;
+let Ancilla = require('../../lib/ancilla.js');
 
 /**
  * A Technology used to connect to Z-Wave
@@ -20,7 +20,7 @@ let Technology = require('../../lib/ancilla.js').Technology;
  *
  */
 
-class TechnologyZWave extends Technology {
+class TechnologyZWave extends Ancilla.Technology {
 	constructor( oOptions ){
 		//Default Technology Options
 		oOptions = _.merge({
@@ -49,6 +49,62 @@ class TechnologyZWave extends Technology {
 		// Current method
 		this.info( 'Z-Wave Technology is ready to process...');
 	}
+
+	onRequest(){
+		let _oNodes = this.getNodes();
+		let _aPromises = [];
+		for( let _iNodeID in _oNodes ){
+			if( _oNodes.hasOwnProperty( _iNodeID ) ){
+				let _oNode = _oNodes[ _iNodeID ];
+				let _oAncillaObjToOffer = new Ancilla.Object({
+					id: _oNodes.getID(),
+					sName: _oNodes.getName(),
+					iStatus: _oNodes.getStatus()
+// TODO: some kind of value which will tell the system what kind of generic rendering should be used ( On/Off, Dimmer, RGB, STATUS_BYTE, etc.. etc.. )
+				});
+				_aPromises.push( this.trigger({
+					oObj: _oAncillaObjToOffer
+				}) );
+				let _oValues = _oNode.getValues();
+				for( let _sValueID in _oValues ){
+					if( _oValues.hasOwnProperty( _sValueID ) ){
+						let _oValue = _oValues[ _sValueID ];
+						// Coverting Node object to Ancilla Object
+						let _oAncillaObjToOffer = new Ancilla.Object({
+							id: _oValue.getID(),
+							sName: _oValue.getLabel(),
+							sDescription: _oValue.getHelp(),
+							value: _oValue.get(),
+							//iStatus:
+// TODO: some kind of value which will tell the system what kind of generic rendering should be used ( On/Off, Dimmer, RGB, etc.. etc.. )
+						});
+						_aPromises.push( this.offer({
+							oObj: _oAncillaObjToOffer,
+							aRelationsWith: [ _oNodes.getID() ]
+						}) );
+					}
+				}
+			}
+		}
+		return Bluebird.all( _aPromises );
+	}
+
+	/**
+	* Method used get currently known nodes/values
+	*
+	* @method    getNodes
+	* @public
+	*
+	* @param     {Boolean}		bSecure		If true, the pair procedure will use the secure connection
+	*
+	* @return    {Object}		returns an object describing a collection of Node objects
+	*
+	* @example
+	*   ZWave.getNodes();
+	*/
+	getNodes(){
+    return this.getEndpoint( 'openzwave' ).getNodes();
+  }
 
 	/**
 	* Method used to pair a Z-Wave device with Z-Wave endpoint's controller
