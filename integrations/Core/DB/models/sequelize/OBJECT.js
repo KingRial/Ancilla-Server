@@ -14,7 +14,8 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING
     },
     type: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
+      defaultValue: 'VIRTUAL'
     },
     status: {
       type: DataTypes.INTEGER,

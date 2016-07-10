@@ -56,32 +56,27 @@ class TechnologyZWave extends Ancilla.Technology {
 		for( let _iNodeID in _oNodes ){
 			if( _oNodes.hasOwnProperty( _iNodeID ) ){
 				let _oNode = _oNodes[ _iNodeID ];
-				let _oAncillaObjToOffer = new Ancilla.Object({
-					id: _oNodes.getID(),
+				let _oNodeToOffer = new Ancilla.Object({
+					sID: _oNodes.getID(),
 					sName: _oNodes.getName(),
 					iStatus: _oNodes.getStatus()
 // TODO: some kind of value which will tell the system what kind of generic rendering should be used ( On/Off, Dimmer, RGB, STATUS_BYTE, etc.. etc.. )
 				});
-				_aPromises.push( this.trigger({
-					oObj: _oAncillaObjToOffer
-				}) );
+				_aPromises.push( this.offer( _oNodeToOffer ) );
 				let _oValues = _oNode.getValues();
 				for( let _sValueID in _oValues ){
 					if( _oValues.hasOwnProperty( _sValueID ) ){
 						let _oValue = _oValues[ _sValueID ];
 						// Coverting Node object to Ancilla Object
-						let _oAncillaObjToOffer = new Ancilla.Object({
-							id: _oValue.getID(),
+						let _oValueToOffer = new Ancilla.Object({
+							sID: _oValue.getID(),
 							sName: _oValue.getLabel(),
 							sDescription: _oValue.getHelp(),
 							value: _oValue.get(),
 							//iStatus:
 // TODO: some kind of value which will tell the system what kind of generic rendering should be used ( On/Off, Dimmer, RGB, etc.. etc.. )
 						});
-						_aPromises.push( this.offer({
-							oObj: _oAncillaObjToOffer,
-							aRelationsWith: [ _oNodes.getID() ]
-						}) );
+						_aPromises.push( this.offer( _oValueToOffer, [ _oNodes.getID() ] ) );
 					}
 				}
 			}

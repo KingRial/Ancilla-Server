@@ -19,7 +19,8 @@ module.exports = function( breeze, oMetadataStore ) {
       }) )
       .addProperty( new breeze.DataProperty({
         name: 'description',
-        dataType: breeze.DataType.String
+        dataType: breeze.DataType.String,
+        defaultValue: 'VIRTUAL'
       }) )
       .addProperty( new breeze.DataProperty({
         name: 'type',

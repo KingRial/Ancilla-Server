@@ -82,7 +82,8 @@ module.exports = {
               defaultValue: 0
             },
             value: {
-              type: DataTypes.STRING
+              type: DataTypes.STRING,
+              defaultValue: 'VIRTUAL'
             },
             widgetID: {
               type: DataTypes.INTEGER,

@@ -165,6 +165,7 @@ class DBCore extends DB {
           ]
         })
       ;
+//TODO:
 console.error( 'TODO: USER Permissions Check on GET query' );
       let _oQuery = new BreezeSequelize.SequelizeQuery( _DB._oSequelizeManager, _oEntityQuery );
       _oQuery.execute().then( function( results ){
