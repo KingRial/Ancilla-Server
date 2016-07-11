@@ -750,6 +750,10 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 	    .then( function(){
 	      _Technology.__deleteTechnologyPID( sTechnologyID );
 	    })
+			.catch( function( error ){
+				_Technology.error( 'Failed to stop technology "%s" with error: ', sTechnologyID, error );
+				return Bluebird.reject(error);
+			})
 	  ;
 	}
 
