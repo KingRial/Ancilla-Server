@@ -247,7 +247,7 @@ class OpenZWaveEndpoint extends Endpoint {
 			});
 			_oNode = _Endpoint.getNode( _iNodeID );
 		}
-		_oNode.addValue({
+		let _oValue = _oNode.addValue({
       sValueID: oValue.value_id,
       iNodeID: oValue.node_id,
       iClassID: oValue.class_id,
@@ -265,7 +265,6 @@ class OpenZWaveEndpoint extends Endpoint {
       fMax: oValue.max,
       value: oValue.value
 		});
-		let _oValue = _Endpoint.getNode( oValue.node_id ).getValue( oValue.value_id );
 		_Endpoint.debug( 'Node ID: "%s" -> Discovered value: "%s"', _oValue.getNodeID(), _oValue.getID() );
     _Endpoint.silly( 'Detailed value just discovered:', _oValue );
 	}

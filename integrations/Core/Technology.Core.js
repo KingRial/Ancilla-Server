@@ -668,7 +668,8 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 				if( _.isEmpty( _oTechnologyType ) ){
 					 _Core.error( 'Unknown technology type: "%s"', technology );
 				} else {
-					let _sTechonlogyPathFile = Path.basename( _oTechnologyType.path );
+					_Core.info( 'Starting technology "%s" ( %s ) using "%s"...', _oTechnology.name, technology, _oTechnologyType.language );
+					//let _sTechonlogyPathFile = Path.basename( _oTechnologyType.path );
 					let _sTechonlogyPathDir = Path.dirname( _oTechnologyType.path );
 					let _oArgs = _.extend( {
 						sID: _oTechnology.name,
@@ -690,15 +691,6 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 				        bIsAncilla: true
 				      };
 						}
-						// Checking supported technology script type
-						switch( _oTechnologyType.language ){
-						  case 'nodejs':
-						    _Core.info( 'Starting technology "%s" type: "%s"\n\tArguments: ', _oTechnology.name, _oTechnology.technology, _oArgs );
-						  break;
-						  default:
-						    _Core.error( 'Unable to start technology "%s" ( type: "%s", File: "%s", cwd: "%s" ). Script type "%s" is not supported by Core.', _oTechnology.name, _oTechnology.technology, _sTechonlogyPathFile, _sTechonlogyPathDir, _oTechnologyType.language );
-						  break;
-						}
 						// Creating new Process by technology ( if the current script type is supported )
 						switch( _oTechnologyType.language ){
 						  case 'nodejs':
@@ -716,8 +708,9 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 									}
 						    }
 						    // Spawning process
-								_Core.debug( 'Launching node process with following arguments: ', _aArgs );
+								_Core.debug( 'Launching node process with following command:\nnode %s', _aArgs.join(' ') );
 						    let _oProcess = ChildProcess.spawn( 'node', _aArgs );
+// TODO: should handle errors on starting process
 						    // Pi@ping process stdout/stderror to Core stdout/stderror
 						    _oProcess.stdout.pipe( process.stdout );
 						    _oProcess.stderr.pipe( process.stderr );

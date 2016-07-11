@@ -19,7 +19,7 @@
 */
 let _ = require('lodash');
 
-let AncillaObject = require('../../../lib/ancilla.js').Object;
+let Ancilla = require('../../../lib/ancilla.js');
 
 /**
  * A class to describe a Z-wave Value
@@ -34,7 +34,7 @@ let AncillaObject = require('../../../lib/ancilla.js').Object;
  * @example
  *		new Value();
  */
-class Value extends AncillaObject {
+class Value extends Ancilla.ObjectGeneric {
 	constructor( oOptions ){
 		// Default Options
 		oOptions = _.extend({

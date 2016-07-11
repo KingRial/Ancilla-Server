@@ -29,7 +29,7 @@ module.exports = {
           migration.sequelize.models.TECHNOLOGY_TYPE.create({
               type: 'Core',
               language: 'nodejs',
-              path: './integrations/Core/Technology.Core.node.js'
+              path: '../../integrations/Core/Technology.Core.js'
             }, {
               transaction: oTransaction
             }
@@ -45,7 +45,7 @@ module.exports = {
           .then( migration.sequelize.models.TECHNOLOGY_TYPE.create(  {
               type: 'Bridge',
               language: 'nodejs',
-              path: './integrations/Bridge/Technology.Bridge.node.js'
+              path: '../../integrations/Bridge/Technology.Bridge.js'
             }, {
               transaction: oTransaction
             })
@@ -54,7 +54,7 @@ module.exports = {
           .then( migration.sequelize.models.TECHNOLOGY_TYPE.create(  {
               type: 'Z-Wave',
               language: 'nodejs',
-              path: './integrations/Z-Wave/Technology.Z-Wave.node.js'
+              path: '../../integrations/Z-Wave/Technology.Z-Wave.js'
             }, {
               transaction: oTransaction
             })
