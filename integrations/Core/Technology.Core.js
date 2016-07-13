@@ -56,6 +56,7 @@ class Core extends Technology {
 			oDB: require( './DB/DB.js' ),
 			sDBModelsDir: 'DB/models/breeze',
 			iVersion: Constant._ANCILLA_CORE_VERSION,
+			bConnectToCore: true,
 			oEndpoints: {
 				'MQTT-broker': {
 					sType: 'server.mqtt',
@@ -74,13 +75,6 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 		        fCallback( null, true );
 		      }
 					*/
-				},
-				'Core': {
-					sType: 'client.mqtt',
-					oTopics: {
-						'api/v1': null  // TODO: should use constants when using an Ancilla's Endpoints with Topics ( will create a method to handle this feature automatically )
-					},
-					bIsAncilla: true
 				},
 				'web': {
 					sType: 'server.rest',
@@ -674,23 +668,11 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 					let _oArgs = _.extend( {
 						sID: _oTechnology.name,
 					  sCwd: _sTechonlogyPathDir,
-						oEndpoints: {}
+						sDebugLevel: _Core.getConfig().sDebugLevel,
+						bConnectToCore: true
 					}, JSON.parse( _oTechnology.options ) );
 					// Building Args to start process
 					if( !_Core.__getTechnologyPID( _oArgs.sID ) ){
-			      let _oCoreEndpoint = _Core.getEndpoints( 'Core' );
-						let _sCoreEndpointID = _oCoreEndpoint.getID();
-						if( _oArgs.oEndpoints[ _sCoreEndpointID ] ){
-							_Core.warn( 'Endpoint to "Ancilla Core" has already been configured on technology "%s"...',_oArgs.sID );
-						} else {
-				      _oArgs.oEndpoints[ _sCoreEndpointID ] = {
-				        sID: _sCoreEndpointID,
-				        sType: 'client.mqtt',
-				        sHost: _oCoreEndpoint.getHost(),
-				        iPort: _oCoreEndpoint.getPort(),
-				        bIsAncilla: true
-				      };
-						}
 						// Creating new Process by technology ( if the current script type is supported )
 						switch( _oTechnologyType.language ){
 						  case 'nodejs':
@@ -709,6 +691,7 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 						    }
 						    // Spawning process
 								_Core.debug( 'Launching node process with following command:\nnode %s', _aArgs.join(' ') );
+// TODO: should be able to decide if start a new process or a new singleton ( like technology manager class )
 						    let _oProcess = ChildProcess.spawn( 'node', _aArgs );
 // TODO: should handle errors on starting process
 						    // Pi@ping process stdout/stderror to Core stdout/stderror
@@ -745,16 +728,25 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 	*   Core.stopTechnology( 'Example-1' );
 	*/
 	stopTechnology( sTechnologyID ){
-	  let _Technology = this;
-	  return this.getTechnology( sTechnologyID ).stop()
-	    .then( function(){
-	      _Technology.__deleteTechnologyPID( sTechnologyID );
-	    })
-			.catch( function( error ){
-				_Technology.error( 'Failed to stop technology "%s" with error: ', sTechnologyID, error );
-				return Bluebird.reject(error);
-			})
-	  ;
+		// Stopping technology process
+		let _iPID = this.__getTechnologyPID( sTechnologyID );
+		if( _iPID ){
+			process.kill( _iPID );
+			this.__deleteTechnologyPID( sTechnologyID );
+			return Bluebird.resolve();
+		} else {
+			let _Technology = this;
+		  return this.getTechnology( sTechnologyID ).stop()
+		    .then( function(){
+//TODO: remove technology from memory
+		      //_Technology.__deleteTechnologyPID( sTechnologyID );
+		    })
+				.catch( function( error ){
+					_Technology.error( 'Failed to stop technology "%s" with error: ', sTechnologyID, error );
+					return Bluebird.reject(error);
+				})
+		  ;
+		}
 	}
 
 	/**

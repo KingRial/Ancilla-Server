@@ -45,16 +45,7 @@ class TechnologyCmdLine extends Technology {
 			sType: 'Technology.CmdLine',
 			bUseDB: false,
 			bUseLog: false,
-			oEndpoints: {
-				'Core': {
-					sType: 'client.mqtt',
-          //sURL: 'mqtt://test.mosquitto.org',
-					oTopics: {
-						'api/v1': null  // TODO: should use constants when using an Ancilla's Endpoints with Topics ( will create a method to handle this feature automatically )
-					},
-					bIsAncilla: true
-				}
-			}
+			bConnectToCore: true
 		}, oOptions );
 		// Calling inherited constructor
 		super( oOptions );
@@ -112,7 +103,7 @@ class TechnologyCmdLine extends Technology {
 						_CmdLine.trigger({
   						sType: 'technology',
   						sAction: _aText[ 1 ],
-  						sTechnologyID: _aText[ 2 ],
+  						sTechnologyID: _aText[ 2 ]
   					})
 							.then( function(){
 								_CmdLine.info( 'technology "%s" started', _aText[ 2 ] );
