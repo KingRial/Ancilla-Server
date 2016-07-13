@@ -25,21 +25,21 @@ module.exports = {
         id: 22,
         name: 'Environment One/B',
         type: 'GROUP',
-        widgetID: 2, // SELECT ID FROM WIDGET WHERE MODEL='widget.onoff'
+        value: '/runtime/grid',
         options: ''
       }) )
       .then( migration.sequelize.models.OBJECT.create({
         id: 23,
         name: 'Variable On/Off',
         type: 'VARIABLE',
-        widgetID: 3, // SELECT ID FROM WIDGET WHERE MODEL='widget.generic-input'
+        widgetID: 2, // SELECT ID FROM WIDGET WHERE MODEL='widget.onoff'
         options: ''
       }) )
       .then( migration.sequelize.models.OBJECT.create({
         id: 24,
         name: 'Variable Generic Input',
         type: 'VARIABLE',
-        value: '/runtime/grid',
+        widgetID: 3, // SELECT ID FROM WIDGET WHERE MODEL='widget.generic-input'
         options: ''
       }) )
       .then( migration.sequelize.models.OBJECT.create({

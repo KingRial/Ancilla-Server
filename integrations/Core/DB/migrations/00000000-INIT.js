@@ -41,6 +41,15 @@ module.exports = {
               transaction: oTransaction
             })
           )
+          // Adding Mock Technology Type
+          .then( migration.sequelize.models.TECHNOLOGY_TYPE.create(  {
+              type: 'Mock',
+              language: 'nodejs',
+              path: '../../integrations/Mock/Technology.Mock.js'
+            }, {
+              transaction: oTransaction
+            })
+          )
           // Adding Bridge Technology Type
           .then( migration.sequelize.models.TECHNOLOGY_TYPE.create(  {
               type: 'Bridge',
