@@ -55,9 +55,8 @@ class TechnologyBridge extends Technology {
 		//Executing custom onReady event actions
 		this.info( 'is ready to process...' );
 	}
-
-	//onData( oBuffer, oEndpoint, sSocketID ){
-	onData( oBuffer, oEndpoint ){
+	
+	onData( oEndpoint, oBuffer ){
 		let _Bridge = this;
 		let _oEndpoints = _Bridge.getEndpoints();
 		let _oCoreEnpoint = _Bridge.getCoreEndpoint();

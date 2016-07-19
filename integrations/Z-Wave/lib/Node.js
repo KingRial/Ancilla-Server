@@ -22,6 +22,12 @@ let _ = require('lodash');
 let Ancilla = require('../../../lib/ancilla.js');
 let Value = require('./Value.js');
 
+const NODE_STATUS_READY = 	'00001';
+const NODE_STATUS_SLEEP = 	'00010';
+const NODE_STATUS_NOP = 		'00100';
+const NODE_STATUS_TIMEOUT = '01000';
+const NODE_STATUS_DEAD = 		'10000';
+
 /**
  * A class to describe a Z-wave Node
  *
@@ -63,32 +69,52 @@ class Node extends Ancilla.ObjectGeneric {
 		return this.sName;
 	}
 
-	getStatus(){
-		return this.iStatus;
-	}
-
 	setAlive(){
-		this.iStatus = 0;
+		this.setStatus( 0 );
 	}
 
 	isAlive(){
-		return ( !this.isDead() ); // Mask: 100
+		return ( !this.isDead() );
 	}
 
 	setDead(){
-		this.iStatus = this.iStatus ^ 4; // Mask: 100
+		this.setStatusMask( NODE_STATUS_DEAD );
 	}
 
 	isDead(){
-		return ( this.iStatus & 4 ? true : false ); // Mask: 100
+		return this.checkStatusMask( NODE_STATUS_DEAD );
+	}
+
+	setAwake(){
+		this.setStatus( 0 );
+	}
+
+	isAwake(){
+		return ( !this.isSleep() );
+	}
+
+	setSleep(){
+		this.setStatusMask( NODE_STATUS_SLEEP );
+	}
+
+	isSleep(){
+		return this.checkStatusMask( NODE_STATUS_SLEEP );
+	}
+
+	setNop(){
+		this.setStatusMask( NODE_STATUS_NOP );
+	}
+
+	isNop(){
+		return this.checkStatusMask( NODE_STATUS_NOP );
 	}
 
 	setTimeout(){
-		this.iStatus = this.iStatus ^ 2; // Mask: 010
+		this.setStatusMask( NODE_STATUS_TIMEOUT );
 	}
 
-	isTimedOut(){
-		return ( this.iStatus & 2 ? true : false ); // Mask: 010
+	isTimeout(){
+		return this.checkStatusMask( NODE_STATUS_TIMEOUT );
 	}
 
 	setReady(){
@@ -96,7 +122,7 @@ class Node extends Ancilla.ObjectGeneric {
 	}
 
 	isReady(){
-		return ( this.iStatus & 1 ? false : true ); // Mask: 001
+		return this.checkStatusMask( NODE_STATUS_READY );
 	}
 
   update( oOptions ){

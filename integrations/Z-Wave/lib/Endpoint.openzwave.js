@@ -10,6 +10,16 @@ let Endpoint = require('../../../lib/ancilla.js').Endpoint;
 /**
  * A generic class to access openzwave library.
  *
+ * The endpoint will fire also the following custom events:
+ *  - "controller ready": when the controller is ready
+ *  - "controller error": when there is some kind of problems with the controller
+ *  - "controller pairing": when the pairing procedure has been started
+ *  - "controller unpairing": when the unpairing procedure has been started
+ *  - "node ready": when the node signals it is "ready", "awake" or "alive"
+ *  - "node sleep": when the node signals it is "sleeping"
+ *  - "node timeout": when the "timeout" or "nop" has been fired to contact a node
+ *  - "node dead": when the "dead" has been fired while trying to contac a node
+ *
  * @class	OpenZWaveEndpoint
  * @public
  *
@@ -29,7 +39,7 @@ class OpenZWaveEndpoint extends Endpoint {
 			//sUSBController: 'COM4',
       sNetworkKey: null,
       //sNetworkKey: "0xCA,0xFE,0xBA,0xBE,.... " // <16 bytes total>
-      //aEventsToShare: [ 'node available', 'node ready', 'node nop', 'node timeout', 'node dead', 'node alive' ]
+      aOfferedEvents: [ 'controller ready', 'controller error', 'controller pairing', 'controller unpairing', 'node ready', 'node sleep', 'node timeout', 'node dead' ]
     }, oOptions );
     super( oOptions );
     this.__oNodes = {};
@@ -57,10 +67,12 @@ class OpenZWaveEndpoint extends Endpoint {
    _oController.on('driver ready', function( sHomeID ){
      _Endpoint.setHomeID( sHomeID );
      _Endpoint.debug( 'Starting network scan...' );
+     _Endpoint.emit('controller ready');
    });
    _oController.on('driver failed', function( sHomeID ){
      _Endpoint.setHomeID( sHomeID );
      _Endpoint.error( 'Failed to start controller driver...' );
+     _Endpoint.emit('controller error');
    });
    // Node events
    _oController.on('node available', function( sNodeID, oNodeInfo ){
@@ -95,6 +107,14 @@ class OpenZWaveEndpoint extends Endpoint {
    });
    _oController.on('value changed', function( sNodeID, iClassID, oValue ){
      _Endpoint.debug( 'node ID: "%s" -> value ID: "%s" changed value to:', sNodeID, oValue.value_id, oValue.value );
+     // When the node has fired "timeout" and returns active, nothing tells it's ready; we are using "value changed" to set the correct status again
+     let _oNode = _Endpoint.getNode( sNodeID );
+     if( _oNode && _oNode.isTimeout() ){
+       _Endpoint.debug('Node ID: "%s" -> Ready ( there was a previous timeout )', sNodeID );
+       _oNode.setReady();
+       _Endpoint.emit( 'node ready', _oNode );
+     }
+     // Emitting data
      let _oValue = _Endpoint.getNode( oValue.node_id ).getValue( oValue.value_id );
      _oValue.set( oValue.value );
      _Endpoint.emit( 'data', _oValue, sNodeID );
@@ -121,15 +141,15 @@ class OpenZWaveEndpoint extends Endpoint {
      _Endpoint.debug( 'node ID: "%s" -> controller command:', sNodeID, iCtrlState, iCtrlError, sHelpMsg );
    });
    // Notification event
-   let _oNode = null;
    _oController.on('notification', function( sNodeID, iNotify ) {
+     let _oNode = null;
+     _oNode = _Endpoint.getNode( sNodeID );
      switch( iNotify ){
        case 0:
          _Endpoint.debug('Node ID: "%s" -> Message complete', sNodeID );
        break;
        case 1:
          _Endpoint.debug('Node ID: "%s" -> Timeout', sNodeID );
-         _oNode = _Endpoint.getNode( sNodeID );
          if( _oNode ){
            _oNode.setTimeout();
          }
@@ -137,29 +157,38 @@ class OpenZWaveEndpoint extends Endpoint {
        break;
        case 2:
          _Endpoint.debug('Node ID: "%s" -> Nop', sNodeID );
-         _oNode = _Endpoint.getNode( sNodeID );
          if( _oNode ){
-          _oNode.setTimeout();
+          _oNode.setNop();
          }
-         _Endpoint.emit( 'node nop', _oNode );
+         _Endpoint.emit( 'node timeout', _oNode );
        break;
        case 3:
          _Endpoint.debug('Node ID: "%s" -> Awake', sNodeID );
+         if( _oNode ){
+          _oNode.setAwake();
+         }
+         _Endpoint.emit( 'node ready', _oNode );
        break;
        case 4:
          _Endpoint.debug('Node ID: "%s" -> Sleep', sNodeID );
+         if( _oNode ){
+          _oNode.setSleep();
+         }
+         _Endpoint.emit( 'node sleep', _oNode );
        break;
        case 5:
          _Endpoint.debug('Node ID: "%s" -> Dead', sNodeID );
-         _oNode = _Endpoint.getNode( sNodeID );
-         _oNode.setDead();
-         _Endpoint.emit( 'node dead', _oNode );
+         if( _oNode ){
+           _oNode.setDead();
+           _Endpoint.emit( 'node dead', _oNode );
+         }
        break;
        case 6:
          _Endpoint.debug('Node ID: "%s" -> Alive', sNodeID );
-         _oNode = _Endpoint.getNode( sNodeID );
-         _oNode.setAlive();
-         _Endpoint.emit( 'node alive', _oNode );
+         if( _oNode ){
+           _oNode.setAlive();
+           _Endpoint.emit( 'node ready', _oNode );
+         }
        break;
      }
    });

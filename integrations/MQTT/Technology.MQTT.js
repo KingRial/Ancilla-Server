@@ -70,14 +70,9 @@ class TechnologyMQTT extends Technology {
 		} ), { sTopic: 'EVENT/MACHINE/SYNCH' } );
 	}
 
-	onData( oBuffer, oEndpoint, sTopic ){
+	onData( oEndpoint, oBuffer, sTopic ){
 		this.debug('Data received: "%s" from Endpoint: "%s" and topic "%s"...', oBuffer.toString(), oEndpoint.getID(), sTopic );
 	}
-/*
-	onDatagram( oDatagram, oParsedBuffer, oBuffer, oEndpoint, sSocketID ){
-		this.debug('Datagram received: "%s" from Endpoint: "%s" and socket ID "%s": "%s" parsed to...', oDatagram.getID(), oEndpoint.getID(), sSocketID, oBuffer.toString( 'hex' ), oParsedBuffer );
-	}
-*/
 }
 
 module.exports = new TechnologyMQTT().export( module );

@@ -64,7 +64,7 @@ class TechnologyCmdLine extends Technology {
 			sText = sText.replace(/(\r\n|\n|\r)/gm,'');
       if( sText ){
   			_CmdLine.debug( 'Read line: "%s"', sText );
-  			let _oEndpoint = _CmdLine.getEndpoint('mqtt-client');
+  			let _oEndpoint = _CmdLine.getCoreEndpoint();
   			let _aText = sText.split(' ');
   			let _sAction = _aText[ 0 ];
   			let _sTopic = Constant._API_CORE_TOPIC;
@@ -138,15 +138,9 @@ class TechnologyCmdLine extends Technology {
 		});
 	}
 
-	onData( oBuffer, oEndpoint, sTopic ){
+	onData( oEndpoint, oBuffer, sTopic ){
 		this.debug('Data received: "%s" from Endpoint: "%s" and topic "%s"...', oBuffer.toString(), oEndpoint.getID(), sTopic );
 	}
-
-	/*
-		onDatagram( oDatagram, oParsedBuffer, oBuffer, oEndpoint, sSocketID ){
-			this.debug('Datagram received: "%s" from Endpoint: "%s" and socket ID "%s": "%s" parsed to...', oDatagram.getID(), oEndpoint.getID(), sSocketID, oBuffer.toString( 'hex' ), oParsedBuffer );
-		}
-	*/
 
 }
 
