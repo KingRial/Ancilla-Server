@@ -25,9 +25,6 @@ class TechnologyZWave extends Ancilla.Technology {
 		oOptions = _.merge({
 			sID: 'ZWave-1',
 			sType: 'Technology.Z-Wave',
-			sUSBController: '/dev/ttyACM0',
-      //sUSBController: '\\\\.\\COM4',
-			//sUSBController: 'COM4',
 //TODO: re-enable DB
 			//bUseDB: true
 			oEndpoints: {
