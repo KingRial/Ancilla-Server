@@ -51,6 +51,7 @@ class TechnologyMQTT extends Technology {
 		// Current method
 		this.info( 'MQTT Technology is ready to process...');
 //TEST
+		/*
 		this.write( 'mqtt-client', 'Hello World!' );
 		this.write( 'mqtt-client', JSON.stringify( { name: 'Riccardo' } ), { sTopic: 'test' } ); // Publish on specific topic
 		this.write( 'mqtt-client', JSON.stringify({
@@ -68,6 +69,7 @@ class TechnologyMQTT extends Technology {
 		    "client_secret": "Dl@B$1K0n5eRv3R",
 				"Authorization": "Bearer 033a2b2fcbda8647220d11e237c2d5433b2dccc3"
 		} ), { sTopic: 'EVENT/MACHINE/SYNCH' } );
+		*/
 	}
 
 	onData( oEndpoint, oBuffer, sTopic ){
