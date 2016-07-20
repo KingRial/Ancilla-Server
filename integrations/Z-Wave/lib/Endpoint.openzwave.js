@@ -7,14 +7,24 @@ let Bluebird = require( 'bluebird' );
 let ZWaveNode = require('./Node.js');
 let Endpoint = require('../../../lib/ancilla.js').Endpoint;
 
+// TODO: revisit this status byte ( don't like how it's handled )
+const CONTROLLER_STATUS_READY =         '000001';
+const CONTROLLER_STATUS_INITIALIZING =  '000010';
+const CONTROLLER_STATUS_PAIRING =       '000100';
+const CONTROLLER_STATUS_COUPLING =      '001000';
+const CONTROLLER_STATUS_UNPAIRING =     '010000';
+const CONTROLLER_STATUS_DECOUPLING =    '100000';
+
 /**
  * A generic class to access openzwave library.
  *
  * The endpoint will fire also the following custom events:
- *  - "controller ready": when the controller is ready
+ *  - "controller ready": when the controller is ready and waiting to new commands
  *  - "controller error": when there is some kind of problems with the controller
  *  - "controller pairing": when the pairing procedure has been started
+ *  - "controller coupling": when the pairing procedure has found a node ad is collecting informations
  *  - "controller unpairing": when the unpairing procedure has been started
+ *  - "controller decoupling": when the unpairing procedure has found a node ad is removing informations
  *  - "node ready": when the node signals it is "ready", "awake" or "alive"
  *  - "node sleep": when the node signals it is "sleeping"
  *  - "node timeout": when the "timeout" or "nop" has been fired to contact a node
@@ -39,7 +49,7 @@ class OpenZWaveEndpoint extends Endpoint {
 			//sUSBController: 'COM4',
       sNetworkKey: null,
       //sNetworkKey: "0xCA,0xFE,0xBA,0xBE,.... " // <16 bytes total>
-      aOfferedEvents: [ 'controller ready', 'controller error', 'controller pairing', 'controller unpairing', 'node ready', 'node sleep', 'node timeout', 'node dead' ]
+      aOfferedEvents: [ 'controller ready', 'controller error', 'controller pairing', 'controller coupling', 'controller unpairing', 'controller decoupling', 'node ready', 'node sleep', 'node timeout', 'node dead' ]
     }, oOptions );
     super( oOptions );
     this.__oNodes = {};
@@ -60,6 +70,9 @@ class OpenZWaveEndpoint extends Endpoint {
     Logging: false,
     ConsoleOutput: false
   }, ( this.getConfig().sNetworkKey ? { NetworkKey: this.getConfig().sNetworkKey } : {} ));
+  // Initializing controller
+  this.setInitializing();
+  //
   let _oController = new OZW( _oOptions );
    this.setController( _oController );
    let _Endpoint = this;
@@ -67,12 +80,11 @@ class OpenZWaveEndpoint extends Endpoint {
    _oController.on('driver ready', function( sHomeID ){
      _Endpoint.setHomeID( sHomeID );
      _Endpoint.debug( 'Starting network scan...' );
-     _Endpoint.emit('controller ready');
    });
    _oController.on('driver failed', function( sHomeID ){
      _Endpoint.setHomeID( sHomeID );
      _Endpoint.error( 'Failed to start controller driver...' );
-     _Endpoint.emit('controller error');
+     _Endpoint.setError();
    });
    // Node events
    _oController.on('node available', function( sNodeID, oNodeInfo ){
@@ -87,12 +99,17 @@ class OpenZWaveEndpoint extends Endpoint {
     let _oNode = _Endpoint.getNode( sNodeID );
     _oNode.setReady();
     _Endpoint.emit( 'node ready', _oNode ); // All correct Infos
+    if( !_Endpoint.isInitializing() ){
+      _Endpoint.setReady();
+    }
    });
    _oController.on('node added', function( sNodeID ){
      _Endpoint.debug( 'Node ID: "%s" -> Added', sNodeID );
+     _Endpoint.setCoupling();
    } );
    _oController.on('node removed', function( sNodeID ){
      _Endpoint.debug( 'Node ID: "%s" -> Removed', sNodeID );
+     _Endpoint.setReady();
    } );
    _oController.on('node naming', function( sNodeID, oNodeInfo ){
      _Endpoint.debug( 'Node ID: "%s" -> Naming', sNodeID );
@@ -124,6 +141,7 @@ class OpenZWaveEndpoint extends Endpoint {
    });
    _oController.on('value removed', function( sNodeID, commandclass, iValueID ){
      _Endpoint.debug( 'node ID: "%s" -> value removed:', sNodeID, commandclass, iValueID );
+     _Endpoint.setDecoupling();
    });
    // Polling events
    _oController.on('polling enabled', function( sNodeID ){
@@ -202,6 +220,7 @@ class OpenZWaveEndpoint extends Endpoint {
        _Endpoint.info( 'Initial network scan completed' );
        //_aReadyPromises.push( _Endpoint.__updateStructureToDB() );
        //Bluebird.all( _aReadyPromises ).then(function(){
+        _Endpoint.setReady();
          fResolve();
        //});
      });
@@ -327,23 +346,26 @@ class OpenZWaveEndpoint extends Endpoint {
    bSecure = bSecure || false;
    let _Endpoint = this;
    let _oController = _Endpoint.getController();
-   let _fHandler = null;
+   let _fHandlerReady = null;
    return this.cancel()
     .then( function(){
       return new Bluebird(function( fResolve, fReject ){
+        // Remembering current command
         _Endpoint.__setCurrentCommand( fReject );
-        _fHandler = function( iNodeID ){
+        _Endpoint.info( 'Pairing %s network security...', ( bSecure ? 'WITH' : 'WITHOUT' ) );
+        // Should use "once" but the controller's library doesn't offer such method...
+        _fHandlerReady = function( iNodeID ){
           _Endpoint.info( 'Paired Node ID: "%s"', iNodeID );
           fResolve( iNodeID );
         };
-        _Endpoint.info( 'Pairing %s network security...', ( bSecure ? 'WITH' : 'WITHOUT' ) );
-      //TODO: should use "once" but the controller's library doesn't offer such method...
-        _oController.on('node ready', _fHandler );
+        _oController.on('node ready', _fHandlerReady );
+        // Starting pairing
         _oController.addNode( bSecure );
+        _Endpoint.setPairing();
       })
         .then( function( sNodeID ){
           _Endpoint.__clearCurrentCommand();
-          _oController.removeListener('node ready', _fHandler);
+          _oController.removeListener('node ready', _fHandlerReady);
           let _oNode = _Endpoint.getNode( sNodeID );
           return Bluebird.resolve( _oNode );
         })
@@ -366,22 +388,25 @@ class OpenZWaveEndpoint extends Endpoint {
  unpair(){
    let _Endpoint = this;
    let _oController = _Endpoint.getController();
-   let _fHandler = null;
+   let _fHandlerReady = null;
    return this.cancel()
     .then( function(){
        return new Bluebird(function( fResolve, fReject ){
+         // Remembering current command
          _Endpoint.__setCurrentCommand( fReject );
-         _fHandler = function( iNodeID ){
+         _Endpoint.info( 'Unpairing...' );
+         // Should use "once" but the controller's library doesn't offer such method...
+         _fHandlerReady = function( iNodeID ){
            _Endpoint.info( 'Unpaired Node ID: "%s"', iNodeID );
            fResolve( iNodeID );
          };
-         _Endpoint.info( 'Unpairing...' );
-    //TODO: should use "once" but the controller's library doesn't offer such method...
-         _oController.on('node removed', _fHandler );
+         _oController.on('node removed', _fHandlerReady );
+         // Starting unpair
          _oController.removeNode();
+         _Endpoint.setUnpairing();
        })
          .then( function( sNodeID ){
-           _oController.removeListener('node removed', _fHandler);
+           _oController.removeListener('node removed', _fHandlerReady );
            _Endpoint.__clearCurrentCommand();
            let _oNode = _Endpoint.getNode( sNodeID );
            _Endpoint.removeNode( sNodeID );
@@ -408,6 +433,7 @@ class OpenZWaveEndpoint extends Endpoint {
    let _oController = _Endpoint.getController();
    _Endpoint.__setCurrentCommand( null );
    _oController.cancelControllerCommand();
+   _Endpoint.setReady();
    _Endpoint.info( 'Cleared any controller command in progress...' );
    return Promise.resolve();
  }
@@ -526,6 +552,75 @@ class OpenZWaveEndpoint extends Endpoint {
      })
    ;
  }
+
+  setInitializing(){
+    this.setStatusMask( CONTROLLER_STATUS_INITIALIZING );
+  }
+
+  isInitializing(){
+    return this.checkStatusMask( CONTROLLER_STATUS_INITIALIZING );
+  }
+
+  setReady(){
+    let _bEmit = ( this.getStatus() !== parseInt( CONTROLLER_STATUS_READY, 2 ) ? true : false );
+    // Reinit status
+    this.setStatus( 0 );
+    this.setStatusMask( CONTROLLER_STATUS_READY );
+    if( _bEmit ){
+     this.emit('controller ready');
+    }
+  }
+
+  isReady(){
+    return this.checkStatusMask( CONTROLLER_STATUS_READY );
+  }
+
+  setError(){
+    this.unsetStatusMask( CONTROLLER_STATUS_READY );
+    this.emit('controller error');
+  }
+
+  setPairing(){
+    this.setStatusMask( CONTROLLER_STATUS_PAIRING );
+    this.emit('controller pairing');
+  }
+
+  isPairing(){
+    return this.checkStatusMask( CONTROLLER_STATUS_PAIRING );
+  }
+
+  setCoupling(){
+    let _bEmit = ( this.isCoupling() ? false : true );
+    this.setStatusMask( CONTROLLER_STATUS_COUPLING );
+    if( _bEmit ){
+      this.emit('controller coupling');
+    }
+  }
+
+  isCoupling(){
+    return this.checkStatusMask( CONTROLLER_STATUS_COUPLING );
+  }
+
+  setUnpairing(){
+    this.setStatusMask( CONTROLLER_STATUS_UNPAIRING );
+    this.emit('controller unpairing');
+  }
+
+  isUnpairing(){
+    return this.checkStatusMask( CONTROLLER_STATUS_UNPAIRING );
+  }
+
+  setDecoupling(){
+    let _bEmit = ( this.isDecoupling() ? false : true );
+    this.setStatusMask( CONTROLLER_STATUS_DECOUPLING );
+    if( _bEmit ){
+      this.emit('controller decoupling');
+    }
+  }
+
+  isDecoupling(){
+    return this.checkStatusMask( CONTROLLER_STATUS_DECOUPLING );
+  }
 
 }
 
