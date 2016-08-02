@@ -1,9 +1,10 @@
 "use strict";
+let url = require('url');
 
 let _ = require('lodash');
-let Bluebird = require('bluebird');
 
-let Technology = require('../../lib/ancilla.js').Technology;
+let Ancilla = require('../../lib/ancilla.js');
+let Technology = Ancilla.Technology;
 
 /**
  * A Technology used to connect to MQTT
@@ -15,6 +16,7 @@ let Technology = require('../../lib/ancilla.js').Technology;
  *
  * @example
  *		new TechnologyMQTT( { sID: 'MQTT-1' } );
+ *		node --harmony Technology.MQTT.js --url mqtt://foo:1883 --username foo --password foo --topic test/foo1,test/foo2
  *
  * @return	{Void}
  *
@@ -26,10 +28,9 @@ class TechnologyMQTT extends Technology {
 		oOptions = _.extend({
 			sID: 'MQTT-1',
 			sType: 'Technology.MQTT',
+			bUseDB: false,
+			bUseLog: false,
       oEndpoints: {
-				'mqtt-broker': {
-					sType: 'server.mqtt'
-				},
 				'mqtt-client': {
 					sType: 'client.mqtt',
 					//sURL: 'mqtt://test.mosquitto.org',
@@ -50,6 +51,17 @@ class TechnologyMQTT extends Technology {
 		super.onReady();
 		// Current method
 		this.info( 'MQTT Technology is ready to process...');
+		let _oEndpoint = this.getEndpoint('mqtt-client');
+		let _MQTT = this;
+		process.stdin.resume();
+	  process.stdin.setEncoding('utf8');
+	  process.stdin.on('data', function( sText ){
+			sText = sText.replace(/(\r\n|\n|\r)/gm,'');
+			if( sText ){
+				_MQTT.debug('Read string: ', sText );
+				_oEndpoint.write( new Buffer( sText ) );
+			}
+		});
 //TEST
 		/*
 		this.write( 'mqtt-client', 'Hello World!' );
@@ -74,6 +86,44 @@ class TechnologyMQTT extends Technology {
 
 	onData( oEndpoint, oBuffer, sTopic ){
 		this.debug('Data received: "%s" from Endpoint: "%s" and topic "%s"...', oBuffer.toString(), oEndpoint.getID(), sTopic );
+	}
+
+	/**
+	* Method called to transform args to technology's options
+	*
+	* @method    __argsToOptions
+	* @private
+	*
+	* @return	{Object}	The parsed technology's options
+	*
+	* @example
+	*   Technology.__argsToOptions();
+	*/
+	__argsToOptions() {
+		// Arguments
+		let _oArgs = this.getProcessArgs();
+		let _oTopics = {};
+		if( _oArgs.topic ){
+			let _aTopics = _oArgs.topic.split(',');
+			_aTopics.forEach( function( sTopic ){
+				_oTopics[ sTopic ] = null;
+			});
+		}
+		let _oURL = url.parse( _oArgs.url ) || {};
+		//let _sProcessName = Path.basename( oCurrentModule.filename );
+		let oOptions = _.extend( super.__argsToOptions(), {
+			oEndpoints: {
+				'mqtt-client': {
+					sProtocol: _oURL.protocol.replace(':',''),
+					sHost: _oURL.hostname,
+					iPort: _oURL.port,
+					sUsername: _oArgs.username,
+					sPassword: _oArgs.password,
+					oTopics: _oTopics
+				}
+			}
+		}, _oArgs );
+		return oOptions;
 	}
 }
 
