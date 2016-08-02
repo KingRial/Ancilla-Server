@@ -2,7 +2,8 @@
 
 let _ = require('lodash');
 
-let Technology = require('../../lib/ancilla.js').Technology;
+let Ancilla = require('../../lib/ancilla.js');
+let Technology = Ancilla.Technology;
 
 /**
  * A Technology used to create a MQTT broker
@@ -13,7 +14,7 @@ let Technology = require('../../lib/ancilla.js').Technology;
  * @param	{Object[]}		oOptions		A javascript object of options used to configure the technology behaviour
  *
  * @example
- *		new TechnologyMQTT( { sID: 'MQTT-1' } );
+ *		new TechnologyMQTT( { sID: 'MQTT-Broker-1' } );
  *
  * @return	{Void}
  *

@@ -81,14 +81,14 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 					bUseCors: true,
 					oRoutes: {
 						'all': {
-							'api/v1/oauth/token': ( oRequest, oResponse, next ) => this.getAuth().grant()( oRequest, oResponse, next )
+							'/api/v1/oauth/token': ( oRequest, oResponse, next ) => this.getAuth().grant()( oRequest, oResponse, next )
 						},
 						'get': {
-							'api/v1/breeze/:Metadata': [
+							'/api/v1/breeze/:Metadata': [
 								( oRequest, oResponse, next ) => this.getAuth().authorise()( oRequest, oResponse, next ),
 								( oRequest, oResponse, next ) => this.getDB().handleBreezeRequestMetadata( oRequest, oResponse, next )
 							],
-							'api/v1/breeze/:entity': [
+							'/api/v1/breeze/:entity': [
 								( oRequest, oResponse, next ) => this.getAuth().authorise()( oRequest, oResponse, next ),
 								( oRequest, oResponse, next ) => this.getDB().handleBreezeRequestEntity( oRequest, oResponse, next )
 							]
@@ -172,6 +172,7 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 	__mqttAuthenticate( oClient, sUsername, sPassword, fCallback ){
 		let _Core = this;
 		let _oAddress = oClient.connection.stream.address();
+//TODO: insert inside oClient the current access token/username to be able to handle authnetication	on publish/subscribe which will receive only the client object as arguments
 		if( _oAddress && _oAddress.address === '::ffff:127.0.0.1' ){
 			_Core.debug( 'MQTT client "%s" is local; ignoring authentication check...', oClient.id );
 			fCallback( null, true );
@@ -192,7 +193,7 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 			;
 		} else if( !sPassword && sUsername ){ // Grant Type "access token"
 			let _sAccessToken = sUsername.split(' ')[ 0 ];
-			_Core.__authGetAccessToken( _sAccessToken )
+			_Core.__authDBGetAccessToken( _sAccessToken )
 				.then(function( oToken ){
 					if( oToken ){
 						_Core.debug( 'MQTT client "%s"( %s ) is authorized using "access token" grant type...', oClient.id, _oAddress.address );
@@ -221,7 +222,7 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
     this.__oAuth = OAuth2Server({
       model: {
         getAccessToken: function( sAccessToken, fCallback ){
-          _Core.__authGetAccessToken( sAccessToken )
+          _Core.__authDBGetAccessToken( sAccessToken )
             .then(function( oToken ){
               if( oToken ){
                 fCallback( null, {
@@ -273,12 +274,12 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
           _Core.__authDBGetClient( sClientID, sClientSecret )
             .then(function( oClient ){
               if( oClient ){
-                return fCallback();
-              } else {
-                fCallback( null, {
+								fCallback( null, {
                   clientId: oClient.client_id,
                   clientSecret: oClient.client_secret
                 } );
+              } else {
+								fCallback();
               }
             })
             .catch(function(error){
@@ -433,7 +434,7 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 		let _Core = this;
 		// Sometime oUser is not an object... don't ask me why!
 		let _iUserID = ( typeof oUser === 'object' ? oUser.id : oUser );
-		_Core.getDBModel( 'OAUTH_ACCESS_TOKENS' )
+		return _Core.getDBModel( 'OAUTH_ACCESS_TOKENS' )
 			.create({
 				access_token: sAccessToken,
 				client_id: sClientID,
