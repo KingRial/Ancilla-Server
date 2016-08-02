@@ -97,14 +97,14 @@ class TechnologyMQTT extends Technology {
 				_oTopics[ sTopic ] = null;
 			});
 		}
-		let _oURL = url.parse( _oArgs.url ) || {};
+		let _oURL = url.parse( _oArgs.url || '' ) || {};
 		//let _sProcessName = Path.basename( oCurrentModule.filename );
 		let oOptions = _.extend( super.__argsToOptions(), {
 			oEndpoints: {
 				'mqtt-client': {
-					sProtocol: _oURL.protocol.replace(':',''),
-					sHost: _oURL.hostname,
-					iPort: _oURL.port,
+					sProtocol: ( _oURL.protocol ? _oURL.protocol.replace(':','') : 'mqtt' ),
+					sHost: ( _oURL.hostname ? _oURL.hostname : '127.0.0.1' ),
+					iPort: ( _oURL.port ? _oURL.port : 1883 ),
 					sUsername: _oArgs.username,
 					sPassword: _oArgs.password,
 					oTopics: _oTopics
