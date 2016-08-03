@@ -84,7 +84,7 @@ console.error( 'fAuthenticate: ', sUsername, sPassword );
 							'/api/v1/oauth/token': ( oRequest, oResponse, next ) => this.getAuth().grant()( oRequest, oResponse, next )
 						},
 						'get': {
-							'/api/v1/breeze/:Metadata': [
+							'/api/v1/breeze/Metadata': [
 								( oRequest, oResponse, next ) => this.getAuth().authorise()( oRequest, oResponse, next ),
 								( oRequest, oResponse, next ) => this.getDB().handleBreezeRequestMetadata( oRequest, oResponse, next )
 							],

@@ -138,8 +138,10 @@ class DBCore extends DB {
       // Preparing answer
       _sMetadata = JSON.stringify( _oMetadata );
       // Answering
+      _DB.silly( 'Answering Metadata: %s', _sMetadata );
       _DB.__answerBreezeRequest( oResponse, _sMetadata );
     } catch( e ){
+      _DB.error( 'Failed to share Metada: %s', e );
       next( e );
     }
   }
@@ -168,10 +170,14 @@ class DBCore extends DB {
 //TODO:
 console.error( 'TODO: USER Permissions Check on GET query' );
       let _oQuery = new BreezeSequelize.SequelizeQuery( _DB._oSequelizeManager, _oEntityQuery );
-      _oQuery.execute().then( function( results ){
+      _oQuery.execute()
+        .then( function( results ){
           _DB.__answerBreezeRequest( oResponse, results);
         })
-        .catch( next )
+        .catch( function(e){
+          _DB.error( 'Failed to handle breeze request entity "%s": %s', _sQueryURL, e );
+          next( e );
+        })
       ;
     }
   }
