@@ -73,7 +73,7 @@ class TechnologyMQTT extends Technology {
 	}
 
 	onData( oEndpoint, oBuffer, sTopic ){
-		this.debug('Data received: "%s" from Endpoint: "%s" and topic "%s"...', oBuffer.toString(), oEndpoint.getID(), sTopic );
+		this.info('Data received: "%s" from topic "%s"...', oBuffer.toString(), sTopic );
 	}
 
 	/**
