@@ -17,6 +17,7 @@ let Technology = Ancilla.Technology;
  * @example
  *		new TechnologyMQTT( { sID: 'MQTT-1' } );
  *		node --harmony Technology.MQTT.js --url mqtt://foo:1883 --username foo --password foo --topic test/foo1,test/foo2
+ *		node --harmony Technology.MQTT.js --url mqtt://foo:1883 --username foo --password foo --topic test/foo1,test/foo2 --certificate ./cert.pem --key ./cert.key --passphrase foo --ca ./ca.pem
  *
  * @return	{Void}
  *
@@ -107,7 +108,11 @@ class TechnologyMQTT extends Technology {
 					iPort: ( _oURL.port ? _oURL.port : 1883 ),
 					sUsername: _oArgs.username,
 					sPassword: _oArgs.password,
-					oTopics: _oTopics
+					oTopics: _oTopics,
+					sCert: _oArgs.certificate,
+		      sCertKey: _oArgs.key,
+		      sCertPassphrase: _oArgs.passphrase,
+		      sCA: _oArgs.ca,
 				}
 			}
 		}, _oArgs );
