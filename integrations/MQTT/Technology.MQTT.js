@@ -103,9 +103,9 @@ class TechnologyMQTT extends Technology {
 		let oOptions = _.extend( super.__argsToOptions(), {
 			oEndpoints: {
 				'mqtt-client': {
-					sProtocol: ( _oURL.protocol ? _oURL.protocol.replace(':','') : 'mqtt' ),
+					sProtocol: ( _oURL.protocol ? _oURL.protocol.replace(':','') : ( _oArgs.certificate && _oArgs.key ? 'mqtts' : 'mqtt' ) ),
 					sHost: ( _oURL.hostname ? _oURL.hostname : '127.0.0.1' ),
-					iPort: ( _oURL.port ? _oURL.port : 1883 ),
+					iPort: ( _oURL.port ? _oURL.port : ( _oArgs.certificate && _oArgs.key ? 8883 : 1883 ) ),
 					sUsername: _oArgs.username,
 					sPassword: _oArgs.password,
 					oTopics: _oTopics,
