@@ -42,7 +42,7 @@ class TechnologyMQTTBroker extends Technology {
 		// Calling inherited method
 		super.onReady();
 		// Current method
-		this.info( 'MQTT Broker Technology is ready to process on port "%s"...', this.getEndpoint('mqtt-broker').getPort() );
+		this.info( 'MQTT Broker Technology is ready to process on port "%s" %s...', this.getEndpoint('mqtt-broker').getPort(), ( this.getEndpoint('mqtt-broker').getConfig().bUseWS ? "( websocket active on next port )\" )" : "" ) );
 	}
 
 	onData( oEndpoint, oBuffer, sTopic ){
@@ -67,6 +67,7 @@ class TechnologyMQTTBroker extends Technology {
 		let oOptions = _.extend( super.__argsToOptions(), {
 			oEndpoints: {
 				'mqtt-broker': {
+					bUseWS: ( _oArgs.websocket ? true : false ),
 					iPort: ( _oArgs.port ? _oArgs.port : ( _oArgs.certificate && _oArgs.key ? 8883 : 1883 ) ),
 					sSSLCert: _oArgs.certificate,
 					sSSLKey: _oArgs.key,
