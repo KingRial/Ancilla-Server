@@ -112,7 +112,7 @@ class TechnologyMQTT extends Technology {
 					sCert: _oArgs.certificate,
 		      sCertKey: _oArgs.key,
 		      sCertPassphrase: _oArgs.passphrase,
-		      sCA: _oArgs.ca,
+		      aCA: ( _oArgs.ca ? _oArgs.ca.split(',') : null ),
 				}
 			}
 		}, _oArgs );

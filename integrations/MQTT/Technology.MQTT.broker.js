@@ -71,7 +71,7 @@ class TechnologyMQTTBroker extends Technology {
 					iPort: ( _oArgs.port ? _oArgs.port : ( _oArgs.certificate && _oArgs.key ? 8883 : 1883 ) ),
 					sSSLCert: _oArgs.certificate,
 					sSSLKey: _oArgs.key,
-					sSSLCA: _oArgs.ca,
+					aSSLCA: ( _oArgs.ca ? _oArgs.ca.split(',') : null ),
 				}
 			}
 		}, _oArgs );
