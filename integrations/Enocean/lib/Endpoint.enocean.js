@@ -1,5 +1,7 @@
 "use strict";
 
+let path = require('path');
+
 let ENOCEAN = require("node-enocean");
 let _ = require( 'lodash' );
 let Bluebird = require( 'bluebird' );
@@ -27,10 +29,10 @@ class EnoceanEndpoint extends Endpoint {
   constructor( oOptions ){
     oOptions = _.extend({
       //sUSBController: '/dev/ttyUSB0',
-      sUSBController: '\\\\.\\COM4',
+      sUSBController: '\\\\.\\COM3',
       sBaseAddress: null,
-      //sSensorFilePath: './enocean.sensor.json',
-      //sConfigFilePath: './enocean.config.json',
+      sSensorFilePath: path.join( process.cwd() ,'enocean.sensor.json' ),
+      sConfigFilePath: path.join( process.cwd(), 'enocean.config.json' ),
       iTimeout: 30
     }, oOptions );
     super( oOptions );
@@ -54,8 +56,8 @@ class EnoceanEndpoint extends Endpoint {
     //eepDesc
     //eepResolvers
     //emitters
-    //forgetMode
-    //learnMode
+    //forgetMode: 'on',
+    //learnMode: 'on',
     sensorFilePath: this.getConfig().sSensorFilePath,
     configFilePath: this.getConfig().sConfigFilePath,
     timeout: this.getConfig().iTimeout
@@ -123,6 +125,7 @@ class EnoceanEndpoint extends Endpoint {
   return new Bluebird( function( fResolve ){
     _Endpoint.debug( 'connecting to USB Enocean controller: "%s"', _Endpoint.getConfig().sUSBController );
     _oController.on( 'ready', function(){
+      _oController.startLearning();
       fResolve();
     });
   });

@@ -48,3 +48,5 @@ generate DOC.bat
 /integrations/iKon/*.log
 *.log
 /integrations/Core/*.gz
+integrations/Enocean/enocean.sensor.json
+integrations/Enocean/enocean.config.json
