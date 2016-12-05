@@ -1,0 +1,27 @@
+{
+  "name": "ancilla-integration-BLE",
+  "version": "0.0.1",
+  "description": "Ancilla project - BLE integration",
+  "keywords": [
+    "Domotique",
+    "Home automation",
+    "Supervisor",
+    "BLE"
+  ],
+  "homepage": "https://github.com/KingRial/Ancilla-Server",
+  "bugs": {
+    "url": "https://github.com/KingRial/Ancilla-Server/issues"
+  },
+  "license": "MIT",
+  "author": "Riccardo Re <kingrichard1980@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KingRial/Ancilla-Server"
+  },
+  "dependencies": {
+    "noble": "^1.7.0"
+  },
+  "scripts": {
+    "start": "node --harmony Technology.BLE.js"
+  }
+}

@@ -33,7 +33,7 @@ class EnoceanEndpoint extends Endpoint {
       sBaseAddress: null,
       sSensorFilePath: path.join( process.cwd() ,'enocean.sensor.json' ),
       sConfigFilePath: path.join( process.cwd(), 'enocean.config.json' ),
-      iTimeout: 30
+      iTimeout: 30000
     }, oOptions );
     super( oOptions );
     this.__oNodes = {};
@@ -57,7 +57,7 @@ class EnoceanEndpoint extends Endpoint {
     //eepResolvers
     //emitters
     //forgetMode: 'on',
-    //learnMode: 'on',
+    learnMode: 'on',
     sensorFilePath: this.getConfig().sSensorFilePath,
     configFilePath: this.getConfig().sConfigFilePath,
     timeout: this.getConfig().iTimeout
