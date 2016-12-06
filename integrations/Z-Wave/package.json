@@ -19,7 +19,7 @@
     "url": "https://github.com/KingRial/Ancilla-Server"
   },
   "dependencies": {
-    "openzwave-shared": "^1.2.0"
+    "openzwave-shared": "^1.2.2"
   },
   "scripts": {
     "start": "node --harmony Technology.Z-Wave.js"

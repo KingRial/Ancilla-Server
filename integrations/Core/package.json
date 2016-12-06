@@ -18,7 +18,7 @@
     "url": "https://github.com/KingRial/Ancilla-Server"
   },
   "dependencies": {
-    "breeze-sequelize": "^0.0.18",
+    "breeze-sequelize": "^0.1.0",
     "crypto": "0.0.3",
     "oauth2-server": "^2.4.1"
   }
