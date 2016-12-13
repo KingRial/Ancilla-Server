@@ -5,15 +5,15 @@ let _ = require('lodash');
 let Ancilla = require('../../lib/ancilla.js');
 
 /**
- * A Technology used to connect to Enocean
+ * A Technology used to connect to BLE
  *
- * @class	TechnologyEnocean
+ * @class	TechnologyBLE
  * @public
  *
  * @param	{Object[]}		oOptions		A javascript object of options used to configure the technology behaviour
  *
  * @example
- *		new TechnologyEnocean( { sID: 'Enocean-1' } );
+ *		new TechnologyBLE( { sID: 'BLE-1' } );
  *
  * @return	{Void}
  *
